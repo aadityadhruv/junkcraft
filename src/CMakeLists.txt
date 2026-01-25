@@ -1,1 +1,8 @@
-add_executable(junkcraft junkcraft.h junkcraft.c glad.c)
+add_executable(junkcraft 
+    junkcraft.c 
+    glad.c 
+    shader.c 
+    block.c 
+    util.c
+    window.c
+)
