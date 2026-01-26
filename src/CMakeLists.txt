@@ -5,4 +5,5 @@ add_executable(junkcraft
     block.c 
     util.c
     window.c
+    engine.c
 )

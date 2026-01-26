@@ -1,3 +1,4 @@
+#include "glad/glad.h"
 #include "shader.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +32,12 @@ GLuint compile_shader(GLuint type, const char* code) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &code, NULL);
     glCompileShader(shader);
+    GLint out;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &out);
+    if (out == GL_FALSE) {
+        fprintf(stderr, "Failed to compile shader: %s", code);
+        exit(1);
+    }
     return shader;
 }
 
@@ -52,12 +59,24 @@ GLuint create_shader_program(const char* vs, const char* fs) {
 }
 
 
-GLuint shader_init() {
+int shader_init(struct shader* shader) {
     char* shaders[2] = { "shaders/fragment.glsl", "shaders/vertex.glsl" };
     char* fragment_shader = read_shader(shaders[0]);
     char* vertex_shader = read_shader(shaders[1]);
     GLuint shader_program = create_shader_program(vertex_shader, fragment_shader);
     free(vertex_shader);
     free(fragment_shader);
-    return shader_program;
+    shader->program = shader_program;
+    return 0;
+}
+
+int set_uniform_mat4(char* var, struct shader* shader, mat4 matrix) {
+    GLuint loc = glGetUniformLocation(shader->program, var);
+    if (loc == -1) {
+        fprintf(stderr, "Invalid var %s for get_uniform_mat4: Does not exist\n", var);
+        exit(1);
+        return -1;
+    }
+    glUniformMatrix4fv(loc, 1, GL_FALSE, (void*)matrix);
+    return 0;
 }

@@ -1,5 +1,15 @@
+#pragma once
+#include "cglm/types.h"
 #include "glad/glad.h"
 
-//Load a vertex and framgent shader defined in 
-//the shaders/ directory. 
-GLuint shader_init();
+struct shader {
+    GLuint program; 
+};
+/*
+ *Load a vertex and framgent shader defined in the shaders/ directory. 
+ @param shader The shader struct to store the compiled program pointer in
+ @return zero on success
+ */
+int shader_init(struct shader* shader);
+
+int set_uniform_mat4(char* var, struct shader* shader, mat4 matrix);
