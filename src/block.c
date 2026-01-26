@@ -53,7 +53,13 @@ int block_init(vec3 pos, struct block* blk) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     // Set EBO to the vertex_order
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, blk->_ebo);
-
+    //NOTE: This is important, otherwise with multiple block_init calls, it
+    //creates a segfault since the bindings get all messed up. Why it gets
+    //messed up? Let's say we make 2 blocks. Block 1 creates VBOs, then VAO,
+    //then binds everything. Now VAO is still bound. Block 2 init starts. First
+    //call is create_vbo. Since VAO is already bound, it gets bound to the OLD
+    //VAO!! Always clear before use. 
+    glBindVertexArray(0);
     return 0;
 }
 
@@ -66,8 +72,9 @@ void block_update(struct block* blk) {
     vec3 rot_axis = { 1.0f, 1.0f, 0.0f };
     vec3 axis_y = { 0.0f, 1.0f, 0.0f };
     vec3 pivot = { 0.0f, 0.0f, 0.0f };
-    vec3 translation = { 0.0f, 0, -2.0f };
+    vec3 scale = { 0.25f, 0.25f, 0.25f };
     glm_translate(blk->model, blk->coords);
+    glm_scale(blk->model, scale);
     glm_rotate_at(blk->model, pivot, angle, rot_axis);
     // View matrix (camera)
     vec3 camera = { 0.0f, 0.0f, 2.0f };
@@ -98,7 +105,6 @@ int block_draw(struct block* blk, struct shader* shader) {
         1.0f, 1.0f,  0.0f, 
         0.0f, 1.0f,  1.0f, 
         1.0f, 0.0f,  1.0f, 
-
     };
     glUniform3fv(loc, 6, (void*)colors);
     glDrawElements(GL_TRIANGLES, blk->_vertex_count, GL_UNSIGNED_INT, 0);

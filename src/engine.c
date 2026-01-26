@@ -24,17 +24,23 @@ int engine_init(struct engine *engine) {
     engine->shader = shader;
 
     // Setup Objects to draw
-    struct block* blk = malloc(sizeof(struct block));
-    memset(blk, 0, sizeof(struct block));
-    vec3 pos = { 0, 0, -1.0f };
-    if (block_init(pos, blk) != 0) {
-        free(window);
-        free(shader);
-        free(blk);
-        return -1;
-    }
     vector_init(&engine->objects);
-    VECTOR_INSERT(engine->objects, (void*)blk);
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            fprintf(stderr, "Creating block %d\n", i + j);
+            struct block* blk = malloc(sizeof(struct block));
+            memset(blk, 0, sizeof(struct block));
+            vec3 pos = { 0.5f * ((float)i - 1), 0.5f * ((float)j - 1), 0.0f};
+            if (block_init(pos, blk) != 0) {
+                //TODO: Fix frees here
+                return -1;
+            }
+            fprintf(stderr, "Inserting block %d\n", i + j);
+            if (VECTOR_INSERT(engine->objects, (void*)blk) == -1) exit(1);
+            fprintf(stderr, "Done block %d\n", i + j);
+        }
+    }
 
     engine->game_loop = 1;
     return 0;
@@ -53,7 +59,7 @@ void engine_draw(struct engine* engine) {
         glEnable(GL_DEPTH_TEST);
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
         glUseProgram(engine->shader->program);
-        for (int i = 0; i < engine->objects->len; i++) {
+        for (int i = 0; i < vector_length(engine->objects); i++) {
             struct block* block = vector_get(engine->objects, i);
             block_draw(block, engine->shader);
         }

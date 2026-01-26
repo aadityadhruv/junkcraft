@@ -5,7 +5,6 @@
 
 struct block {
     vec3 coords; 
-    int type;
     GLuint _vao;
     GLuint _vbo;
     GLuint _ebo;
