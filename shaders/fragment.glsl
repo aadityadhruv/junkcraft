@@ -1,6 +1,6 @@
 #version 410 core
 out vec4 frag_colour;
-flat in vec3 color;
+uniform vec3 face_colors[6];
 void main() {
-  frag_colour = vec4( color, 1.0 );
+  frag_colour = vec4( face_colors[gl_PrimitiveID/2], 1.0 );
 };

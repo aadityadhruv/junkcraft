@@ -26,7 +26,7 @@ int engine_init(struct engine *engine) {
     // Setup Objects to draw
     struct block* blk = malloc(sizeof(struct block));
     memset(blk, 0, sizeof(struct block));
-    vec3 pos = { 0, 0, 0 };
+    vec3 pos = { 0, 0, -1.0f };
     if (block_init(pos, blk) != 0) {
         free(window);
         free(shader);

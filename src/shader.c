@@ -35,7 +35,9 @@ GLuint compile_shader(GLuint type, const char* code) {
     GLint out;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &out);
     if (out == GL_FALSE) {
-        fprintf(stderr, "Failed to compile shader: %s", code);
+        GLchar buf[100];
+        glGetShaderInfoLog(shader, 100, NULL, buf);
+        fprintf(stderr, "Failed to compile shader: %s\nLogs:\n%s\n", code, buf);
         exit(1);
     }
     return shader;

@@ -7,8 +7,7 @@ struct block {
     vec3 coords; 
     int type;
     GLuint _vao;
-    GLuint _vbo1;
-    GLuint _vbo2;
+    GLuint _vbo;
     GLuint _ebo;
     int _vertex_count;
     mat4 model;
