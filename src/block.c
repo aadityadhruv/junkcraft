@@ -1,6 +1,7 @@
 #include "cglm/cglm.h"
 #include "cglm/io.h"
 #include "cglm/util.h"
+#include "cglm/vec3.h"
 #include "math.h"
 #include "glad/glad.h"
 #include "block.h"
@@ -20,15 +21,15 @@ int block_init(vec3 pos, struct block* blk) {
     // ========== Constants of a block ================
     // Local world coordinates
     float vertices[] = {
-        0.5f,  0.5f,  0.5f, // top-right
-        -0.5f, 0.5f,  0.5f, // top-left
-        -0.5f, -0.5f,  0.5f, // bottom-left
-        0.5f, -0.5f,  0.5f, // bottom-right
+        1.0f, 1.0f, 0.0f, // top-right
+        0.0f, 1.0f, 0.0f, // top-left
+        0.0f, 0.0f, 0.0f, // bottom-left
+        1.0f, 0.0f, 0.0f, // bottom-right
 
-        0.5f,  0.5f,  -0.5f, // top-right (back plane)
-        -0.5f, 0.5f,  -0.5f, // top-left (back plane)
-        -0.5f, -0.5f, -0.5f, // bottom-left (back plane)
-        0.5f, -0.5f,  -0.5f, // bottom-right (back plane)
+        1.0f, 1.0f, -1.0f, // top-right (back plane)
+        0.0f, 1.0f, -1.0f, // top-left (back plane)
+        0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        1.0f, 0.0f, -1.0f, // bottom-right (back plane)
     };
     int vertex_order[] = {
         1, 2, 3,  3, 0, 1, // Front
