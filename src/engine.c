@@ -2,7 +2,11 @@
 #include "block.h"
 #include "chunk.h"
 #include "window.h"
+#include "world.h"
 #include <junk/vector.h>
+#include <time.h>
+
+void _engine_insert_chunk_ptrs(struct engine* engine, struct chunk* chunk);
 
 int engine_init(struct engine *engine) {
     // Setup the Window
@@ -27,9 +31,22 @@ int engine_init(struct engine *engine) {
     // Setup Objects to draw
     vector_init(&engine->objects);
     // Setup root chunk
-    struct chunk* chunk = malloc(sizeof(struct chunk));
-    chunk_gen(NULL, chunk);
-
+    struct world* world;
+    world_init(time(NULL), &world);
+    vec2 curr_chunk = { 0, 0 };
+    int chunk_distance = 2;
+    for (int i = 0; i < chunk_distance; i++) {
+        for (int j = 0; j  < chunk_distance; j++) {
+            struct chunk* chunk;
+            vec2 chunk_coord = { curr_chunk[0] + i, curr_chunk[1] + j };
+            world_get_chunk(world, chunk_coord, &chunk);
+            _engine_insert_chunk_ptrs(engine, chunk);
+        }
+    }
+    engine->game_loop = 1;
+    return 0;
+}
+void _engine_insert_chunk_ptrs(struct engine* engine, struct chunk* chunk) {
     int counter = 0;
     for (int i = 0; i < CHUNK_WIDTH; i++) {
         for (int j = 0; j < CHUNK_LENGTH; j++) {
@@ -44,9 +61,6 @@ int engine_init(struct engine *engine) {
             }
         }
     }
-
-    engine->game_loop = 1;
-    return 0;
 }
 
 void engine_draw(struct engine* engine) {
@@ -59,6 +73,7 @@ void engine_draw(struct engine* engine) {
             }
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.529f, 0.808f, 0.922f, 1.0f);
         glEnable(GL_DEPTH_TEST);
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
         glUseProgram(engine->shader->program);

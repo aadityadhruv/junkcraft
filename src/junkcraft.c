@@ -2,7 +2,6 @@
 #include <time.h>
 
 int main() {
-    srand(time(NULL));
     struct engine engine = { 0 };
     if (engine_init(&engine) != 0) {
         return -1;

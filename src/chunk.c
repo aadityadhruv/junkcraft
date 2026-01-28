@@ -17,10 +17,28 @@
 
 void _chunk_plains_gen(struct chunk* chunk);
 
-int chunk_gen(struct world* world, struct chunk *chunk) {
-    // struct chunk neighbor = {0};
+int chunk_gen(struct world* world, vec2 coord, struct chunk **chunk) {
+    *chunk = malloc(sizeof(struct chunk));
+    memcpy((*chunk)->coord,coord, sizeof(vec2));
+    // struct chunk* neighbor_top = { 0 };
+    // struct chunk* neighbor_bottom = { 0 };
+    // struct chunk* neighbor_left = { 0 };
+    // struct chunk* neighbor_right = { 0 };
+    // vec2 top = { 0, 1 };
+    // vec2 bottom = { 0, -1 };
+    // vec2 left = { -1, 0 };
+    // vec2 right = { 1, 0 };
+    // glm_vec2_add(top, coord, top);
+    // glm_vec2_add(bottom, coord, bottom);
+    // glm_vec2_add(left, coord, left);
+    // glm_vec2_add(right, coord, right);
+    // world_get_chunk(world, top, &neighbor_top);
+    // world_get_chunk(world, bottom, &neighbor_bottom);
+    // world_get_chunk(world, left, &neighbor_left);
+    // world_get_chunk(world, right, &neighbor_right);
+
     // world_get_chunk(world, chunk->coord, &neighbor);
-    _chunk_plains_gen(chunk);
+    _chunk_plains_gen(*chunk);
     // switch (chunk->biome) {
     //     case JUNK_BIOME_PLAINS:
     //         _
@@ -95,13 +113,11 @@ void _chunk_plains_gen(struct chunk* chunk) {
             int z_final = (z1 + z2) / 2;
             for (int h = 0; h < z_final; h++) {
                 struct block* blk = malloc(sizeof(struct block));
-                vec3 pos = {x, h, -y - 1};
+                // Adjust block coordinates with global chunk coordinates
+                vec3 pos = {x + (CHUNK_WIDTH * chunk->coord[0]), h, -y - 1 - (CHUNK_LENGTH * chunk->coord[1])};
                 block_init(pos, blk);
                 chunk->blocks[x][y][h] = blk;
             }
         }
     }
-    fprintf(stderr, "POI Coords\n");
-    glm_vec3_print(poi1, stderr);
-    glm_vec3_print(poi2, stderr);
 }
