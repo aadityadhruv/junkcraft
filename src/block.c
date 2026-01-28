@@ -1,3 +1,4 @@
+#include "cglm/cam.h"
 #include "cglm/cglm.h"
 #include "cglm/io.h"
 #include "cglm/util.h"
@@ -9,11 +10,13 @@
 #include "util.h"
 #include "block.h"
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
+void block_update(struct block* blk);
 int block_init(vec3 pos, struct block* blk) {
     // Store buffer data into struct
     // Initialize vbo and ebo for block
@@ -61,6 +64,7 @@ int block_init(vec3 pos, struct block* blk) {
     //call is create_vbo. Since VAO is already bound, it gets bound to the OLD
     //VAO!! Always clear before use. 
     glBindVertexArray(0);
+    block_update(blk);
     return 0;
 }
 
@@ -70,21 +74,22 @@ void block_update(struct block* blk) {
     // RTS matrix - rotate, translate, scale
     glm_mat4_identity(blk->model);
     float angle = glm_rad(blk->angle);
-    vec3 rot_axis = { 1.0f, 1.0f, 0.0f };
     vec3 axis_y = { 0.0f, 1.0f, 0.0f };
-    vec3 pivot = { 0.0f, 0.0f, 0.0f };
-    vec3 scale = { 0.25f, 0.25f, 0.25f };
+    vec3 scale = { 0.90f, 0.90f, 0.90f };
     glm_translate(blk->model, blk->coords);
     glm_scale(blk->model, scale);
-    glm_rotate_at(blk->model, pivot, angle, rot_axis);
+    // glm_rotate_at(blk->model, pivot, angle, rot_axis);
     // View matrix (camera)
-    vec3 camera = { 0.0f, 0.0f, 2.0f };
-    vec3 camera_direction = { 0.0f, 0.0f, -1.0f };
-    glm_look(camera, camera_direction, axis_y, blk->view);
+    vec3 camera = { 8.0f, 10.0f, 15.0f };
+    vec3 cam_pivot = { 8.0f, 0.0f, -8.0f };
+    vec3 camera_direction = { 0.0f, -1.0f, -5.0f };
+    //glm_look(camera, camera_direction, axis_y, blk->view);
+    glm_lookat(camera, cam_pivot, axis_y, blk->view);
+    glm_rotate_at(blk->view, cam_pivot, angle, axis_y);
     // Projection (perspective) matrix
     glm_perspective(glm_rad(45.0f), 800.0f / 600.0f, 0.1f, -10.0f, blk->perspective);
 
-    blk->angle = fmodf(blk->angle + 0.001f, 360.0f);
+    blk->angle = fmodf(blk->angle + 0.005f, 360.0f);
 }
 
 // Register block vbos and ebos to context
@@ -100,15 +105,28 @@ int block_draw(struct block* blk, struct shader* shader) {
         return -1;
     }
     float colors[] = {
-        1.0f, 0.0f,  0.0f, 
-        0.0f, 1.0f,  0.0f, 
-        0.0f, 0.0f,  1.0f, 
-        1.0f, 1.0f,  0.0f, 
-        0.0f, 1.0f,  1.0f, 
-        1.0f, 0.0f,  1.0f, 
+        0.761f, 0.424f,  0.0f, 
+        0.761f, 0.424f,  0.0f, 
+        0.761f, 0.424f,  0.0f, 
+        0.761f, 0.424f,  0.0f, 
+        0.404f, 0.776f,  0.027f, 
+        0.761f, 0.424f,  0.0f, 
     };
     glUniform3fv(loc, 6, (void*)colors);
     glDrawElements(GL_TRIANGLES, blk->_vertex_count, GL_UNSIGNED_INT, 0);
     block_update(blk);
     return 0;
+}
+
+void block_debug(struct block *blk) {
+    fprintf(stderr, "==== Block Debug ====\n");
+    fprintf(stderr, "==== Block Coords ====\n");
+    glm_vec3_print(blk->coords, stderr);
+    fprintf(stderr, "==== Block Model ====\n");
+    glm_mat4_print(blk->model, stderr);
+    fprintf(stderr, "==== Block View ====\n");
+    glm_mat4_print(blk->view, stderr);
+    fprintf(stderr, "==== Block Perspective ====\n");
+    glm_mat4_print(blk->perspective, stderr);
+
 }
