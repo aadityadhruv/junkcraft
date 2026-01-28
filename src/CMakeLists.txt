@@ -6,4 +6,5 @@ add_executable(junkcraft
     util.c
     window.c
     engine.c
+    chunk.c
 )

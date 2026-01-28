@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "block.h"
+#include "chunk.h"
 #include "window.h"
 #include <junk/vector.h>
 
@@ -25,20 +26,22 @@ int engine_init(struct engine *engine) {
 
     // Setup Objects to draw
     vector_init(&engine->objects);
+    // Setup root chunk
+    struct chunk* chunk = malloc(sizeof(struct chunk));
+    chunk_gen(NULL, chunk);
 
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            fprintf(stderr, "Creating block %d\n", i + j);
-            struct block* blk = malloc(sizeof(struct block));
-            memset(blk, 0, sizeof(struct block));
-            vec3 pos = { 0.5f * ((float)i - 1), 0.5f * ((float)j - 1), 0.0f};
-            if (block_init(pos, blk) != 0) {
-                //TODO: Fix frees here
-                return -1;
+    int counter = 0;
+    for (int i = 0; i < CHUNK_WIDTH; i++) {
+        for (int j = 0; j < CHUNK_LENGTH; j++) {
+            for (int k = 0; k < CHUNK_HEIGHT; k++) {
+                struct block* blk = chunk->blocks[i][j][k];
+                if (blk == NULL) {
+                    continue;
+                }
+                if (VECTOR_INSERT(engine->objects, (void*)blk) == -1) exit(1);
+                // block_debug(blk);
+                counter += 1;
             }
-            fprintf(stderr, "Inserting block %d\n", i + j);
-            if (VECTOR_INSERT(engine->objects, (void*)blk) == -1) exit(1);
-            fprintf(stderr, "Done block %d\n", i + j);
         }
     }
 
