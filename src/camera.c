@@ -2,6 +2,7 @@
 #include "cglm/cam.h"
 #include "cglm/io.h"
 #include "cglm/mat4.h"
+#include "cglm/util.h"
 #include "cglm/vec3.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +40,34 @@ void camera_update(struct camera* camera, struct shader* shader) {
     // glm_mat4_print(camera->perspective, stderr);
 }
 
-void camera_move(struct camera *camera, float *move) {
-    glm_vec3_add(camera->position, move, camera->position);
+void camera_move(struct camera *camera, enum DIRECTION move) {
+    vec3 unit_direction = { 0 };
+    glm_normalize_to(camera->direction, unit_direction);
+    if (move == FORWARD) {
+        // Do nothing, we move in unit_direction direction
+    } else if (move == BACKWARD) {
+        // Go in the reverse direction
+        vec3 neg = { -1.0f, -1.0f, -1.0f };
+        glm_vec3_mul(neg, unit_direction, unit_direction);
+    } else if (move == LEFT) {
+        // Right hand rule - this will be on the left (negative)
+        glm_vec3_crossn(camera->up, unit_direction, unit_direction);
+    } else if (move == RIGHT) {
+        // Right hand rule - this will be on the righ (positive)
+        glm_vec3_crossn(unit_direction, camera->up, unit_direction);
+    }
+    float scale = 0.3f;
+    glm_vec3_scale(unit_direction, scale, unit_direction);
+    glm_vec3_add(camera->position, unit_direction, camera->position);
+}
+
+void camera_rotate(struct camera* camera, vec2 offset) {
+    vec3 axis = { 0 };
+    float rot_angle = glm_rad(1);
+    glm_vec3_crossn(camera->direction, camera->up, axis);
+    // Up and down rotation (pitch)
+    glm_vec3_rotate(camera->direction, -rot_angle * offset[1], axis);
+    // Left and right rotation (yaw)
+    glm_vec3_rotate(camera->direction, -rot_angle * offset[0], camera->up);
+
 }
