@@ -6,6 +6,7 @@ struct engine {
     struct window* window;
     struct shader* shader;
     struct vector* objects;
+    struct camera* camera;
     int game_loop;
 };
 

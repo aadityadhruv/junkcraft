@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "block.h"
+#include "camera.h"
 #include "chunk.h"
 #include "input.h"
 #include "window.h"
@@ -44,6 +45,14 @@ int engine_init(struct engine *engine) {
             _engine_insert_chunk_ptrs(engine, chunk);
         }
     }
+
+
+    // Setup camera
+    camera_init(&engine->camera);
+    vec3 camera_pos = { 10.0f, 10.0f, 15.0f };
+    camera_set_position(engine->camera, camera_pos);
+
+    // Final step - Start the game
     engine->game_loop = 1;
     return 0;
 }
@@ -73,6 +82,7 @@ void engine_draw(struct engine* engine) {
         glUseProgram(engine->shader->program);
         for (int i = 0; i < vector_length(engine->objects); i++) {
             struct block* block = vector_get(engine->objects, i);
+            camera_update(engine->camera, engine->shader);
             block_draw(block, engine->shader);
         }
         SDL_RenderPresent(engine->window->renderer);

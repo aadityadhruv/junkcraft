@@ -7,8 +7,9 @@ int world_init(int32_t seed, struct world** world) {
     struct world* wld = malloc(sizeof(struct world));
     memset(wld, 0, sizeof(struct world));
     wld->seed = seed;
-    for (int i = 0; i < WORLD_WIDTH; i++) {
-        for (int j = 0; j < WORLD_LENGTH; j++) {
+    //TODO: Improve loading here
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
             struct chunk* chunk;
             vec2 coords = { i, j };
             chunk_gen(wld, coords, &chunk);

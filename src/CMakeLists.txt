@@ -9,4 +9,5 @@ add_executable(junkcraft
     chunk.c
     world.c
     input.c
+    camera.c
 )

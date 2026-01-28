@@ -10,8 +10,6 @@ struct block {
     GLuint _ebo;
     int _vertex_count;
     mat4 model;
-    mat4 view;
-    mat4 perspective;
     float angle;
 };
 int block_init(vec3 pos, struct block* blk);

@@ -74,30 +74,18 @@ void block_update(struct block* blk) {
     // RTS matrix - rotate, translate, scale
     glm_mat4_identity(blk->model);
     float angle = glm_rad(blk->angle);
-    vec3 axis_y = { 0.0f, 1.0f, 0.0f };
     vec3 scale = { 0.90f, 0.90f, 0.90f };
     glm_translate(blk->model, blk->coords);
     glm_scale(blk->model, scale);
     // glm_rotate_at(blk->model, pivot, angle, rot_axis);
     // View matrix (camera)
-    vec3 camera = { 8.0f, 10.0f, 15.0f };
-    vec3 cam_pivot = { 8.0f, 0.0f, -8.0f };
-    vec3 camera_direction = { 0.0f, -1.0f, -5.0f };
-    //glm_look(camera, camera_direction, axis_y, blk->view);
-    glm_lookat(camera, cam_pivot, axis_y, blk->view);
-    glm_rotate_at(blk->view, cam_pivot, angle, axis_y);
-    // Projection (perspective) matrix
-    glm_perspective(glm_rad(45.0f), 800.0f / 600.0f, 0.1f, -10.0f, blk->perspective);
-
-    blk->angle = fmodf(blk->angle + 0.005f, 360.0f);
+    //blk->angle = fmodf(blk->angle + 0.005f, 360.0f);
 }
 
 // Register block vbos and ebos to context
 int block_draw(struct block* blk, struct shader* shader) {
     glBindVertexArray(blk->_vao);
     set_uniform_mat4("model", shader, blk->model);
-    set_uniform_mat4("view", shader, blk->view);
-    set_uniform_mat4("perspective", shader, blk->perspective);
     GLuint loc = glGetUniformLocation(shader->program, "face_colors");
     if (loc == -1) {
         fprintf(stderr, "Invalid var %s for get_uniform_mat4: Does not exist\n", "face_colors");
@@ -124,9 +112,5 @@ void block_debug(struct block *blk) {
     glm_vec3_print(blk->coords, stderr);
     fprintf(stderr, "==== Block Model ====\n");
     glm_mat4_print(blk->model, stderr);
-    fprintf(stderr, "==== Block View ====\n");
-    glm_mat4_print(blk->view, stderr);
-    fprintf(stderr, "==== Block Perspective ====\n");
-    glm_mat4_print(blk->perspective, stderr);
 
 }
