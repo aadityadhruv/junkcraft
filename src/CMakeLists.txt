@@ -8,4 +8,5 @@ add_executable(junkcraft
     engine.c
     chunk.c
     world.c
+    input.c
 )

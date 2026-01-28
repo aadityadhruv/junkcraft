@@ -1,6 +1,7 @@
 #include "engine.h"
 #include "block.h"
 #include "chunk.h"
+#include "input.h"
 #include "window.h"
 #include "world.h"
 #include <junk/vector.h>
@@ -65,13 +66,6 @@ void _engine_insert_chunk_ptrs(struct engine* engine, struct chunk* chunk) {
 
 void engine_draw(struct engine* engine) {
     while (engine->game_loop) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            // Quit game
-            if (event.type == SDL_QUIT) {
-                engine->game_loop = 0;
-            }
-        }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.529f, 0.808f, 0.922f, 1.0f);
         glEnable(GL_DEPTH_TEST);
