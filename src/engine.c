@@ -49,7 +49,7 @@ int engine_init(struct engine *engine) {
 
     // Setup camera
     camera_init(&engine->camera);
-    vec3 camera_pos = { 10.0f, 10.0f, 15.0f };
+    vec3 camera_pos = { 0.0f, 5.0f, -0.0f };
     camera_set_position(engine->camera, camera_pos);
 
     // Final step - Start the game
@@ -66,7 +66,6 @@ void _engine_insert_chunk_ptrs(struct engine* engine, struct chunk* chunk) {
                     continue;
                 }
                 if (VECTOR_INSERT(engine->objects, (void*)blk) == -1) exit(1);
-                // block_debug(blk);
                 counter += 1;
             }
         }

@@ -114,7 +114,7 @@ void _chunk_plains_gen(struct chunk* chunk) {
             for (int h = 0; h < z_final; h++) {
                 struct block* blk = malloc(sizeof(struct block));
                 // Adjust block coordinates with global chunk coordinates
-                vec3 pos = {x + (CHUNK_WIDTH * chunk->coord[0]), h, -y - 1 - (CHUNK_LENGTH * chunk->coord[1])};
+                vec3 pos = {x + (CHUNK_WIDTH * chunk->coord[0]), h, -y - (CHUNK_LENGTH * chunk->coord[1])};
                 block_init(pos, blk);
                 chunk->blocks[x][y][h] = blk;
             }
