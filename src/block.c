@@ -25,36 +25,93 @@ int block_init(vec3 pos, struct block* blk) {
     // Local world coordinates
     float vertices[] = {
         1.0f, 1.0f, 0.0f, // top-right
+        0.0f, 0.0f, 1.0f, // Front
         0.0f, 1.0f, 0.0f, // top-left
+        0.0f, 0.0f, 1.0f, // Front
         0.0f, 0.0f, 0.0f, // bottom-left
+        0.0f, 0.0f, 1.0f, // Front
         1.0f, 0.0f, 0.0f, // bottom-right
+        0.0f, 0.0f, 1.0f, // Front
 
         1.0f, 1.0f, -1.0f, // top-right (back plane)
+        0.0f, 0.0f, -1.0f, // Back
         0.0f, 1.0f, -1.0f, // top-left (back plane)
+        0.0f, 0.0f, -1.0f, // Back
         0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        0.0f, 0.0f, -1.0f, // Back
         1.0f, 0.0f, -1.0f, // bottom-right (back plane)
+        0.0f, 0.0f, -1.0f, // Back
+
+        1.0f, 1.0f, -1.0f, // top-right (back plane)
+        1.0f, 0.0f, 0.0f, // Right
+        1.0f, 1.0f, 0.0f, // top-right
+        1.0f, 0.0f, 0.0f, // Right
+        1.0f, 0.0f, 0.0f, // bottom-right
+        1.0f, 0.0f, 0.0f, // Right
+        1.0f, 0.0f, -1.0f, // bottom-right (back plane)
+        1.0f, 0.0f, 0.0f, // Right
+
+        0.0f, 1.0f, 0.0f, // top-left
+        -1.0f, 0.0f, 0.0f, // Left
+        0.0f, 1.0f, -1.0f, // top-left (back plane)
+        -1.0f, 0.0f, 0.0f, // Left
+        0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        -1.0f, 0.0f, 0.0f, // Left
+        0.0f, 0.0f, 0.0f, // bottom-left
+        -1.0f, 0.0f, 0.0f, // Left
+
+        1.0f, 1.0f, -1.0f, // top-right (back plane)
+        0.0f, 1.0f, 0.0f, // Top
+        0.0f, 1.0f, -1.0f, // top-left (back plane)
+        0.0f, 1.0f, 0.0f, // Top
+        0.0f, 1.0f, 0.0f, // top-left
+        0.0f, 1.0f, 0.0f, // Top
+        1.0f, 1.0f, 0.0f, // top-right
+        0.0f, 1.0f, 0.0f, // Top
+
+        1.0f, 0.0f, -1.0f, // bottom-right (back plane)
+        0.0f, -1.0f, 0.0f, // Bottom
+        0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        0.0f, -1.0f, 0.0f, // Bottom
+        0.0f, 0.0f, 0.0f, // bottom-left
+        0.0f, -1.0f, 0.0f, // Bottom
+        1.0f, 0.0f, 0.0f, // bottom-right
+        0.0f, -1.0f, 0.0f, // Bottom
     };
+    // int vertex_order[] = {
+    //     1, 2, 3,  3, 0, 1, // Front
+    //     5, 6, 7,  7, 4, 5, // Back
+    //     9, 10, 11, 11, 8, 9, // Right
+    //     13, 14, 15,   15, 12, 13, // Left
+    //     17, 18, 19,   19, 16, 17, // Top
+    //     21, 22, 23,   23, 20, 21, // Bottom
+    //
+    // };
     int vertex_order[] = {
-        1, 2, 3,  3, 0, 1, // Front
-        5, 6, 7,  7, 4, 5, // Back
-        0, 3, 7,  7, 4, 0, // Right
-        1, 2, 6,  6, 5, 1, // Left
-        5, 1, 0,  0, 4, 5, // Top
-        6, 2, 3,  3, 7, 6, // Bottom
+        1, 2, 3,   3, 0, 1, // Front
+        5, 6, 7,   7, 4, 5, // Back
+        9, 10, 11, 11, 8, 9, // Right
+        13, 14, 15,   15, 12, 13, // Left
+        17, 18, 19,   19, 16, 17, // Top
+        21, 22, 23,   23, 20, 21, // Bottom
     };
 
     // ================ OpenGL work ================
     create_vbo(&blk->_vbo, (void*)vertices, sizeof(float) * ARRAY_SIZE(vertices));
     create_ebo(&blk->_ebo, (void*)vertex_order, sizeof(int) * ARRAY_SIZE(vertex_order));
 
+
     blk->_vertex_count = ARRAY_SIZE(vertex_order);
     glGenVertexArrays(1, &blk->_vao);
     glBindVertexArray(blk->_vao);
-    // Enable 2 attribs - position
+    // Enable 2 attribs - position and normals
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
     // set vao_buffer to pos buffer obj
     glBindBuffer(GL_ARRAY_BUFFER, blk->_vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
+    // set vao_buffer to normals buffer obj
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (GLvoid*)(3*sizeof(float)));
     // Set EBO to the vertex_order
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, blk->_ebo);
     //NOTE: This is important, otherwise with multiple block_init calls, it
@@ -76,7 +133,7 @@ void block_update(struct block* blk) {
     float angle = glm_rad(blk->angle);
     vec3 scale = { 0.90f, 0.90f, 0.90f };
     glm_translate(blk->model, blk->coords);
-    glm_scale(blk->model, scale);
+    // glm_scale(blk->model, scale);
     // glm_rotate_at(blk->model, pivot, angle, rot_axis);
     // View matrix (camera)
     //blk->angle = fmodf(blk->angle + 0.005f, 360.0f);

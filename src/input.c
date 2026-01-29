@@ -49,7 +49,6 @@ void input_handle(struct engine *engine) {
             int y;
             SDL_GetRelativeMouseState(&x, &y);
             if (x != 0 || y != 0) {
-            fprintf(stderr, "X: %d, Y %d\n", x, y);
             vec2 offset = { x, y };
             camera_rotate(engine->camera, offset);
             }

@@ -49,7 +49,7 @@ int engine_init(struct engine *engine) {
 
     // Setup camera
     camera_init(&engine->camera);
-    vec3 camera_pos = { 0.0f, 5.0f, -0.0f };
+    vec3 camera_pos = { 0.0f, 5.0f, 0.0f };
     camera_set_position(engine->camera, camera_pos);
 
     // Final step - Start the game
