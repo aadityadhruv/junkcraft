@@ -22,6 +22,31 @@ struct chunk {
     vec2 coord;
 };
 
+/**
+ * Generate a chunk at coords for the given world. Memory allocation for chunk is
+ * handled by the function.
+ *
+ */
 int chunk_gen(struct world* wld, vec2 coord, struct chunk** chunk);
-int chunk_gen_structures(void* neighbor_data, struct chunk* chunk);
-int chunk_gen_terrain(void* neighbor_data, struct chunk* chunk);
+/**
+ * Load a chunk to the given coordinates. Essentially, a chunk only knows of
+ * it's local coordinate system. We want to load this particular chunk to a
+ * location in WORLD coordinates, which is what coord is. This vec2 will be
+ * used to translate the blocks that constitute the chunk
+ * @param chunk Chunk to load
+ * @param coord coordinates in world space
+ */
+void chunk_load(struct chunk* chunk, int coord[2]);
+/**
+ * Unload a chunk. Delete GPU data, not the chunk data itself
+ *
+ * @param chunk Chunk to load
+ */
+void chunk_unload(struct chunk* chunk);
+/*
+ * Similar to block_draw, this dispatches calls to OpenGL to draw the chunk.
+ * Technically this wraps block_draw, so block_draw is the one doing all the work
+ * @param chunk Chunk to draw
+ * @param shader Shader to pass to block_draw
+ */
+void chunk_draw(struct chunk* chunk, struct shader* shader);

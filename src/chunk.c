@@ -1,15 +1,9 @@
 #include "chunk.h"
 #include "block.h"
-#include "cglm/io.h"
-#include "cglm/util.h"
-#include "cglm/vec2.h"
-#include "cglm/vec3.h"
 #include "world.h"
-#include <math.h>
-#include <stdio.h>
+#include "cglm/cglm.h"
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 
 #define MIN(x, y) (x < y) ? x : y
@@ -103,8 +97,8 @@ void _chunk_plains_gen(struct chunk* chunk) {
     vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
     vec3 poi2 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, -poi_min + (rand() % (poi_max - poi_min))};
     
-    for (int x = 0; x < CHUNK_LENGTH; x++) {
-        for (int y = 0; y < CHUNK_WIDTH; y++) {
+    for (int x = 0; x < CHUNK_WIDTH; x++) {
+        for (int y = 0; y < CHUNK_LENGTH; y++) {
             // Minimum z height
             // Interpolation formula - simple linear
             vec2 target = { x, y };
@@ -114,10 +108,50 @@ void _chunk_plains_gen(struct chunk* chunk) {
             for (int h = 0; h < z_final; h++) {
                 struct block* blk = malloc(sizeof(struct block));
                 // Adjust block coordinates with global chunk coordinates
-                vec3 pos = {x + (CHUNK_WIDTH * chunk->coord[0]), h, -y - (CHUNK_LENGTH * chunk->coord[1])};
+                vec3 pos = {x, h, -y };
                 block_init(pos, blk);
                 chunk->blocks[x][y][h] = blk;
             }
         }
     }
+}
+
+
+// Kind of like the block_update of chunks
+void chunk_load(struct chunk *chunk, int coord[2]) {
+    vec3 translation = {CHUNK_WIDTH * coord[0], 0, - (CHUNK_LENGTH * coord[1])};
+    for (int x = 0; x < CHUNK_WIDTH; x++) {
+        for (int y = 0; y < CHUNK_HEIGHT; y++) {
+            for (int z = 0; z < CHUNK_LENGTH; z++) {
+                struct block* blk = chunk->blocks[x][z][y];
+                if (blk != NULL) {
+                // Translate to world coordinates
+                // First do block updates, set the position of the block in local 
+                // chunk coordinates
+                 block_update(blk);
+                 // Then translate them to world coordinates
+                 glm_translate(blk->model, translation);
+                }
+            }
+        }
+    }
+}
+
+void chunk_draw(struct chunk* chunk, struct shader* shader) {
+    int counter = 0;
+    for (int i = 0; i < CHUNK_WIDTH; i++) {
+        for (int j = 0; j < CHUNK_LENGTH; j++) {
+            for (int k = 0; k < CHUNK_HEIGHT; k++) {
+                struct block* blk = chunk->blocks[i][j][k];
+                if (blk == NULL) {
+                    continue;
+                }
+                block_draw(blk, shader);
+                counter += 1;
+            }
+        }
+    }
+}
+
+void chunk_unload(struct chunk* chunk) {
 }

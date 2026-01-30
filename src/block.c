@@ -1,3 +1,4 @@
+#include "cglm/affine.h"
 #include "cglm/cam.h"
 #include "cglm/cglm.h"
 #include "cglm/io.h"
@@ -131,7 +132,7 @@ void block_update(struct block* blk) {
     // RTS matrix - rotate, translate, scale
     glm_mat4_identity(blk->model);
     float angle = glm_rad(blk->angle);
-    vec3 scale = { 0.90f, 0.90f, 0.90f };
+    // vec3 scale = { 0.90f, 0.90f, 0.90f };
     glm_translate(blk->model, blk->coords);
     // glm_scale(blk->model, scale);
     // glm_rotate_at(blk->model, pivot, angle, rot_axis);
@@ -159,7 +160,7 @@ int block_draw(struct block* blk, struct shader* shader) {
     };
     glUniform3fv(loc, 6, (void*)colors);
     glDrawElements(GL_TRIANGLES, blk->_vertex_count, GL_UNSIGNED_INT, 0);
-    block_update(blk);
+    glBindVertexArray(0);
     return 0;
 }
 
