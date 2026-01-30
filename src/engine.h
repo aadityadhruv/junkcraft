@@ -29,8 +29,8 @@ int engine_init(struct engine* engine);
 
 /**
  * Take all objects in the engine, apply the shader pipeline and draw on the window
- * Event handling is also processed here, though should maybe moved to a separate thread
+ * Apply block, chunk and camera updates as well. This is the main game loop
  *
  * @param engine The target engine
  */
-void engine_draw(struct engine* engine);
+void engine_start(struct engine* engine);

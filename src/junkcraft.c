@@ -9,7 +9,7 @@ int main() {
         return -1;
     }
     pthread_t input_thread = input_init(&engine);
-    engine_draw(&engine);
+    engine_start(&engine);
     input_join(input_thread, &engine);
     window_cleanup(engine.window);
     return 0;

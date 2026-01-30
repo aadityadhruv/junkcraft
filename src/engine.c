@@ -82,7 +82,7 @@ void engine_update(struct engine* engine) {
     }
 }
 
-void engine_draw(struct engine* engine) {
+void engine_start(struct engine* engine) {
     while (engine->game_loop) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.529f, 0.808f, 0.922f, 1.0f);
