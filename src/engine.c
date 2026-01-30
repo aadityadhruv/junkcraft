@@ -6,7 +6,10 @@
 #include "input.h"
 #include "window.h"
 #include "world.h"
+#include <SDL2/SDL_render.h>
+#include <bits/types/timer_t.h>
 #include <junk/vector.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
@@ -73,7 +76,8 @@ void engine_update(struct engine* engine) {
                 int real_coord[2] = { i + CHUNK_DISTANCE, j + CHUNK_DISTANCE };
                 // engine->loaded_chunks[real_coord[0]][real_coord[1]] = chunk;
                 // Load chunk
-                chunk_unload(chunk);
+                // TODO: Fix some VAO/VBO bug when negative y
+                // chunk_unload(chunk);
             }
         }
         // Update the curr_chunk
@@ -82,15 +86,40 @@ void engine_update(struct engine* engine) {
     }
 }
 
+void engine_fps(struct engine* engine, float fps) {
+    // TTF_Font* font = TTF_OpenFont("fonts/PixelifySans-Regular.ttf", 8.0f);
+    // SDL_RenderClear(engine->window->renderer);
+    // SDL_Color black = {0, 0, 0};
+    // char fps_text[36];
+    // snprintf(fps_text, 36, "FPS: %.2f", fps);
+    // SDL_Surface* text = TTF_RenderText_Solid(font, fps_text, black);
+    // SDL_Texture* texture = SDL_CreateTextureFromSurface(engine->window->renderer, text);
+    // SDL_RenderCopy(engine->window->renderer, texture, NULL, &rect);
+}
+
 void engine_start(struct engine* engine) {
+    float frames = 0;
+    time_t frame_last_time = time(NULL);
+    float fps = 0.0f;
     while (engine->game_loop) {
+        time_t now = time(NULL);
+        time_t diff = now - frame_last_time;
+        // Calculate FPS every second
+        if (diff >= 1.0f) {
+            fps = frames / diff;
+            frames = 0;
+            frame_last_time = now;
+            fprintf(stderr, "FPS: %.2f\n", fps);
+        }
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.529f, 0.808f, 0.922f, 1.0f);
         glEnable(GL_DEPTH_TEST);
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
         glUseProgram(engine->shader->program);
         // Update engine managed objects
-        engine_update(engine);//(1 + CHUNK_DISTANCE * 2) * (1 + CHUNK_DISTANCE * 2)
+        engine_fps(engine, fps);
+        engine_update(engine);
         camera_update(engine->camera, engine->shader);
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
@@ -106,5 +135,6 @@ void engine_start(struct engine* engine) {
             }
         }
         SDL_RenderPresent(engine->window->renderer);
+        frames += 1;
     }
 }
