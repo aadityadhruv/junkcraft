@@ -24,3 +24,13 @@ int block_init(vec3 pos, struct block* blk);
 int block_draw(struct block* blk, struct shader* shader);
 void block_debug(struct block* blk);
 void block_update(struct block* blk);
+
+/**
+ * Remove GPU related data of a block. This is usually called by chunk_unload
+ *
+ */
+void block_unload(struct block* blk);
+/**
+ * Load GPU data of a block
+ */
+void block_load_gpu(struct block* blk);

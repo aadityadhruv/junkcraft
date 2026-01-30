@@ -22,6 +22,12 @@ int block_init(vec3 pos, struct block* blk) {
     // Store buffer data into struct
     // Initialize vbo and ebo for block
     memcpy(blk->coords, pos, sizeof(vec3));
+    block_load_gpu(blk);
+    block_update(blk);
+    return 0;
+}
+
+void block_load_gpu(struct block* blk) {
     // ========== Constants of a block ================
     // Local world coordinates
     float vertices[] = {
@@ -122,8 +128,6 @@ int block_init(vec3 pos, struct block* blk) {
     //call is create_vbo. Since VAO is already bound, it gets bound to the OLD
     //VAO!! Always clear before use. 
     glBindVertexArray(0);
-    block_update(blk);
-    return 0;
 }
 
 void block_update(struct block* blk) {
@@ -171,4 +175,13 @@ void block_debug(struct block *blk) {
     fprintf(stderr, "==== Block Model ====\n");
     glm_mat4_print(blk->model, stderr);
 
+}
+
+void block_unload(struct block *blk) {
+    // Clear VBO data
+    glDeleteBuffers(1, &blk->_vbo);
+    // Clear EBO data
+    glDeleteBuffers(1, &blk->_ebo);
+    // Clear VAO
+    glDeleteVertexArrays(1, &blk->_vao);
 }

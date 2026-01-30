@@ -20,6 +20,7 @@ struct chunk {
     struct block* blocks[CHUNK_WIDTH][CHUNK_LENGTH][CHUNK_HEIGHT];
     enum biome biome;
     vec2 coord;
+    int loaded;
 };
 
 /**
@@ -38,7 +39,7 @@ int chunk_gen(struct world* wld, vec2 coord, struct chunk** chunk);
  */
 void chunk_load(struct chunk* chunk, int coord[2]);
 /**
- * Unload a chunk. Delete GPU data, not the chunk data itself
+ * Unload a chunk. Delete block GPU and memory data, not the chunk data itself
  *
  * @param chunk Chunk to load
  */

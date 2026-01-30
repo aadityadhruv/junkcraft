@@ -114,6 +114,7 @@ void _chunk_plains_gen(struct chunk* chunk) {
             }
         }
     }
+    chunk->loaded = 1;
 }
 
 
@@ -125,15 +126,24 @@ void chunk_load(struct chunk *chunk, int coord[2]) {
             for (int z = 0; z < CHUNK_LENGTH; z++) {
                 struct block* blk = chunk->blocks[x][z][y];
                 if (blk != NULL) {
-                // Translate to world coordinates
-                // First do block updates, set the position of the block in local 
-                // chunk coordinates
-                 block_update(blk);
-                 // Then translate them to world coordinates
-                 glm_translate(blk->model, translation);
+                    // If chunk is unloaded, send block data to GPU
+                    if (chunk->loaded == 0) {
+                        // Add GPU data
+                        block_load_gpu(blk);
+                    }
+                    // Translate to world coordinates
+                    // First do block updates, set the position of the block in local 
+                    // chunk coordinates
+                    block_update(blk);
+                    // Then translate them to world coordinates
+                    glm_translate(blk->model, translation);
                 }
             }
         }
+    }
+    if (chunk->loaded == 0) {
+        //We've reloaded all data - flip bit again
+        chunk->loaded = 1;
     }
 }
 
@@ -154,4 +164,17 @@ void chunk_draw(struct chunk* chunk, struct shader* shader) {
 }
 
 void chunk_unload(struct chunk* chunk) {
+    for (int i = 0; i < CHUNK_WIDTH; i++) {
+        for (int j = 0; j < CHUNK_LENGTH; j++) {
+            for (int k = 0; k < CHUNK_HEIGHT; k++) {
+                struct block* blk = chunk->blocks[i][j][k];
+                if (blk == NULL) {
+                    continue;
+                }
+                block_unload(blk);
+            }
+        }
+    }
+    chunk->loaded = 0;
+
 }

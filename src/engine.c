@@ -63,9 +63,7 @@ void engine_update(struct engine* engine) {
                 engine->curr_chunk[1],
                 curr_chunk[0],
                 curr_chunk[1]);
-        // Update the curr_chunk
-        memcpy(engine->curr_chunk, curr_chunk, sizeof(vec2));
-        // Load chunks of CHUNK_DISTANCE around curr_chunk
+        // Unload existing chunks
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk;
@@ -75,9 +73,12 @@ void engine_update(struct engine* engine) {
                 int real_coord[2] = { i + CHUNK_DISTANCE, j + CHUNK_DISTANCE };
                 // engine->loaded_chunks[real_coord[0]][real_coord[1]] = chunk;
                 // Load chunk
-                chunk_load(chunk, chunk_coord);
+                chunk_unload(chunk);
             }
         }
+        // Update the curr_chunk
+        memcpy(engine->curr_chunk, curr_chunk, sizeof(vec2));
+        // Load chunks of CHUNK_DISTANCE around curr_chunk
     }
 }
 
