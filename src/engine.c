@@ -10,6 +10,7 @@
 #include <SDL2/SDL_render.h>
 #include <bits/types/timer_t.h>
 #include <junk/vector.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -56,7 +57,7 @@ int engine_init(struct engine *engine) {
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
             struct chunk* chunk;
-            int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j };
+            int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
             world_get_chunk(engine->world, chunk_coord, &chunk);
             // Load chunk
             chunk_load(world, chunk, chunk_coord);
@@ -68,11 +69,11 @@ int engine_init(struct engine *engine) {
 }
 
 void engine_update(struct engine* engine) {
-    int curr_chunk[2] = { (engine->camera->position[0] / CHUNK_WIDTH), (engine->camera->position[2]) / CHUNK_LENGTH };
+    //NOTE: OpenGL FLIP
+    int curr_chunk[2] = { floorf(engine->camera->position[0] / (float)CHUNK_WIDTH), floorf(-engine->camera->position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
     struct chunk* c = {0};
-    int coord[2] = { curr_chunk[0], curr_chunk[1] };
-    world_get_chunk(engine->world, coord, &c);
+    world_get_chunk(engine->world, curr_chunk, &c);
 
     // We moved a chunk - load new chunks with chunk_load
     if (engine->curr_chunk[0] != curr_chunk[0] || engine->curr_chunk[1] != curr_chunk[1]) {
@@ -85,7 +86,7 @@ void engine_update(struct engine* engine) {
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk;
-                int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j };
+                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 // unload chunk
                 // TODO: Fix some VAO/VBO bug when negative y
@@ -98,7 +99,7 @@ void engine_update(struct engine* engine) {
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk;
-                int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j };
+                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 // Load chunk
                 chunk_load(engine->world, chunk, chunk_coord);
@@ -131,6 +132,8 @@ void engine_start(struct engine* engine) {
             frames = 0;
             frame_last_time = now;
             fprintf(stderr, "FPS: %.2f\n", fps);
+            glm_vec3_print(engine->camera->position, stderr);
+            fprintf(stderr, "x: %d, y: %d\n", engine->curr_chunk[0], engine->curr_chunk[1]);
         }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -148,10 +151,7 @@ void engine_start(struct engine* engine) {
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk = {0};
-                // // Load chunk
-                // Ensure the y coordinate is negative, because in OpenGL +z-axis (y in chunk system) is towards
-                // user, so we want inwards to be positive, so flip sign
-                int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j  };
+                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 chunk_draw(chunk, engine->shader, engine->texture);
             }

@@ -364,21 +364,21 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     int v_count[6] = { 0 };
     int blk_c = 0;
     for (int x = 0; x < CHUNK_WIDTH; x++) {
-        for (int y = 0; y < CHUNK_HEIGHT; y++) {
-            for (int z = 0; z < CHUNK_LENGTH; z++) {
-                struct block* blk = chunk->blocks[x][z][y];
+        for (int y = 0; y < CHUNK_LENGTH; y++) {
+            for (int z = 0; z < CHUNK_HEIGHT; z++) {
+                struct block* blk = chunk->blocks[x][y][z];
                 // If not air block
                 if (blk != NULL) {
                     blk_c += 1;
-                    vec3 front = { x, z - 1, y };
-                    vec3 back = { x, z + 1, y };
-                    vec3 pos = { x, y, -z };
-                    vec3 right = { x + 1, z, y };
-                    vec3 left = { x - 1, z, y };
-                    vec3 top = { x, z, y + 1 };
-                    vec3 bottom = { x, z, y - 1 };
-                    // Position of block in world coords
-                    // glm_vec3_add(pos, translation, pos);
+                    // Position of block in OpenGL coords
+                    // NOTE: OpenGL FLIP
+                    vec3 pos = { x, z, -y };
+                    vec3 front = { x, y - 1, z };
+                    vec3 back = { x, y + 1, z };
+                    vec3 right = { x + 1, y, z };
+                    vec3 left = { x - 1, y, z };
+                    vec3 top = { x, y, z + 1 };
+                    vec3 bottom = { x, y, z - 1 };
 
                     if (_chunk_check_neighbor_block(world, chunk, front) == 0) {
                         VECTOR_INSERT(vertices, _chunk_face_add(front_face,
@@ -491,6 +491,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     //VAO!! Always clear before use. 
     glBindVertexArray(0);
     // Translation to WORLD units
+    // NOTE: OpenGL FLIP
     vec3 translation = {CHUNK_WIDTH * coord[0], 0, - (CHUNK_LENGTH * coord[1])};
     // Set the matrix for world coordinate translation
     glm_mat4_identity(chunk->model);
