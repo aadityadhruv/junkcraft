@@ -2,14 +2,13 @@
 #include "window.h"
 #include <ft2build.h>
 #include "shader.h"
-#include "junk/vector.h"
 // CHUNK_DISTANCE is essentially render distance, it shows you how many chunks
 // around the user you can see
 // The number of loaded chunks can be determined as follows:
 // We want a square around curr_chunk, and a side of the square will be 1
 // (center chunk) + 2 * CHUNK_DISTANCE (either side of center)
 // loaded chunks = (1 + CHUNK_DISTANCE * 2)^2
-#define CHUNK_DISTANCE 5
+#define CHUNK_DISTANCE 0
 
 struct engine {
     struct window* window;

@@ -59,7 +59,7 @@ int engine_init(struct engine *engine) {
             int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j };
             world_get_chunk(engine->world, chunk_coord, &chunk);
             // Load chunk
-            chunk_load(chunk, chunk_coord);
+            chunk_load(world, chunk, chunk_coord);
         }
     }
     // Final step - Start the game
@@ -101,7 +101,7 @@ void engine_update(struct engine* engine) {
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 // Load chunk
-                chunk_load(chunk, chunk_coord);
+                chunk_load(engine->world, chunk, chunk_coord);
             }
         }
     }

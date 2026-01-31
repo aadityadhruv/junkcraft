@@ -1,12 +1,14 @@
 #include "chunk.h"
 #include "block.h"
 #include "cglm/types.h"
+#include "cglm/vec2.h"
 #include "cglm/vec3.h"
 #include "shader.h"
 #include "util.h"
 #include "world.h"
 #include "cglm/cglm.h"
 #include <junk/vector.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,6 +52,23 @@ int chunk_gen(struct world* world, vec2 coord, struct chunk **chunk) {
     return 0;
 }
 
+/**
+ * Helper function for _chunk_plains_gen. It calculates how much of a z-value needs
+ * to be added for a target point so it aligns with the line from poi with slope m. 
+ * Here slope is the scale at which the gradient of the 3d line will operate. 
+ * We know the (x, y) (top down) of a point. We need to figure out what the height should be.
+ * This ishow we use POIs to figure out the height. The vector line equation for this POI-target line is:
+ *
+ * vec3 slope = (normalize(target - poi), m). m is the rate of change of the z-value, which controls how steep slopes are.
+ *
+ * line = (vec3 poi) + (slope)*t where t is how many units of "slope" we want to move.
+ * Basically it means in the direction of target from POI, for every UNIT moved in (x,y), move m times in z-axis
+ *
+ * @param target Point for which we are trying to figure out the z
+ * @param poi Starting point of the line
+ * @param m units of z to change for every unit of (x,y)
+ * @param base_z This is a basic offset, which we just add to the aforementioned caluclated z
+ */
 float _chunk_plains_get_z(vec2 target, vec3 poi, float m, int base_z) {
     vec2 unit = { (target[0] - poi[0]), (target[1] - poi[1]) };
     glm_vec2_normalize(unit);
@@ -81,6 +100,94 @@ float _chunk_plains_get_z(vec2 target, vec3 poi, float m, int base_z) {
     return MAX(base_z, base_z + z_off);
 }
 
+/**
+ * Check if a given block at coord in chunk is a block or not. It is useful to calculate neighbours
+ * of a block
+ *
+ * @param chunk Target chunk
+ * @param coord block to test in the target chunk
+ * @return 1 if there is a block at coordinates coord, 0 otherwise
+ */
+int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 coord) {
+    int x = coord[0];
+    int y = coord[1];
+    int z = coord[2];
+    // ==== Pre-checks for neighbor chunks =====
+    //
+    // If we are a boundary block (x,y only, don't care for z), check if there is a neighboring
+    // block in the neighboring chunk
+    if (x == -1.0) {
+        vec2 c = { 0 };
+        vec2 left = { -1.0f, 0.0f };
+        glm_vec2_add(left, chunk->coord, c);
+        int neighbor[] = { c[0], c[1] };
+        struct chunk* left_chunk = { 0 };
+        world_get_chunk(world, neighbor, &chunk);
+        // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
+        if (left_chunk == NULL || left_chunk->loaded == 0) {
+            return 0;
+        }
+        // Otherwise we check if the neighbor block exists
+        vec3 left_neighbor_block = { CHUNK_WIDTH - 1, y, z };
+        return _chunk_check_neighbor_block(world, left_chunk, left_neighbor_block);
+    }
+    if (x == CHUNK_WIDTH) {
+        vec2 c = { 0 };
+        vec2 right = { 1.0f,  0.0f };
+        glm_vec2_add(right, chunk->coord, c);
+        int neighbor[] = { c[0], c[1] };
+        struct chunk* right_chunk = { 0 };
+        world_get_chunk(world, neighbor, &chunk);
+        // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
+        if (right_chunk == NULL || right_chunk->loaded == 0) {
+            return 0;
+        }
+        // Otherwise we check if the neighbor block exists
+        vec3 left_neighbor_block = { 0, y, z };
+        return _chunk_check_neighbor_block(world, right_chunk, left_neighbor_block);
+    }
+    if (y == -1.0) {
+        vec2 c = { 0 };
+        vec2 bottom = { 0.0f, -1.0f };
+        glm_vec2_add(bottom, chunk->coord, c);
+        int neighbor[] = { c[0], c[1] };
+        struct chunk* bottom_chunk = { 0 };
+        world_get_chunk(world, neighbor, &chunk);
+        // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
+        if (bottom_chunk == NULL || bottom_chunk->loaded == 0) {
+            return 0;
+        }
+        // Otherwise we check if the neighbor block exists
+        vec3 left_neighbor_block = { x, CHUNK_LENGTH - 1, z };
+        return _chunk_check_neighbor_block(world, bottom_chunk, left_neighbor_block);
+    }
+    if (y == CHUNK_LENGTH) {
+        vec2 c = { 0 };
+        vec2 top = { 0.0f,  1.0f };
+        glm_vec2_add(top, chunk->coord, c);
+        int neighbor[] = { c[0], c[1] };
+        struct chunk* top_chunk = { 0 };
+        world_get_chunk(world, neighbor, &chunk);
+        // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
+        if (top_chunk == NULL || top_chunk->loaded == 0) {
+            return 0;
+        }
+        // Otherwise we check if the neighbor block exists
+        vec3 left_neighbor_block = { x, 0, z };
+        return _chunk_check_neighbor_block(world, top_chunk, left_neighbor_block);
+    }
+    if (x < 0 || y < 0 || z < 0) {
+        return 0;
+    }
+    if (x >= CHUNK_WIDTH  || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) { 
+        return 0;
+    }
+    // Air block
+    if (chunk->blocks[x][y][z] == NULL) {
+        return 0;
+    }
+    return 1;
+}
 /**
  * Basic Plains chunk generation
  * Algorithm: Pick 2 points of interest (POI). These points will either be elevations or depressions.
@@ -153,7 +260,7 @@ float* _chunk_face_add(float* face, int size, vec3 pos) {
  *
  * NOTE: GPU
  */
-void chunk_load(struct chunk *chunk, int coord[2]) {
+void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     fprintf(stderr, "Loaded chunk (%d, %d)\n", coord[0], coord[1]);
     // ================ OpenGL work ================
     // Initalize vertices and vertex order vectors. These will be dynamically
@@ -254,6 +361,7 @@ void chunk_load(struct chunk *chunk, int coord[2]) {
     };
     // ============= Face detection algorithm =============
     int vertex_index = 0;
+    int v_count[6] = { 0 };
     int blk_c = 0;
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_HEIGHT; y++) {
@@ -262,60 +370,83 @@ void chunk_load(struct chunk *chunk, int coord[2]) {
                 // If not air block
                 if (blk != NULL) {
                     blk_c += 1;
+                    vec3 front = { x, z - 1, y };
+                    vec3 back = { x, z + 1, y };
                     vec3 pos = { x, y, -z };
+                    vec3 right = { x + 1, z, y };
+                    vec3 left = { x - 1, z, y };
+                    vec3 top = { x, z, y + 1 };
+                    vec3 bottom = { x, z, y - 1 };
                     // Position of block in world coords
                     // glm_vec3_add(pos, translation, pos);
 
-                    VECTOR_INSERT(vertices, _chunk_face_add(front_face,
-                                sizeof(front_face), pos));
-                    VECTOR_INSERT(vertex_order,
-                            _chunk_face_order_add(vertex_draw_order,
-                                sizeof(vertex_draw_order), vertex_index));
-                    vertex_index += 4;
+                    if (_chunk_check_neighbor_block(world, chunk, front) == 0) {
+                        VECTOR_INSERT(vertices, _chunk_face_add(front_face,
+                                    sizeof(front_face), pos));
+                        VECTOR_INSERT(vertex_order,
+                                _chunk_face_order_add(vertex_draw_order,
+                                    sizeof(vertex_draw_order), vertex_index));
+                        vertex_index += 4;
+                        v_count[0] += 1;
+                    }
 
-                    VECTOR_INSERT(vertices, _chunk_face_add(back_face,
-                                sizeof(back_face), pos));
-                    VECTOR_INSERT(vertex_order,
-                            _chunk_face_order_add(vertex_draw_order,
-                                sizeof(vertex_draw_order), vertex_index));
-                    vertex_index += 4;
+                    if (_chunk_check_neighbor_block(world, chunk, back) == 0) {
+                        VECTOR_INSERT(vertices, _chunk_face_add(back_face,
+                                    sizeof(back_face), pos));
+                        VECTOR_INSERT(vertex_order,
+                                _chunk_face_order_add(vertex_draw_order,
+                                    sizeof(vertex_draw_order), vertex_index));
+                        vertex_index += 4;
+                        v_count[1] += 1;
+                    }
 
-                    VECTOR_INSERT(vertices, _chunk_face_add(right_face,
-                                sizeof(right_face), pos));
-                    VECTOR_INSERT(vertex_order,
-                            _chunk_face_order_add(vertex_draw_order,
-                                sizeof(vertex_draw_order), vertex_index));
-                    vertex_index += 4;
+                    if (_chunk_check_neighbor_block(world, chunk, right) == 0) {
+                        VECTOR_INSERT(vertices, _chunk_face_add(right_face,
+                                    sizeof(right_face), pos));
+                        VECTOR_INSERT(vertex_order,
+                                _chunk_face_order_add(vertex_draw_order,
+                                    sizeof(vertex_draw_order), vertex_index));
+                        vertex_index += 4;
+                        v_count[2] += 1;
+                    }
 
-                    VECTOR_INSERT(vertices, _chunk_face_add(left_face,
-                                sizeof(left_face), pos));
-                    VECTOR_INSERT(vertex_order,
-                            _chunk_face_order_add(vertex_draw_order,
-                                sizeof(vertex_draw_order), vertex_index));
-                    vertex_index += 4;
+                    if (_chunk_check_neighbor_block(world, chunk, left) == 0) {
+                        VECTOR_INSERT(vertices, _chunk_face_add(left_face,
+                                    sizeof(left_face), pos));
+                        VECTOR_INSERT(vertex_order,
+                                _chunk_face_order_add(vertex_draw_order,
+                                    sizeof(vertex_draw_order), vertex_index));
+                        vertex_index += 4;
+                        v_count[3] += 1;
+                    }
 
-                    VECTOR_INSERT(vertices, _chunk_face_add(top_face,
-                                sizeof(top_face), pos));
-                    VECTOR_INSERT(vertex_order,
-                            _chunk_face_order_add(vertex_draw_order,
-                                sizeof(vertex_draw_order), vertex_index));
-                    vertex_index += 4;
+                    if (_chunk_check_neighbor_block(world, chunk, top) == 0) {
+                        VECTOR_INSERT(vertices, _chunk_face_add(top_face,
+                                    sizeof(top_face), pos));
+                        VECTOR_INSERT(vertex_order,
+                                _chunk_face_order_add(vertex_draw_order,
+                                    sizeof(vertex_draw_order), vertex_index));
+                        vertex_index += 4;
+                        v_count[4] += 1;
+                    }
 
-                    VECTOR_INSERT(vertices, _chunk_face_add(bottom_face,
-                                sizeof(bottom_face), pos));
-                    VECTOR_INSERT(vertex_order,
-                            _chunk_face_order_add(vertex_draw_order,
-                                sizeof(vertex_draw_order), vertex_index));
-                    vertex_index += 4;
+                    if (_chunk_check_neighbor_block(world, chunk, bottom) == 0) {
+                        VECTOR_INSERT(vertices, _chunk_face_add(bottom_face,
+                                    sizeof(bottom_face), pos));
+                        VECTOR_INSERT(vertex_order,
+                                _chunk_face_order_add(vertex_draw_order,
+                                    sizeof(vertex_draw_order), vertex_index));
+                        vertex_index += 4;
+                        v_count[5] += 1;
+                    }
                 }
             }
         }
     }
-    fprintf(stderr, "Chunk blk_c: %d\n", blk_c);
-
     float tmp_vertex[vector_length(vertices) * sizeof(front_face)];
     int tmp_order[vector_length(vertex_order) * sizeof(vertex_draw_order)];
     fprintf(stderr, "Chunk blk_c: %d v_s: %d, v_o: %d\n", blk_c, vector_length(vertices) / 6, vector_length(vertex_order) / 6);
+    fprintf(stderr, "%d|%d|%d|%d|%d|%d|", v_count[0], v_count[1], v_count[2], v_count[3], v_count[4], v_count[5]);
     for (int i = 0; i < vector_length(vertices); i++) {
         float* face = vector_get(vertices, i);
         // Copy from heap mem to tmp buffer, and then free

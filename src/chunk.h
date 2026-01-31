@@ -50,10 +50,11 @@ int chunk_gen(struct world* wld, vec2 coord, struct chunk** chunk);
  * used to translate the blocks that constitute the chunk
  *
  * The chunk will allocate a VAO/VBO/EBO buffer to render the chunk mesh. This GPU data is usually not updated in the loop, unless a chunk_update is called
+ * @param The world where this chunk belongs. It is a useful object to have, especially for face culling
  * @param chunk Chunk to load
  * @param coord coordinates in world space
  */
-void chunk_load(struct chunk* chunk, int coord[2]);
+void chunk_load(struct world* world, struct chunk* chunk, int coord[2]);
 /**
  * Chunk updates are performed on already loaded chunks. It will redraw the
  * chunk mesh as needed based on block updates and whatnot.
