@@ -2,12 +2,14 @@
 #include "cglm/types.h"
 #include "glad/glad.h"
 #include "shader.h"
+#include "texture.h"
 
 struct block {
     vec3 coords; 
     GLuint _vao;
     GLuint _vbo;
     GLuint _ebo;
+    GLuint _tbo;
     int _vertex_count;
     mat4 model;
     float angle;
@@ -21,7 +23,7 @@ struct block {
  *
  */
 int block_init(vec3 pos, struct block* blk);
-int block_draw(struct block* blk, struct shader* shader);
+int block_draw(struct block* blk, struct shader* shader, struct texture* texture);
 void block_debug(struct block* blk);
 void block_update(struct block* blk);
 

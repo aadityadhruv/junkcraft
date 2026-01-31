@@ -4,6 +4,7 @@
 #include "cglm/io.h"
 #include "chunk.h"
 #include "input.h"
+#include "texture.h"
 #include "window.h"
 #include "world.h"
 #include <SDL2/SDL_render.h>
@@ -34,6 +35,12 @@ int engine_init(struct engine *engine) {
         return -1;
     };
     engine->shader = shader;
+
+
+    // Load Textures
+    struct texture* texture = { 0 };
+    texture_init(&engine->texture);
+    texture_load(engine->texture, "textures/grass.jpg");
 
     // Setup Objects to draw
     // memset(engine->loaded_chunks, 0, (1 + CHUNK_DISTANCE * 2) * (1 + CHUNK_DISTANCE * 2));
@@ -131,7 +138,7 @@ void engine_start(struct engine* engine) {
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 // Load chunk
                 chunk_load(chunk, chunk_coord);
-                chunk_draw(chunk, engine->shader);
+                chunk_draw(chunk, engine->shader, engine->texture);
             }
         }
         SDL_RenderPresent(engine->window->renderer);

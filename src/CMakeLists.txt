@@ -10,4 +10,5 @@ add_executable(junkcraft
     world.c
     input.c
     camera.c
+    texture.c
 )

@@ -147,7 +147,7 @@ void chunk_load(struct chunk *chunk, int coord[2]) {
     }
 }
 
-void chunk_draw(struct chunk* chunk, struct shader* shader) {
+void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* texture) {
     int counter = 0;
     for (int i = 0; i < CHUNK_WIDTH; i++) {
         for (int j = 0; j < CHUNK_LENGTH; j++) {
@@ -156,7 +156,7 @@ void chunk_draw(struct chunk* chunk, struct shader* shader) {
                 if (blk == NULL) {
                     continue;
                 }
-                block_draw(blk, shader);
+                block_draw(blk, shader, texture);
                 counter += 1;
             }
         }

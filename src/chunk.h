@@ -1,5 +1,6 @@
 #pragma once
 #include "block.h"
+#include "texture.h"
 #include "world.h"
 #include <stdint.h>
 #define CHUNK_WIDTH 16
@@ -49,5 +50,6 @@ void chunk_unload(struct chunk* chunk);
  * Technically this wraps block_draw, so block_draw is the one doing all the work
  * @param chunk Chunk to draw
  * @param shader Shader to pass to block_draw
+ * @param texture Textures that block_draw will use
  */
-void chunk_draw(struct chunk* chunk, struct shader* shader);
+void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* texture);

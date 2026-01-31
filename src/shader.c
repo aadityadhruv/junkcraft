@@ -82,3 +82,13 @@ int set_uniform_mat4(char* var, struct shader* shader, mat4 matrix) {
     glUniformMatrix4fv(loc, 1, GL_FALSE, (void*)matrix);
     return 0;
 }
+int set_uniform_sampler2d(char* var, struct shader* shader, mat4 matrix) {
+    GLuint loc = glGetUniformLocation(shader->program, var);
+    if (loc == -1) {
+        fprintf(stderr, "Invalid var %s for get_uniform_mat4: Does not exist\n", var);
+        exit(1);
+        return -1;
+    }
+    glUniformMatrix4fv(loc, 1, GL_FALSE, (void*)matrix);
+    return 0;
+}
