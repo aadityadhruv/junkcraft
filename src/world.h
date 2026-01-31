@@ -1,8 +1,8 @@
 #pragma once
 #include "chunk.h"
 #include <stdint.h>
-#define WORLD_LENGTH 6
-#define WORLD_WIDTH 6
+#define WORLD_LENGTH 32
+#define WORLD_WIDTH 32
 
 struct world {
     struct chunk* chunks[WORLD_WIDTH][WORLD_LENGTH];

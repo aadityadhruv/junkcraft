@@ -1,38 +1,13 @@
 #pragma once
-#include "cglm/types.h"
-#include "glad/glad.h"
-#include "shader.h"
-#include "texture.h"
 
+enum BLOCK_ID {
+    BLOCK_GRASS,
+};
 struct block {
-    vec3 coords; 
-    GLuint _vao;
-    GLuint _vbo;
-    GLuint _ebo;
-    GLuint _tbo;
-    int _vertex_count;
-    mat4 model;
-    float angle;
+    enum BLOCK_ID block_id;
 };
 /**
- * Create a "block" object, which is the building blocks of this world.
- * Blocks belong in chunks, and chunks belong in worlds. vec3 pos here is the coordinates of the block in WORLD space.
- * However, a common method to render these blocks will be that the chunk will set the coordinates in "chunk space", and
- * on a chunk_load, we will translate the blocks to wherever the chunk is loaded
- *
+ * A block struct defines what kind of block we will be rendering. It's the metadata of the block array in a chunk
  *
  */
-int block_init(vec3 pos, struct block* blk);
-int block_draw(struct block* blk, struct shader* shader, struct texture* texture);
-void block_debug(struct block* blk);
-void block_update(struct block* blk);
-
-/**
- * Remove GPU related data of a block. This is usually called by chunk_unload
- *
- */
-void block_unload(struct block* blk);
-/**
- * Load GPU data of a block
- */
-void block_load_gpu(struct block* blk);
+int block_init(struct block* blk, enum BLOCK_ID block_id);

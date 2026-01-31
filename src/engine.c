@@ -14,8 +14,6 @@
 #include <string.h>
 #include <time.h>
 
-void _engine_insert_chunk_ptrs(struct engine* engine, struct chunk* chunk);
-
 int engine_init(struct engine *engine) {
     // Setup the Window
     struct window* window = malloc(sizeof(struct window));
@@ -54,6 +52,16 @@ int engine_init(struct engine *engine) {
     struct world* world;
     world_init(time(NULL), &world);
     engine->world = world;
+    //TODO: Move this loop to a function and flip chunk_coord sign correctly ONCE
+    for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+        for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+            struct chunk* chunk;
+            int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j };
+            world_get_chunk(engine->world, chunk_coord, &chunk);
+            // Load chunk
+            chunk_load(chunk, chunk_coord);
+        }
+    }
     // Final step - Start the game
     engine->game_loop = 1;
     return 0;
@@ -77,19 +85,25 @@ void engine_update(struct engine* engine) {
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk;
-                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
+                int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
-                // Get "real" coords as in non-negative numbers, that can go in a array
-                int real_coord[2] = { i + CHUNK_DISTANCE, j + CHUNK_DISTANCE };
-                // engine->loaded_chunks[real_coord[0]][real_coord[1]] = chunk;
-                // Load chunk
+                // unload chunk
                 // TODO: Fix some VAO/VBO bug when negative y
-                // chunk_unload(chunk);
+                chunk_unload(chunk);
             }
         }
         // Update the curr_chunk
         memcpy(engine->curr_chunk, curr_chunk, sizeof(vec2));
         // Load chunks of CHUNK_DISTANCE around curr_chunk
+        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+                struct chunk* chunk;
+                int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j };
+                world_get_chunk(engine->world, chunk_coord, &chunk);
+                // Load chunk
+                chunk_load(chunk, chunk_coord);
+            }
+        }
     }
 }
 
@@ -139,8 +153,6 @@ void engine_start(struct engine* engine) {
                 // user, so we want inwards to be positive, so flip sign
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, -engine->curr_chunk[1] + j  };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
-                // Load chunk
-                chunk_load(chunk, chunk_coord);
                 chunk_draw(chunk, engine->shader, engine->texture);
             }
         }

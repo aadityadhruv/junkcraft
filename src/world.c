@@ -5,7 +5,7 @@
 #include <string.h>
 
 // LOAD_DISTANCE determines how many chunks are loaded on world creation
-#define LOAD_DISTANCE 4
+#define LOAD_DISTANCE 10
 
 int world_init(int32_t seed, struct world** world) {
     srand(seed);
@@ -13,8 +13,8 @@ int world_init(int32_t seed, struct world** world) {
     memset(wld, 0, sizeof(struct world));
     wld->seed = seed;
     //TODO: Improve loading here
-    for (int i = 0; i < LOAD_DISTANCE; i++) {
-        for (int j = 0; j < LOAD_DISTANCE; j++) {
+    for (int i = -LOAD_DISTANCE; i <= LOAD_DISTANCE; i++) {
+        for (int j = -LOAD_DISTANCE; j <= LOAD_DISTANCE; j++) {
             struct chunk* chunk;
             int coords[2] = { i, j };
             world_get_chunk(wld, coords, &chunk);

@@ -56,7 +56,7 @@ void camera_move(struct camera *camera, enum DIRECTION move) {
         // Right hand rule - this will be on the righ (positive)
         glm_vec3_crossn(unit_direction, camera->up, unit_direction);
     }
-    float scale = 0.2f;
+    float scale = 0.8f;
     glm_vec3_scale(unit_direction, scale, unit_direction);
     glm_vec3_add(camera->position, unit_direction, camera->position);
 }

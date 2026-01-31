@@ -9,7 +9,7 @@
 // We want a square around curr_chunk, and a side of the square will be 1
 // (center chunk) + 2 * CHUNK_DISTANCE (either side of center)
 // loaded chunks = (1 + CHUNK_DISTANCE * 2)^2
-#define CHUNK_DISTANCE 3
+#define CHUNK_DISTANCE 5
 
 struct engine {
     struct window* window;
@@ -31,7 +31,7 @@ int engine_init(struct engine* engine);
 
 /**
  * Take all objects in the engine, apply the shader pipeline and draw on the window
- * Apply block, chunk and camera updates as well. This is the main game loop
+ * Apply chunk and camera updates as well. This is the main game loop
  *
  * @param engine The target engine
  */

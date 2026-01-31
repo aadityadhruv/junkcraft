@@ -1,13 +1,20 @@
 #include "chunk.h"
 #include "block.h"
+#include "cglm/types.h"
+#include "cglm/vec3.h"
+#include "shader.h"
+#include "util.h"
 #include "world.h"
 #include "cglm/cglm.h"
+#include <junk/vector.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
 void _chunk_plains_gen(struct chunk* chunk);
 
@@ -108,8 +115,7 @@ void _chunk_plains_gen(struct chunk* chunk) {
             for (int h = 0; h < z_final; h++) {
                 struct block* blk = malloc(sizeof(struct block));
                 // Adjust block coordinates with global chunk coordinates
-                vec3 pos = {x, h, -y };
-                block_init(pos, blk);
+                block_init(blk, BLOCK_GRASS);
                 chunk->blocks[x][y][h] = blk;
             }
         }
@@ -118,63 +124,267 @@ void _chunk_plains_gen(struct chunk* chunk) {
 }
 
 
-// Kind of like the block_update of chunks
+int* _chunk_face_order_add(int* face_order, int size, int idx) {
+    int* buf = malloc(size);
+    memcpy(buf, face_order, size);
+    for (int i = 0; i < size / sizeof(int); i++) {
+        buf[i] += idx;
+    }
+    return buf;
+}
+float* _chunk_face_add(float* face, int size, vec3 pos) {
+    // "Hack" to update the face coords,
+    // glm_vec3_add just does a[0] = a[0] + b[0], so using
+    // offsets will work
+    int unit = 8;
+    float* buf = malloc(size);
+    memcpy(buf, face, size);
+    glm_vec3_add(buf, pos, buf);
+    glm_vec3_add(buf + unit, pos, buf + unit);
+    glm_vec3_add(buf + 2 * unit, pos, buf + 2 * unit);
+    glm_vec3_add(buf + 3 * unit, pos, buf + 3 * unit);
+    return buf;
+}
+
+/**
+ * Two step function:
+ * 1. Generate mesh based on neighboring block data
+ * 2. Send data to GPU 
+ *
+ * NOTE: GPU
+ */
 void chunk_load(struct chunk *chunk, int coord[2]) {
-    vec3 translation = {CHUNK_WIDTH * coord[0], 0, - (CHUNK_LENGTH * coord[1])};
+    fprintf(stderr, "Loaded chunk (%d, %d)\n", coord[0], coord[1]);
+    // ================ OpenGL work ================
+    // Initalize vertices and vertex order vectors. These will be dynamically
+    // sized buffer data we send to the GPU
+    struct vector* vertices;
+    struct vector* vertex_order;
+    vector_init(&vertices);
+    vector_init(&vertex_order);
+
+    // =============== Face Data ===================
+    float front_face[] = {
+        1.0f, 1.0f, 0.0f, // top-right
+        0.0f, 0.0f, 1.0f, // Front normal
+        1.0f, 1.0f,
+        0.0f, 1.0f, 0.0f, // top-left
+        0.0f, 0.0f, 1.0f, // Front normal
+        0.0f, 1.0f,
+        0.0f, 0.0f, 0.0f, // bottom-left
+        0.0f, 0.0f, 1.0f, // Front normal
+        0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f, // bottom-right
+        0.0f, 0.0f, 1.0f, // Front normal
+        1.0f, 0.0f,
+    };
+    float back_face[] = {
+        0.0f, 1.0f, -1.0f, // top-left (back plane)
+        0.0f, 0.0f, -1.0f, // Back normal
+        0.0f, 1.0f,
+        1.0f, 1.0f, -1.0f, // top-right (back plane)
+        0.0f, 0.0f, -1.0f, // Back normal
+        1.0f, 1.0f,
+        1.0f, 0.0f, -1.0f, // bottom-right (back plane)
+        0.0f, 0.0f, -1.0f, // Back normal
+        1.0f, 0.0f,
+        0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        0.0f, 0.0f, -1.0f, // Back normal
+        0.0f, 0.0f,
+    };
+    float right_face[] = {
+        1.0f, 1.0f, -1.0f, // top-right (back plane)
+        1.0f, 0.0f, 0.0f, // Right normal
+        1.0f, 1.0f,
+        1.0f, 1.0f, 0.0f, // top-right
+        1.0f, 0.0f, 0.0f, // Right normal
+        0.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, // bottom-right
+        1.0f, 0.0f, 0.0f, // Right normal
+        0.0f, 0.0f,
+        1.0f, 0.0f, -1.0f, // bottom-right (back plane)
+        1.0f, 0.0f, 0.0f, // Right normal
+        1.0f, 0.0f,
+    };
+    float left_face[] = {
+        0.0f, 1.0f, 0.0f, // top-left
+        -1.0f, 0.0f, 0.0f, // Left normal
+        1.0f, 1.0f,
+        0.0f, 1.0f, -1.0f, // top-left (back plane)
+        -1.0f, 0.0f, 0.0f, // Left normal
+        0.0f, 1.0f,
+        0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        -1.0f, 0.0f, 0.0f, // Left normal
+        0.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, // bottom-left
+        -1.0f, 0.0f, 0.0f, // Left normal
+        1.0f, 0.0f,
+    };
+    float top_face[] = {
+        1.0f, 1.0f, -1.0f, // top-right (back plane)
+        0.0f, 1.0f, 0.0f, // Top normal
+        1.0f, 1.0f,
+        0.0f, 1.0f, -1.0f, // top-left (back plane)
+        0.0f, 1.0f, 0.0f, // Top normal
+        0.0f, 1.0f,
+        0.0f, 1.0f, 0.0f, // top-left
+        0.0f, 1.0f, 0.0f, // Top normal
+        0.0f, 0.0f,
+        1.0f, 1.0f, 0.0f, // top-right
+        0.0f, 1.0f, 0.0f, // Top normal
+        1.0f, 0.0f,
+    };
+    float bottom_face[] = {
+        1.0f, 0.0f, -1.0f, // bottom-right (back plane)
+        0.0f, -1.0f, 0.0f, // Bottom normal
+        1.0f, 1.0f,
+        0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        0.0f, -1.0f, 0.0f, // Bottom normal
+        0.0f, 1.0f,
+        0.0f, 0.0f, 0.0f, // bottom-left
+        0.0f, -1.0f, 0.0f, // Bottom normal
+        0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f, // bottom-right
+        0.0f, -1.0f, 0.0f, // Bottom normal
+        1.0f, 0.0f,
+    };
+
+    int vertex_draw_order[] = {
+        1, 2, 3,   3, 0, 1, // CCW 2-triangles (quad)
+    };
+    // ============= Face detection algorithm =============
+    int vertex_index = 0;
+    int blk_c = 0;
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_HEIGHT; y++) {
             for (int z = 0; z < CHUNK_LENGTH; z++) {
                 struct block* blk = chunk->blocks[x][z][y];
+                // If not air block
                 if (blk != NULL) {
-                    // If chunk is unloaded, send block data to GPU
-                    if (chunk->loaded == 0) {
-                        // Add GPU data
-                        block_load_gpu(blk);
-                    }
-                    // Translate to world coordinates
-                    // First do block updates, set the position of the block in local 
-                    // chunk coordinates
-                    block_update(blk);
-                    // Then translate them to world coordinates
-                    glm_translate(blk->model, translation);
+                    blk_c += 1;
+                    vec3 pos = { x, y, -z };
+                    // Position of block in world coords
+                    // glm_vec3_add(pos, translation, pos);
+
+                    VECTOR_INSERT(vertices, _chunk_face_add(front_face,
+                                sizeof(front_face), pos));
+                    VECTOR_INSERT(vertex_order,
+                            _chunk_face_order_add(vertex_draw_order,
+                                sizeof(vertex_draw_order), vertex_index));
+                    vertex_index += 4;
+
+                    VECTOR_INSERT(vertices, _chunk_face_add(back_face,
+                                sizeof(back_face), pos));
+                    VECTOR_INSERT(vertex_order,
+                            _chunk_face_order_add(vertex_draw_order,
+                                sizeof(vertex_draw_order), vertex_index));
+                    vertex_index += 4;
+
+                    VECTOR_INSERT(vertices, _chunk_face_add(right_face,
+                                sizeof(right_face), pos));
+                    VECTOR_INSERT(vertex_order,
+                            _chunk_face_order_add(vertex_draw_order,
+                                sizeof(vertex_draw_order), vertex_index));
+                    vertex_index += 4;
+
+                    VECTOR_INSERT(vertices, _chunk_face_add(left_face,
+                                sizeof(left_face), pos));
+                    VECTOR_INSERT(vertex_order,
+                            _chunk_face_order_add(vertex_draw_order,
+                                sizeof(vertex_draw_order), vertex_index));
+                    vertex_index += 4;
+
+                    VECTOR_INSERT(vertices, _chunk_face_add(top_face,
+                                sizeof(top_face), pos));
+                    VECTOR_INSERT(vertex_order,
+                            _chunk_face_order_add(vertex_draw_order,
+                                sizeof(vertex_draw_order), vertex_index));
+                    vertex_index += 4;
+
+                    VECTOR_INSERT(vertices, _chunk_face_add(bottom_face,
+                                sizeof(bottom_face), pos));
+                    VECTOR_INSERT(vertex_order,
+                            _chunk_face_order_add(vertex_draw_order,
+                                sizeof(vertex_draw_order), vertex_index));
+                    vertex_index += 4;
                 }
             }
         }
     }
-    if (chunk->loaded == 0) {
-        //We've reloaded all data - flip bit again
-        chunk->loaded = 1;
+    fprintf(stderr, "Chunk blk_c: %d\n", blk_c);
+
+    float tmp_vertex[vector_length(vertices) * sizeof(front_face)];
+    int tmp_order[vector_length(vertex_order) * sizeof(vertex_draw_order)];
+    fprintf(stderr, "Chunk blk_c: %d v_s: %d, v_o: %d\n", blk_c, vector_length(vertices) / 6, vector_length(vertex_order) / 6);
+    for (int i = 0; i < vector_length(vertices); i++) {
+        float* face = vector_get(vertices, i);
+        // Copy from heap mem to tmp buffer, and then free
+        memcpy(tmp_vertex + (i*ARRAY_SIZE(front_face)), face, sizeof(front_face));
+        free(face);
     }
+    for (int i = 0; i < vector_length(vertex_order); i++) {
+        int* order = vector_get(vertex_order, i);
+        // Copy from heap mem to tmp buffer, and then free
+        memcpy(tmp_order + (i*ARRAY_SIZE(vertex_draw_order)), order, sizeof(vertex_draw_order));
+        free(order);
+    }
+    
+    // Create VBO and EBO buffer data
+    // VBO EBO size is sizeof() because we want TOTAL BYTES (float * count)
+    create_vbo(&chunk->_vbo, (void*)tmp_vertex, sizeof(tmp_vertex));
+    create_ebo(&chunk->_ebo, (void*)tmp_order, sizeof(tmp_order));
+    // Here we only want ARRAY_SIZE, not float * count
+    chunk->vertex_count = vector_length(vertex_order) * ARRAY_SIZE(vertex_draw_order);
+
+
+    glGenVertexArrays(1, &chunk->_vao);
+    glBindVertexArray(chunk->_vao);
+    // Enable 3 attribs - position normals texture
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    // set vao_buffer to pos buffer obj
+    glBindBuffer(GL_ARRAY_BUFFER, chunk->_vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
+    // set vao_buffer to normals buffer obj
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(3*sizeof(float)));
+    // set vao_buffer to texture buffer obj
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(6*sizeof(float)));
+    // Set EBO to the vertex_order
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, chunk->_ebo);
+    //NOTE: This is important, otherwise with multiple chunk_load calls, it
+    //creates a segfault since the bindings get all messed up. Why it gets
+    //messed up? Let's say we make 2 chunks. Chunk 1 creates VBOs, then VAO,
+    //then binds everything. Now VAO is still bound. Chunk 2 init starts. First
+    //call is create_vbo. Since VAO is already bound, it gets bound to the OLD
+    //VAO!! Always clear before use. 
+    glBindVertexArray(0);
+    // Translation to WORLD units
+    vec3 translation = {CHUNK_WIDTH * coord[0], 0, - (CHUNK_LENGTH * coord[1])};
+    // Set the matrix for world coordinate translation
+    glm_mat4_identity(chunk->model);
+    glm_translate(chunk->model, translation);
+    chunk->loaded = 1;
 }
 
 void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* texture) {
-    int counter = 0;
-    for (int i = 0; i < CHUNK_WIDTH; i++) {
-        for (int j = 0; j < CHUNK_LENGTH; j++) {
-            for (int k = 0; k < CHUNK_HEIGHT; k++) {
-                struct block* blk = chunk->blocks[i][j][k];
-                if (blk == NULL) {
-                    continue;
-                }
-                block_draw(blk, shader, texture);
-                counter += 1;
-            }
-        }
-    }
+    glBindVertexArray(chunk->_vao);
+    set_uniform_mat4("model", shader, chunk->model);
+    glDrawElements(GL_TRIANGLES, chunk->vertex_count, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
 }
 
 void chunk_unload(struct chunk* chunk) {
-    for (int i = 0; i < CHUNK_WIDTH; i++) {
-        for (int j = 0; j < CHUNK_LENGTH; j++) {
-            for (int k = 0; k < CHUNK_HEIGHT; k++) {
-                struct block* blk = chunk->blocks[i][j][k];
-                if (blk == NULL) {
-                    continue;
-                }
-                block_unload(blk);
-            }
-        }
-    }
     chunk->loaded = 0;
+    // Clear VBO data
+    glDeleteBuffers(1, &chunk->_vbo);
+    // Clear EBO data
+    glDeleteBuffers(1, &chunk->_ebo);
+    // Clear VAO
+    glDeleteVertexArrays(1, &chunk->_vao);
+    chunk->loaded = 0;
+}
 
+// Regenerate chunk data
+void chunk_update(struct chunk *chunk) {
 }
