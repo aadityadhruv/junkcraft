@@ -26,22 +26,20 @@ void input_handle(struct engine *engine) {
         }
         if (event.type == SDL_KEYDOWN) {
             SDL_KeyboardEvent key = event.key;
-            switch (key.keysym.sym) {
-                case SDLK_w:
-                    camera_move(engine->camera, FORWARD);
-                    break;
-                case SDLK_a:
-                    camera_move(engine->camera, LEFT);
-                    break;
-                case SDLK_s:
-                    camera_move(engine->camera, BACKWARD);
-                    break;
-                case SDLK_d:
-                    camera_move(engine->camera, RIGHT);
-                    break;
-                case SDLK_ESCAPE:
-                    engine->game_loop = 0;
-                    break;
+            if (key.keysym.sym == SDLK_w) {
+                camera_move(engine->camera, FORWARD);
+            }
+            if (key.keysym.sym == SDLK_a) {
+                camera_move(engine->camera, LEFT);
+            }
+            if (key.keysym.sym == SDLK_s) {
+                camera_move(engine->camera, BACKWARD);
+            }
+            if (key.keysym.sym == SDLK_d) {
+                camera_move(engine->camera, RIGHT);
+            }
+            if (key.keysym.sym == SDLK_ESCAPE) {
+                engine->game_loop = 0;
             }
         }
         if (event.type == SDL_MOUSEMOTION) {

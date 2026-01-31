@@ -46,18 +46,18 @@ void block_load_gpu(struct block* blk) {
         0.0f, 0.0f, 1.0f, // Front normal
         1.0f, 0.0f,
 
-        1.0f, 1.0f, -1.0f, // top-right (back plane)
-        0.0f, 0.0f, -1.0f, // Back normal
-        1.0f, 1.0f,
         0.0f, 1.0f, -1.0f, // top-left (back plane)
         0.0f, 0.0f, -1.0f, // Back normal
         0.0f, 1.0f,
-        0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        1.0f, 1.0f, -1.0f, // top-right (back plane)
         0.0f, 0.0f, -1.0f, // Back normal
-        0.0f, 0.0f,
+        1.0f, 1.0f,
         1.0f, 0.0f, -1.0f, // bottom-right (back plane)
         0.0f, 0.0f, -1.0f, // Back normal
         1.0f, 0.0f,
+        0.0f, 0.0f, -1.0f, // bottom-left (back plane)
+        0.0f, 0.0f, -1.0f, // Back normal
+        0.0f, 0.0f,
 
         1.0f, 1.0f, -1.0f, // top-right (back plane)
         1.0f, 0.0f, 0.0f, // Right normal

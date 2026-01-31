@@ -7,7 +7,12 @@ in vec3 frag_pos;
 in vec2 text_coord;
 uniform sampler2D block_texture;
 void main() {
-    vec3 ambient_color = vec3(0.1);
+    vec3 top_ambient = vec3(0.5);
+    vec3 ambient_dir = vec3(0.0f, 1.0f, 0.0f);
+    vec3 bottom_ambient = vec3(0.1);
+    float value = dot(normal, ambient_dir) * 0.5 + 0.3;
+    vec3 inter = mix(bottom_ambient,top_ambient,value);
+    vec3 ambient_color = inter;
     vec3 norm = normalize(normal);
     vec3 light_dir = normalize(vec3(1.0f, 2.0f, 1.0f));
     float diff = max(dot(norm, light_dir), 0.0);

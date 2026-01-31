@@ -122,6 +122,9 @@ void engine_start(struct engine* engine) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.529f, 0.808f, 0.922f, 1.0f);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
         glUseProgram(engine->shader->program);
         // Update engine managed objects
