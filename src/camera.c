@@ -1,6 +1,7 @@
 #include "camera.h"
 #include "cglm/cam.h"
 #include "cglm/io.h"
+#include "config.h"
 #include "cglm/mat4.h"
 #include "cglm/util.h"
 #include "cglm/vec3.h"
@@ -31,7 +32,7 @@ void camera_update(struct camera* camera, struct shader* shader) {
     // glm_lookat(camera, cam_pivot, axis_y, blk->view);
     // glm_rotate_at(blk->view, cam_pivot, angle, axis_y);
     // Projection (perspective) matrix
-    glm_perspective(camera->fov, 800.0f / 600.0f, 0.1f, -10.0f, camera->perspective);
+    glm_perspective(camera->fov, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, -10.0f, camera->perspective);
     set_uniform_mat4("view", shader, camera->view);
     set_uniform_mat4("perspective", shader, camera->perspective);
     // fprintf(stderr, "==== Block View ====\n");

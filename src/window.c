@@ -1,11 +1,12 @@
 #include "window.h"
 #include "glad/glad.h"
+#include "config.h"
 #include <stdio.h>
 
 int window_init(struct window* window) {
     SDL_Init(SDL_INIT_VIDEO);
     // This will call SDL_GL_LoadLibrary so you don't need glad to do anything
-    window->window = SDL_CreateWindow("Junkcraft", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL);
+    window->window = SDL_CreateWindow("Junkcraft", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
 
     SDL_GLContext* ctx = SDL_GL_CreateContext(window->window);
     // Let GLAD use the SDL GetProcAddress loader instead of using its own
