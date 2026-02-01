@@ -1,5 +1,6 @@
 #include "chunk.h"
 #include "block.h"
+#include "cglm/io.h"
 #include "cglm/types.h"
 #include "cglm/vec2.h"
 #include "cglm/vec3.h"
@@ -122,9 +123,13 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         glm_vec2_add(left, chunk->coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* left_chunk = { 0 };
-        world_get_chunk(world, neighbor, &chunk);
-        // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
-        if (left_chunk == NULL || left_chunk->loaded == 0) {
+        world_get_chunk(world, neighbor, &left_chunk);
+        // If not created, we don't care, it's not being rendered, so mark as no neighbor
+        // TODO: Previously had chunk->loaded == 0, but this causes a problem. When we move
+        // from one chunk to another, everything gets unloaded, and then we start loading everything. 
+        // This means that sometimes because of order of evaluation a chunk might think it's neighbor
+        // isn't loaded even though it will be
+        if (left_chunk == NULL) {
             return 0;
         }
         // Otherwise we check if the neighbor block exists
@@ -137,9 +142,9 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         glm_vec2_add(right, chunk->coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* right_chunk = { 0 };
-        world_get_chunk(world, neighbor, &chunk);
+        world_get_chunk(world, neighbor, &right_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
-        if (right_chunk == NULL || right_chunk->loaded == 0) {
+        if (right_chunk == NULL) {
             return 0;
         }
         // Otherwise we check if the neighbor block exists
@@ -152,9 +157,9 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         glm_vec2_add(bottom, chunk->coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* bottom_chunk = { 0 };
-        world_get_chunk(world, neighbor, &chunk);
+        world_get_chunk(world, neighbor, &bottom_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
-        if (bottom_chunk == NULL || bottom_chunk->loaded == 0) {
+        if (bottom_chunk == NULL) {
             return 0;
         }
         // Otherwise we check if the neighbor block exists
@@ -167,9 +172,9 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         glm_vec2_add(top, chunk->coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* top_chunk = { 0 };
-        world_get_chunk(world, neighbor, &chunk);
+        world_get_chunk(world, neighbor, &top_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
-        if (top_chunk == NULL || top_chunk->loaded == 0) {
+        if (top_chunk == NULL) {
             return 0;
         }
         // Otherwise we check if the neighbor block exists
@@ -199,11 +204,11 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
 void _chunk_plains_gen(struct chunk* chunk) {
     // ============ KNOBS ============
     // Minimum ground
-    int z = 2;
+    int z = 20;
     // Min POI block height
-    int poi_min = 3;
+    int poi_min = 23;
     // Max POI block height
-    int poi_max = 5;
+    int poi_max = 25;
     // Descent/Ascent rate
     float m = -.5;
     memset(chunk->blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
@@ -227,7 +232,6 @@ void _chunk_plains_gen(struct chunk* chunk) {
             }
         }
     }
-    chunk->loaded = 1;
 }
 
 
@@ -261,7 +265,18 @@ float* _chunk_face_add(float* face, int size, vec3 pos) {
  * NOTE: GPU
  */
 void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
-    fprintf(stderr, "Loaded chunk (%d, %d)\n", coord[0], coord[1]);
+    // If we are already loaded, no need to do any GPU work at all. Just update the coordinates
+    if (chunk->loaded == 1) {
+    vec3 translation = {CHUNK_WIDTH * coord[0], 0, - (CHUNK_LENGTH * coord[1])};
+    // Set the matrix for world coordinate translation
+    glm_mat4_identity(chunk->model);
+    glm_translate(chunk->model, translation);
+    chunk->loaded = 1;
+    chunk->staged_for_load = 0;
+    return;
+        
+    }
+    // fprintf(stderr, "Loaded chunk (%d, %d)\n", coord[0], coord[1]);
     // ================ OpenGL work ================
     // Initalize vertices and vertex order vectors. These will be dynamically
     // sized buffer data we send to the GPU
@@ -445,8 +460,8 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     }
     float tmp_vertex[vector_length(vertices) * sizeof(front_face)];
     int tmp_order[vector_length(vertex_order) * sizeof(vertex_draw_order)];
-    fprintf(stderr, "Chunk blk_c: %d v_s: %d, v_o: %d\n", blk_c, vector_length(vertices) / 6, vector_length(vertex_order) / 6);
-    fprintf(stderr, "%d|%d|%d|%d|%d|%d|", v_count[0], v_count[1], v_count[2], v_count[3], v_count[4], v_count[5]);
+    // fprintf(stderr, "Chunk blk_c: %d v_s: %d, v_o: %d\n", blk_c, vector_length(vertices) / 6, vector_length(vertex_order) / 6);
+    // fprintf(stderr, "%d|%d|%d|%d|%d|%d|", v_count[0], v_count[1], v_count[2], v_count[3], v_count[4], v_count[5]);
     for (int i = 0; i < vector_length(vertices); i++) {
         float* face = vector_get(vertices, i);
         // Copy from heap mem to tmp buffer, and then free
@@ -497,6 +512,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     glm_mat4_identity(chunk->model);
     glm_translate(chunk->model, translation);
     chunk->loaded = 1;
+    chunk->staged_for_load = 0;
 }
 
 void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* texture) {
@@ -515,6 +531,7 @@ void chunk_unload(struct chunk* chunk) {
     // Clear VAO
     glDeleteVertexArrays(1, &chunk->_vao);
     chunk->loaded = 0;
+    chunk->staged_for_load = 0;
 }
 
 // Regenerate chunk data

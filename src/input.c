@@ -5,6 +5,7 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_stdinc.h>
+#include <SDL2/SDL_video.h>
 
 pthread_t input_init(struct engine* engine) {
     pthread_t thread;
@@ -17,6 +18,7 @@ void input_join(pthread_t thread, struct engine* engine) {
 void input_handle(struct engine *engine) {
     SDL_Event event;
     SDL_SetRelativeMouseMode(SDL_TRUE);
+    SDL_SetWindowMouseGrab(engine->window->window, SDL_TRUE);
     while (engine->game_loop) {
         // Quit game
         // TODO: Locks?

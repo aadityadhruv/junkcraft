@@ -46,7 +46,7 @@ int engine_init(struct engine *engine) {
 
     // Setup camera
     camera_init(&engine->camera);
-    vec3 camera_pos = { 0.0f, 15.0f, 0.0f };
+    vec3 camera_pos = { 0.0f, 40.0f, 0.0f };
     camera_set_position(engine->camera, camera_pos);
 
     // Setup root chunk
@@ -72,9 +72,6 @@ void engine_update(struct engine* engine) {
     //NOTE: OpenGL FLIP
     int curr_chunk[2] = { floorf(engine->camera->position[0] / (float)CHUNK_WIDTH), floorf(-engine->camera->position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
-    struct chunk* c = {0};
-    world_get_chunk(engine->world, curr_chunk, &c);
-
     // We moved a chunk - load new chunks with chunk_load
     if (engine->curr_chunk[0] != curr_chunk[0] || engine->curr_chunk[1] != curr_chunk[1]) {
         fprintf(stderr, "CHUNK Update! From (%d, %d) to (%d, %d)\n",
@@ -82,6 +79,17 @@ void engine_update(struct engine* engine) {
                 engine->curr_chunk[1],
                 curr_chunk[0],
                 curr_chunk[1]);
+        // Stage relevant chunks for loading
+        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+                struct chunk* chunk;
+                int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j };
+                world_get_chunk(engine->world, chunk_coord, &chunk);
+                // Stage for loading chunk
+                chunk->staged_for_load = 1;
+                // fprintf(stderr, "Staged (%d, %d)\n", chunk_coord[0], chunk_coord[1]);
+            }
+        }
         // Unload existing chunks
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
@@ -89,22 +97,25 @@ void engine_update(struct engine* engine) {
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 // unload chunk
-                // TODO: Fix some VAO/VBO bug when negative y
-                chunk_unload(chunk);
+                if (chunk->staged_for_load == 0) {
+                // fprintf(stderr, "Unloaded (%d, %d)\n", chunk_coord[0], chunk_coord[1]);
+                    chunk_unload(chunk);
+                }
+            }
+        }
+        // Load chunks that are needed
+        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+                struct chunk* chunk;
+                int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j };
+                world_get_chunk(engine->world, chunk_coord, &chunk);
+                // Load chunks - if already loaded will only update coords
+                chunk_load(engine->world, chunk, chunk_coord);
+                fprintf(stderr, "Loaded (%d, %d)\n", chunk_coord[0], chunk_coord[1]);
             }
         }
         // Update the curr_chunk
         memcpy(engine->curr_chunk, curr_chunk, sizeof(vec2));
-        // Load chunks of CHUNK_DISTANCE around curr_chunk
-        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
-            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-                struct chunk* chunk;
-                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
-                world_get_chunk(engine->world, chunk_coord, &chunk);
-                // Load chunk
-                chunk_load(engine->world, chunk, chunk_coord);
-            }
-        }
     }
 }
 
@@ -132,7 +143,6 @@ void engine_start(struct engine* engine) {
             frames = 0;
             frame_last_time = now;
             fprintf(stderr, "FPS: %.2f\n", fps);
-            glm_vec3_print(engine->camera->position, stderr);
             fprintf(stderr, "x: %d, y: %d\n", engine->curr_chunk[0], engine->curr_chunk[1]);
         }
 

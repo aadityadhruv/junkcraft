@@ -5,7 +5,7 @@
 #include <string.h>
 
 // LOAD_DISTANCE determines how many chunks are loaded on world creation
-#define LOAD_DISTANCE 10
+#define LOAD_DISTANCE 1
 
 int world_init(int32_t seed, struct world** world) {
     srand(seed);

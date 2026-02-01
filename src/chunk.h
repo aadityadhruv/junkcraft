@@ -34,7 +34,7 @@ struct chunk {
     enum biome biome;
     vec2 coord;
     int loaded;
-    int dirty;
+    int staged_for_load;
 };
 
 /**
