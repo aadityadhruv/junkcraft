@@ -29,16 +29,16 @@ void input_handle(struct engine *engine) {
         if (event.type == SDL_KEYDOWN) {
             SDL_KeyboardEvent key = event.key;
             if (key.keysym.sym == SDLK_w) {
-                camera_move(engine->camera, FORWARD);
+                player_move(engine->player, FORWARD);
             }
             if (key.keysym.sym == SDLK_a) {
-                camera_move(engine->camera, LEFT);
+                player_move(engine->player, LEFT);
             }
             if (key.keysym.sym == SDLK_s) {
-                camera_move(engine->camera, BACKWARD);
+                player_move(engine->player, BACKWARD);
             }
             if (key.keysym.sym == SDLK_d) {
-                camera_move(engine->camera, RIGHT);
+                player_move(engine->player, RIGHT);
             }
             if (key.keysym.sym == SDLK_ESCAPE) {
                 engine->game_loop = 0;
@@ -50,7 +50,7 @@ void input_handle(struct engine *engine) {
             SDL_GetRelativeMouseState(&x, &y);
             if (x != 0 || y != 0) {
             vec2 offset = { x, y };
-            camera_rotate(engine->camera, offset);
+            player_rotate(engine->player, offset);
             }
         }
     }

@@ -26,19 +26,11 @@ void camera_set_position(struct camera* camera, vec3 pos) {
 }
 
 void camera_update(struct camera* camera, struct shader* shader) {
-    // vec3 camera = { 8.0f, 10.0f, 15.0f };
-    // vec3 cam_pivot = { 8.0f, 0.0f, -8.0f };
     glm_look(camera->position, camera->direction, camera->up, camera->view);
-    // glm_lookat(camera, cam_pivot, axis_y, blk->view);
-    // glm_rotate_at(blk->view, cam_pivot, angle, axis_y);
     // Projection (perspective) matrix
     glm_perspective(camera->fov, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, -10.0f, camera->perspective);
     set_uniform_mat4("view", shader, camera->view);
     set_uniform_mat4("perspective", shader, camera->perspective);
-    // fprintf(stderr, "==== Block View ====\n");
-    // glm_mat4_print(camera->view, stderr);
-    // fprintf(stderr, "==== Block Perspective ====\n");
-    // glm_mat4_print(camera->perspective, stderr);
 }
 
 void camera_move(struct camera *camera, enum DIRECTION move) {

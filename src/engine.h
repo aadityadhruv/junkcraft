@@ -1,4 +1,5 @@
 #pragma once
+#include "player.h"
 #include "window.h"
 #include <ft2build.h>
 #include "shader.h"
@@ -13,7 +14,7 @@
 struct engine {
     struct window* window;
     struct shader* shader;
-    struct camera* camera;
+    struct player* player;
     struct texture* texture;
     int game_loop;
     int curr_chunk[2];
@@ -30,7 +31,7 @@ int engine_init(struct engine* engine);
 
 /**
  * Take all objects in the engine, apply the shader pipeline and draw on the window
- * Apply chunk and camera updates as well. This is the main game loop
+ * Apply chunk and player/camera updates as well. This is the main game loop
  *
  * @param engine The target engine
  */

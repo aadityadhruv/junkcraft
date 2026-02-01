@@ -357,18 +357,18 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
         1.0f, 0.0f,
     };
     float bottom_face[] = {
-        1.0f, 0.0f, -1.0f, // bottom-right (back plane)
-        0.0f, -1.0f, 0.0f, // Bottom normal
-        1.0f, 1.0f,
         0.0f, 0.0f, -1.0f, // bottom-left (back plane)
         0.0f, -1.0f, 0.0f, // Bottom normal
         0.0f, 1.0f,
-        0.0f, 0.0f, 0.0f, // bottom-left
+        1.0f, 0.0f, -1.0f, // bottom-right (back plane)
         0.0f, -1.0f, 0.0f, // Bottom normal
-        0.0f, 0.0f,
+        1.0f, 1.0f,
         1.0f, 0.0f, 0.0f, // bottom-right
         0.0f, -1.0f, 0.0f, // Bottom normal
         1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, // bottom-left
+        0.0f, -1.0f, 0.0f, // Bottom normal
+        0.0f, 0.0f,
     };
 
     int vertex_draw_order[] = {

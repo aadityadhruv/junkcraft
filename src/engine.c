@@ -1,9 +1,9 @@
 #include "engine.h"
 #include "block.h"
-#include "camera.h"
 #include "cglm/io.h"
 #include "chunk.h"
 #include "input.h"
+#include "player.h"
 #include "texture.h"
 #include "window.h"
 #include "world.h"
@@ -44,10 +44,9 @@ int engine_init(struct engine *engine) {
     // Setup Objects to draw
     // memset(engine->loaded_chunks, 0, (1 + CHUNK_DISTANCE * 2) * (1 + CHUNK_DISTANCE * 2));
 
-    // Setup camera
-    camera_init(&engine->camera);
-    vec3 camera_pos = { 0.0f, 40.0f, 0.0f };
-    camera_set_position(engine->camera, camera_pos);
+    // Setup player
+    vec3 pos = { 0.0f, 40.0f, 0.0f };
+    player_init(pos, &engine->player);
 
     // Setup root chunk
     struct world* world;
@@ -70,7 +69,7 @@ int engine_init(struct engine *engine) {
 
 void engine_update(struct engine* engine) {
     //NOTE: OpenGL FLIP
-    int curr_chunk[2] = { floorf(engine->camera->position[0] / (float)CHUNK_WIDTH), floorf(-engine->camera->position[2] / (float)CHUNK_LENGTH) };
+    int curr_chunk[2] = { floorf(engine->player->position[0] / (float)CHUNK_WIDTH), floorf(-engine->player->position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
     // We moved a chunk - load new chunks with chunk_load
     if (engine->curr_chunk[0] != curr_chunk[0] || engine->curr_chunk[1] != curr_chunk[1]) {
@@ -157,7 +156,7 @@ void engine_start(struct engine* engine) {
         // Update engine managed objects
         engine_fps(engine, fps);
         engine_update(engine);
-        camera_update(engine->camera, engine->shader);
+        player_update(engine->player, engine->shader);
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk = {0};
