@@ -75,3 +75,5 @@ void chunk_unload(struct chunk* chunk);
  * @param texture Textures that block_draw will use
  */
 void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* texture);
+
+int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block);

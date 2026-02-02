@@ -1,6 +1,7 @@
 #include "world.h"
 #include "cglm/io.h"
 #include "chunk.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,4 +46,26 @@ void world_get_chunk_real_coord(struct world* world, vec2 coord, int out[2]) {
     int y = (int)coord[1] % WORLD_LENGTH;
     out[0] = x;
     out[1] = y;
+}
+
+int world_chunk_block_get(struct world* world, vec3 pos, struct block** block) {
+    int x = floorf(pos[0]);
+    //Note: OpenGL FLIP
+    int y = floorf(-pos[2]);
+    int z = floorf(pos[1]);
+    int curr_chunk[2] = { floorf(x / (float)CHUNK_WIDTH), floorf(y / (float)CHUNK_LENGTH) };
+    struct chunk* c = {0};
+    world_get_chunk(world, curr_chunk, &c);
+    // Set coords to chunk-local coords
+    x = (abs(curr_chunk[0]) * CHUNK_WIDTH + x) % CHUNK_WIDTH;
+    y = (abs(curr_chunk[1]) * CHUNK_LENGTH + y) % CHUNK_LENGTH;
+    vec3 new_pos = { x, y, z };
+    // fprintf(stderr, "Block check: (%d, %d, %d) in (%d, %d)\n",
+    //         x,
+    //         y,
+    //         z,
+    //         curr_chunk[0],
+    //         curr_chunk[1]
+    //         );
+    return chunk_block_get(c, new_pos, block);
 }

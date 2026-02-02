@@ -12,7 +12,7 @@
 void camera_init(struct camera** camera) {
     struct camera* cam = malloc(sizeof(struct camera));
     memset(cam, 0, sizeof(struct camera));
-    vec3 camera_direction = { 0.0f, -1.0f, -5.0f };
+    vec3 camera_direction = { 0.0f, -0.0f, -5.0f };
     vec3 camera_up = { 0.0f, 1.0f, 0.0f };
     memcpy(cam->direction, camera_direction, sizeof(vec3));
     memcpy(cam->up, camera_up, sizeof(vec3));

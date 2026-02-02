@@ -537,3 +537,15 @@ void chunk_unload(struct chunk* chunk) {
 // Regenerate chunk data
 void chunk_update(struct chunk *chunk) {
 }
+int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block) {
+    int x = pos[0];
+    int y = pos[1];
+    int z = pos[2];
+    if (chunk->blocks[x][y][z] != NULL) {
+        if (block != NULL) {
+            *block = chunk->blocks[x][y][z];
+        }
+        return 0;
+    }
+    return 1;
+}

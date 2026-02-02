@@ -68,7 +68,8 @@ int engine_init(struct engine *engine) {
 }
 
 void engine_update(struct engine* engine) {
-    //NOTE: OpenGL FLIP
+    player_physics(engine->player, engine);
+    // NOTE: OpenGL FLIP
     int curr_chunk[2] = { floorf(engine->player->position[0] / (float)CHUNK_WIDTH), floorf(-engine->player->position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
     // We moved a chunk - load new chunks with chunk_load

@@ -13,3 +13,4 @@ int world_init(int32_t seed, struct world** world);
 int world_save(int32_t seed);
 int world_get_chunk(struct world* world, int coord[2], struct chunk** chunk);
 void world_get_chunk_real_coord(struct world* world, vec2 coord, int out[2]);
+int world_chunk_block_get(struct world* world, vec3 pos, struct block** block);
