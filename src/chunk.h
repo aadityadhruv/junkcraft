@@ -76,4 +76,11 @@ void chunk_unload(struct chunk* chunk);
  */
 void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* texture);
 
+/**
+ * Get a block in a chunk
+ * @param target chunk
+ * @param pos block coordinates in chunk coordinates
+ * @param block value to store resultant value in. if NULL, won't store value
+ * @return 0 if there is a block, 1 if there is no block
+ */
 int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block);

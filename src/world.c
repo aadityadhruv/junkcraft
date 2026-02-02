@@ -68,4 +68,5 @@ int world_chunk_block_get(struct world* world, vec3 pos, struct block** block) {
     //         curr_chunk[1]
     //         );
     return chunk_block_get(c, new_pos, block);
+    // fprintf(stderr, "For block %d id: %d (1 means no block, 0 means block)\n", id, ret);
 }

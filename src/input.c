@@ -29,16 +29,16 @@ void input_handle(struct engine *engine) {
         if (event.type == SDL_KEYDOWN) {
             SDL_KeyboardEvent key = event.key;
             if (key.keysym.sym == SDLK_w) {
-                player_move(engine->player, FORWARD);
+                player_move(engine->player, engine, FORWARD);
             }
             if (key.keysym.sym == SDLK_a) {
-                player_move(engine->player, LEFT);
+                player_move(engine->player, engine, LEFT);
             }
             if (key.keysym.sym == SDLK_s) {
-                player_move(engine->player, BACKWARD);
+                player_move(engine->player, engine, BACKWARD);
             }
             if (key.keysym.sym == SDLK_d) {
-                player_move(engine->player, RIGHT);
+                player_move(engine->player, engine, RIGHT);
             }
             if (key.keysym.sym == SDLK_ESCAPE) {
                 engine->game_loop = 0;
