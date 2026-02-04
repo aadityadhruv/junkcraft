@@ -25,8 +25,8 @@ void player_camera_set_position(struct player* player);
 
 void player_rotate(struct player* player, vec2 offset);
 
-void player_move(struct player* player, struct engine* engine, enum DIRECTION move);
+void player_move(struct player* player, struct engine* engine, enum DIRECTION move, double dt);
 
 void player_update(struct player* player, struct shader* shader);
 
-void player_physics(struct player* player, struct engine* engine);
+void player_physics(struct player* player, struct engine* engine, double dt);

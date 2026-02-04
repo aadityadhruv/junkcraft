@@ -1,6 +1,7 @@
 #pragma once
 #include "player.h"
 #include "window.h"
+#include <SDL2/SDL_stdinc.h>
 #include <ft2build.h>
 #include "shader.h"
 // CHUNK_DISTANCE is essentially render distance, it shows you how many chunks
@@ -19,6 +20,7 @@ struct engine {
     int game_loop;
     int curr_chunk[2];
     struct world* world;
+    const Uint8* numkeys;
 };
 
 /**

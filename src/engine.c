@@ -64,11 +64,12 @@ int engine_init(struct engine *engine) {
     }
     // Final step - Start the game
     engine->game_loop = 1;
+    const Uint8* numkeys = SDL_GetKeyboardState(NULL);
+    engine->numkeys = numkeys;
     return 0;
 }
 
 void engine_update(struct engine* engine) {
-    player_physics(engine->player, engine);
     // NOTE: OpenGL FLIP
     int curr_chunk[2] = { floorf(engine->player->position[0] / (float)CHUNK_WIDTH), floorf(-engine->player->position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
@@ -111,7 +112,6 @@ void engine_update(struct engine* engine) {
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 // Load chunks - if already loaded will only update coords
                 chunk_load(engine->world, chunk, chunk_coord);
-                fprintf(stderr, "Loaded (%d, %d)\n", chunk_coord[0], chunk_coord[1]);
             }
         }
         // Update the curr_chunk
@@ -134,9 +134,15 @@ void engine_start(struct engine* engine) {
     float frames = 0;
     time_t frame_last_time = time(NULL);
     float fps = 0.0f;
+    struct timespec last_update;
+    clock_gettime(CLOCK_MONOTONIC, &last_update);
     while (engine->game_loop) {
         time_t now = time(NULL);
         time_t diff = now - frame_last_time;
+        struct timespec curr;
+        clock_gettime(CLOCK_MONOTONIC, &curr);
+        double dt = (curr.tv_sec - last_update.tv_sec) + ((curr.tv_nsec - last_update.tv_nsec) / ((double) 1000000000));
+        clock_gettime(CLOCK_MONOTONIC, &last_update);
         // Calculate FPS every second
         if (diff >= 1.0f) {
             fps = frames / diff;
@@ -155,8 +161,10 @@ void engine_start(struct engine* engine) {
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
         glUseProgram(engine->shader->program);
         // Update engine managed objects
+        input_process(engine, dt);
         engine_fps(engine, fps);
         engine_update(engine);
+        player_physics(engine->player, engine, dt);
         player_update(engine->player, engine->shader);
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {

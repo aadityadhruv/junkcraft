@@ -7,7 +7,8 @@ enum DIRECTION {
     FORWARD,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    JUMP
 };
 struct camera {
     vec3 position;
