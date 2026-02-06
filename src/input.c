@@ -1,6 +1,7 @@
 #include "input.h"
 #include "camera.h"
 #include "cglm/types.h"
+#include "player.h"
 #include "pthread.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
@@ -50,6 +51,15 @@ void input_process(struct engine* engine, double dt) {
                 engine->game_loop = 0;
             }
         if (event.type == SDL_KEYDOWN) {
+        }
+        if (event.type == SDL_MOUSEBUTTONDOWN) {
+            SDL_MouseButtonEvent* b = (SDL_MouseButtonEvent*) &event;
+            if (b->button == SDL_BUTTON_LEFT) {
+                player_block_delete(engine->player, engine->world);
+            }
+            if (b->button == SDL_BUTTON_RIGHT) {
+                player_block_place(engine->player, engine->world);
+            }
         }
         if (event.type == SDL_MOUSEMOTION) {
             int x;

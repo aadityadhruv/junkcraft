@@ -35,6 +35,8 @@ struct chunk {
     vec2 coord;
     int loaded;
     int staged_for_load;
+    // usually used to force chunk updates
+    int dirty;
 };
 
 /**
@@ -85,3 +87,18 @@ void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* text
  */
 int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block);
 int* chunk_face_order_add(int* face_order, int size, int idx);
+/**
+ * Delete a block in the chunk at pos if it exists
+ * @param chunk Target chunk
+ * @param pos block position
+ * @return 0 if a block was deleted, 1 if not
+ */
+int chunk_block_delete(struct chunk* chunk, vec3 pos);
+
+/**
+ * Place a block in the chunk at pos if it empty 
+ * @param chunk Target chunk
+ * @param pos block position
+ * @return 0 if a block was deleted, 1 if not
+ */
+int chunk_block_place(struct chunk* chunk, vec3 pos);

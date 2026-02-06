@@ -121,6 +121,18 @@ void engine_update(struct engine* engine) {
         // Update the curr_chunk
         memcpy(engine->curr_chunk, curr_chunk, sizeof(vec2));
     }
+    // Reload a chunk if it is dirty
+    for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+        for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+            struct chunk* chunk = {0};
+            int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
+            world_get_chunk(engine->world, chunk_coord, &chunk);
+            if (!chunk->loaded) {
+                chunk_load(engine->world, chunk, chunk_coord);
+            }
+        }
+    }
+
 }
 
 void engine_fps(struct engine* engine, float fps) {

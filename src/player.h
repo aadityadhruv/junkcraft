@@ -38,3 +38,7 @@ void player_update(struct player* player, struct shader* shader);
 void player_physics(struct player* player, struct engine* engine, double dt);
 
 void player_draw(struct player* player, struct world* world, struct shader* shader);
+
+void player_block_delete(struct player* player, struct world* world);
+
+void player_block_place(struct player* player, struct world* world);

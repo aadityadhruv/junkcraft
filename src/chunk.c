@@ -545,3 +545,31 @@ int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block) {
     }
     return 1;
 }
+
+int chunk_block_place(struct chunk* chunk, vec3 pos) {
+    int x = pos[0];
+    int y = pos[1];
+    int z = pos[2];
+    //TODO: BUGFIX IF X,Y,Z OOB
+    if (chunk->blocks[x][y][z] == NULL) {
+        struct block* blk = malloc(sizeof(struct block));
+        block_init(blk, BLOCK_GRASS);
+        chunk->blocks[x][y][z] = blk;
+        chunk->loaded = 0;
+        return 0;
+    }
+    return 1;
+}
+int chunk_block_delete(struct chunk* chunk, vec3 pos) {
+    int x = pos[0];
+    int y = pos[1];
+    int z = pos[2];
+    //TODO: BUGFIX IF X,Y,Z OOB
+    if (chunk->blocks[x][y][z] != NULL) {
+        free(chunk->blocks[x][y][z]);
+        chunk->blocks[x][y][z] = NULL;
+        chunk->loaded = 0;
+        return 0;
+    }
+    return 1;
+}

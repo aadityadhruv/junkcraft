@@ -6,11 +6,14 @@
 #include "shader.h"
 #include "util.h"
 #include "world.h"
+#include <SDL2/SDL_messagebox.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
+#define MIN(x, y) (x < y) ? x : y
+#define MAX(x, y) (x > y) ? x : y
 #define MAX_WALK_VELOCITY 10
 // Note: Difference between friction and move scale will essentially give
 // you net accel - how fast will you reach top speed
@@ -21,6 +24,7 @@
 #define MOVE_SCALE 110 
 #define JUMP_SCALE 500
 #define GRAVITY -30.0f
+#define BLOCK_RANGE 7
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
@@ -295,11 +299,26 @@ void player_physics(struct player* player, struct engine* engine, double dt) {
     glm_vec3_add(player->position, displacement, player->position);
     player_camera_set_position(player);
 }
+
+float player_ray_block_intersect(struct player* player, struct world* world, vec3 coords) {
+    vec3 step = { 0 };
+    glm_vec3_normalize_to(player->camera->direction, step);
+    float t_close = -INFINITY;
+    for (int i = 0; i < 3; i++) {
+        if (player->camera->direction[i] != 0) {
+            float t_i_low = (coords[i] - player->camera->position[i]) / step[i];
+            float t_i_high = ((coords[i] + 1.0f) - player->camera->position[i] ) / step[i];
+            float t_i_close = MIN(t_i_low, t_i_high);
+            t_close = MAX(t_i_close, t_close);
+        }
+    }
+    return t_close;
+}
+
 void player_draw(struct player* player, struct world* world, struct shader* shader) {
     glBindVertexArray(player->_vao_debug);
     // Get projection from camera direction to block
     // Allow highlighting "range" blocks around player
-    float range = 7;
     // Get "step" vector for raycasting
     vec3 step = { 0 };
     glm_normalize_to(player->camera->direction, step);
@@ -309,7 +328,7 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     //Found a target block
     int found = 0;
     while (1) {
-        if (magnitude >= range) {
+        if (magnitude >= BLOCK_RANGE) {
             break;
         }
         // is_block == 0 if there is block
@@ -326,7 +345,6 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     }
     //So ray_position is at block coordinates
     int x = floorf(ray_position[0]);
-    //Note: OpenGL FLIP
     int y = floorf(ray_position[1]);
     // Ceil cause negative
     int z = ceilf(ray_position[2]);
@@ -478,4 +496,93 @@ void player_load_debug(struct player* player) {
     //call is create_vbo. Since VAO is already bound, it gets bound to the OLD
     //VAO!! Always clear before use. 
     glBindVertexArray(0);
+}
+
+void player_block_delete(struct player* player, struct world* world) {
+    vec3 step = { 0 };
+    glm_normalize_to(player->camera->direction, step);
+    float magnitude = glm_vec3_norm(step);
+    vec3 ray_position = { 0 };
+    glm_vec3_add(ray_position, player->camera->position, ray_position);
+    //Found a target block
+    int found = 0;
+    while (1) {
+        if (magnitude >= BLOCK_RANGE) {
+            break;
+        }
+        // is_block == 0 if there is block
+        int is_block = world_chunk_block_get(world, ray_position, NULL);
+        if (is_block == 0) {
+            found = 1;
+            break;
+        }
+        glm_vec3_add(ray_position, step, ray_position);
+        magnitude += glm_vec3_norm(step);
+    }
+    if (!found) {
+        return;
+    }
+    //So ray_position is at block coordinates
+    int x = floorf(ray_position[0]);
+    int y = floorf(ray_position[1]);
+    // Ceil cause negative
+    int z = ceilf(ray_position[2]);
+    vec3 block_pos = { x, y, z };
+    world_chunk_block_delete(world, block_pos);
+}
+
+void player_block_place(struct player* player, struct world* world) {
+    vec3 step = { 0 };
+    glm_normalize_to(player->camera->direction, step);
+    float magnitude = glm_vec3_norm(step);
+    vec3 ray_position = { 0 };
+    glm_vec3_add(ray_position, player->camera->position, ray_position);
+    //Found a target block
+    int found = 0;
+    while (1) {
+        if (magnitude >= BLOCK_RANGE) {
+            break;
+        }
+        // is_block == 0 if there is block
+        int is_block = world_chunk_block_get(world, ray_position, NULL);
+        if (is_block == 0) {
+            found = 1;
+            break;
+        }
+        glm_vec3_add(ray_position, step, ray_position);
+        magnitude += glm_vec3_norm(step);
+    }
+    if (!found) {
+        return;
+    }
+    //So ray_position is at block coordinates
+    int x = floorf(ray_position[0]);
+    int y = floorf(ray_position[1]);
+    // Ceil cause negative
+    int z = ceilf(ray_position[2]);
+
+    vec3 block_coords = { x, y, z };
+
+    fprintf(stderr, "BLOCK");
+    glm_vec3_print(block_coords, stderr);
+
+    float t = player_ray_block_intersect(player, world, block_coords);
+    vec3 point_of_contact = { 0 };
+    glm_vec3_add(point_of_contact, player->camera->position, point_of_contact);
+    // Reset step value to camera direction normal
+    glm_normalize_to(player->camera->direction, step);
+    // p(t) = t * step + origin
+    glm_vec3_scale(step, t, step);
+    glm_vec3_add(point_of_contact, step, point_of_contact);
+    // Store the value of the offset from block coords, this means
+    // offset will have 1 coord with value "1"
+    vec3 offset = { 0 };
+    glm_vec3_sub(point_of_contact, block_coords, offset);
+    glm_vec3_print(offset, stderr);
+    offset[0] = (int)offset[0];
+    offset[1] = (int)offset[1];
+    offset[2] = (int)offset[2];
+    glm_vec3_add(block_coords, offset, block_coords);
+    glm_vec3_print(block_coords, stderr);
+    world_chunk_block_place(world, block_coords);
 }

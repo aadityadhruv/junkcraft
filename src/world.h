@@ -22,3 +22,18 @@ void world_get_chunk_real_coord(struct world* world, vec2 coord, int out[2]);
  * @return 0 if there is a block, 1 if there is no block
  */
 int world_chunk_block_get(struct world* world, vec3 pos, struct block** block);
+
+/**
+ * Delete a block in a chunk from world coordinates. This wraps chunk_block_delete 
+ * @param World
+ * @param pos block coordinates in world coordinates
+ * @return 0 if block was deleted, 1 if not
+ */
+int world_chunk_block_delete(struct world* world, vec3 pos);
+/**
+ * Place a block in a chunk from world coordinates. This wraps chunk_block_place
+ * @param World
+ * @param pos block coordinates in world coordinates
+ * @return 0 if block was placed, 1 if not
+ */
+int world_chunk_block_place(struct world* world, vec3 pos);

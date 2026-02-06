@@ -70,3 +70,33 @@ int world_chunk_block_get(struct world* world, vec3 pos, struct block** block) {
     return chunk_block_get(c, new_pos, block);
     // fprintf(stderr, "For block %d id: %d (1 means no block, 0 means block)\n", id, ret);
 }
+int world_chunk_block_delete(struct world* world, vec3 pos) {
+    int x = floorf(pos[0]);
+    //Note: OpenGL FLIP
+    int y = floorf(-pos[2]);
+    int z = floorf(pos[1]);
+    int curr_chunk[2] = { floorf(x / (float)CHUNK_WIDTH), floorf(y / (float)CHUNK_LENGTH) };
+    struct chunk* c = {0};
+    world_get_chunk(world, curr_chunk, &c);
+    // Set coords to chunk-local coords
+    x = (abs(curr_chunk[0]) * CHUNK_WIDTH + x) % CHUNK_WIDTH;
+    y = (abs(curr_chunk[1]) * CHUNK_LENGTH + y) % CHUNK_LENGTH;
+    vec3 new_pos = { x, y, z };
+    return chunk_block_delete(c, new_pos);
+    // fprintf(stderr, "For block %d id: %d (1 means no block, 0 means block)\n", id, ret);
+}
+int world_chunk_block_place(struct world* world, vec3 pos) {
+    int x = floorf(pos[0]);
+    //Note: OpenGL FLIP
+    int y = floorf(-pos[2]);
+    int z = floorf(pos[1]);
+    int curr_chunk[2] = { floorf(x / (float)CHUNK_WIDTH), floorf(y / (float)CHUNK_LENGTH) };
+    struct chunk* c = {0};
+    world_get_chunk(world, curr_chunk, &c);
+    // Set coords to chunk-local coords
+    x = (abs(curr_chunk[0]) * CHUNK_WIDTH + x) % CHUNK_WIDTH;
+    y = (abs(curr_chunk[1]) * CHUNK_LENGTH + y) % CHUNK_LENGTH;
+    vec3 new_pos = { x, y, z };
+    return chunk_block_place(c, new_pos);
+    // fprintf(stderr, "For block %d id: %d (1 means no block, 0 means block)\n", id, ret);
+}
