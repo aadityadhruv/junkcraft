@@ -23,6 +23,11 @@ struct player {
     GLuint _ebo_debug;
     int debug_vertex_count;
     mat4 debug_model;
+    GLuint _vao_ui;
+    GLuint _vbo_ui;
+    GLuint _ebo_ui;
+    int ui_vertex_count;
+    mat4 ui_model;
 };
 
 void player_init(vec3 pos, struct player** player);
@@ -42,3 +47,6 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
 void player_block_delete(struct player* player, struct world* world);
 
 void player_block_place(struct player* player, struct world* world);
+
+void player_load_ui(struct player* player);
+void player_draw_ui(struct player* player, struct shader* shader);

@@ -30,14 +30,19 @@ int engine_init(struct engine *engine) {
     vector_init(&(engine->shaders));
     struct shader* shader;
     struct shader* debug_shader;
+    struct shader* ui_shader;
     shader_init(&shader);
     shader_init(&debug_shader);
+    shader_init(&ui_shader);
     char* shaders[2] = { "shaders/vertex.glsl", "shaders/fragment.glsl" };
     char* debug_shaders[2] = { "shaders/vertex_debug.glsl", "shaders/fragment_debug.glsl" };
+    char* ui_shaders[2] = { "shaders/vertex_ui.glsl", "shaders/fragment_debug.glsl" };
     shader_add(shader, shaders[0], shaders[1]);
     shader_add(debug_shader, debug_shaders[0], debug_shaders[1]);
+    shader_add(ui_shader, ui_shaders[0], ui_shaders[1]);
     VECTOR_INSERT(engine->shaders, shader);
     VECTOR_INSERT(engine->shaders, debug_shader);
+    VECTOR_INSERT(engine->shaders, ui_shader);
 
 
     // Load Textures
@@ -178,6 +183,7 @@ void engine_start(struct engine* engine) {
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
         struct shader* default_shader = vector_get(engine->shaders, 0);
         struct shader* debug_shader = vector_get(engine->shaders, 1);
+        struct shader* ui_shader = vector_get(engine->shaders, 2);
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
         input_process(engine, dt);
@@ -202,6 +208,8 @@ void engine_start(struct engine* engine) {
                 chunk_draw(chunk, default_shader, engine->texture);
             }
         }
+        shader_use(ui_shader);
+        player_draw_ui(engine->player, ui_shader);
         SDL_RenderPresent(engine->window->renderer);
         frames += 1;
     }

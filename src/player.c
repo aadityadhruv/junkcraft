@@ -1,5 +1,7 @@
 #include "player.h"
 #include "camera.h"
+#include "cglm/affine-pre.h"
+#include "cglm/affine.h"
 #include "cglm/io.h"
 #include "cglm/vec3.h"
 #include "chunk.h"
@@ -52,6 +54,8 @@ void player_init(vec3 pos, struct player** player) {
 
     // Load debug stuff
     player_load_debug(p);
+    // Load UI data
+    player_load_ui(p);
     *player = p;
 }
 
@@ -360,7 +364,43 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     glDrawElements(GL_LINES, player->debug_vertex_count, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
+void player_draw_ui(struct player* player, struct shader* shader) {
+    // =========== DRAW UI ================
+    glBindVertexArray(player->_vao_ui);
+    mat4 translate;
+    glm_mat4_identity(translate);
+    // Scale down crosshair
+    glm_scale_uni(translate, 0.05f);
+    set_uniform_mat4("model", shader, translate);
+    glLineWidth(5.0f);
+    glDrawElements(GL_LINES, player->ui_vertex_count, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
 
+void player_load_ui(struct player* player) {
+    // =============== Crosshair Data ===================
+    float crosshair[] = {
+        0.0f, 1.0f, 0.0f, // up
+        0.0f, -1.0f, 0.0f, // down
+        1.0f, 0.0f, 0.0f, // right
+        -1.0f, 0.0f, 0.0f, // left
+    };
+    int vertex_draw_order[] = {
+        0, 1, 2, 3
+    };
+
+    create_vbo(&player->_vbo_ui, (void*)crosshair, sizeof(crosshair));
+    create_ebo(&player->_ebo_ui, (void*)vertex_draw_order, sizeof(vertex_draw_order));
+
+    player->ui_vertex_count = ARRAY_SIZE(vertex_draw_order);
+    glGenVertexArrays(1, &player->_vao_ui);
+    glBindVertexArray(player->_vao_ui);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, player->_vbo_ui);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, player->_ebo_ui);
+    glBindVertexArray(0);
+}
 void player_load_debug(struct player* player) {
     // =============== Face Data ===================
     float front_face[] = {
