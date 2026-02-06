@@ -84,3 +84,4 @@ void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* text
  * @return 0 if there is a block, 1 if there is no block
  */
 int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block);
+int* chunk_face_order_add(int* face_order, int size, int idx);

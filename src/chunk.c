@@ -1,16 +1,11 @@
 #include "chunk.h"
 #include "block.h"
-#include "cglm/io.h"
-#include "cglm/types.h"
-#include "cglm/vec2.h"
-#include "cglm/vec3.h"
+#include "cglm/cglm.h"
 #include "shader.h"
 #include "util.h"
 #include "world.h"
-#include "cglm/cglm.h"
 #include <junk/vector.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -235,7 +230,7 @@ void _chunk_plains_gen(struct chunk* chunk) {
 }
 
 
-int* _chunk_face_order_add(int* face_order, int size, int idx) {
+int* chunk_face_order_add(int* face_order, int size, int idx) {
     int* buf = malloc(size);
     memcpy(buf, face_order, size);
     for (int i = 0; i < size / sizeof(int); i++) {
@@ -399,7 +394,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         VECTOR_INSERT(vertices, _chunk_face_add(front_face,
                                     sizeof(front_face), pos));
                         VECTOR_INSERT(vertex_order,
-                                _chunk_face_order_add(vertex_draw_order,
+                                chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
                         v_count[0] += 1;
@@ -409,7 +404,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         VECTOR_INSERT(vertices, _chunk_face_add(back_face,
                                     sizeof(back_face), pos));
                         VECTOR_INSERT(vertex_order,
-                                _chunk_face_order_add(vertex_draw_order,
+                                chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
                         v_count[1] += 1;
@@ -419,7 +414,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         VECTOR_INSERT(vertices, _chunk_face_add(right_face,
                                     sizeof(right_face), pos));
                         VECTOR_INSERT(vertex_order,
-                                _chunk_face_order_add(vertex_draw_order,
+                                chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
                         v_count[2] += 1;
@@ -429,7 +424,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         VECTOR_INSERT(vertices, _chunk_face_add(left_face,
                                     sizeof(left_face), pos));
                         VECTOR_INSERT(vertex_order,
-                                _chunk_face_order_add(vertex_draw_order,
+                                chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
                         v_count[3] += 1;
@@ -439,7 +434,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         VECTOR_INSERT(vertices, _chunk_face_add(top_face,
                                     sizeof(top_face), pos));
                         VECTOR_INSERT(vertex_order,
-                                _chunk_face_order_add(vertex_draw_order,
+                                chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
                         v_count[4] += 1;
@@ -449,7 +444,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         VECTOR_INSERT(vertices, _chunk_face_add(bottom_face,
                                     sizeof(bottom_face), pos));
                         VECTOR_INSERT(vertex_order,
-                                _chunk_face_order_add(vertex_draw_order,
+                                chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
                         v_count[5] += 1;
@@ -541,6 +536,7 @@ int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block) {
     int x = pos[0];
     int y = pos[1];
     int z = pos[2];
+    //TODO: BUGFIX IF X,Y,Z OOB
     if (chunk->blocks[x][y][z] != NULL) {
         if (block != NULL) {
             *block = chunk->blocks[x][y][z];

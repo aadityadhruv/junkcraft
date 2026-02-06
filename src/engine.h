@@ -14,7 +14,7 @@
 
 struct engine {
     struct window* window;
-    struct shader* shader;
+    struct vector* shaders;
     struct player* player;
     struct texture* texture;
     int game_loop;

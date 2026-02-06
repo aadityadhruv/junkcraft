@@ -2,6 +2,7 @@
 #include "shader.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 
@@ -60,15 +61,19 @@ GLuint create_shader_program(const char* vs, const char* fs) {
     return shader_program;
 }
 
-
-int shader_init(struct shader* shader) {
-    char* shaders[2] = { "shaders/fragment.glsl", "shaders/vertex.glsl" };
-    char* fragment_shader = read_shader(shaders[0]);
-    char* vertex_shader = read_shader(shaders[1]);
+int shader_add(struct shader* shader, char* vs_path, char* fs_path) {
+    char* fragment_shader = read_shader(fs_path);
+    char* vertex_shader = read_shader(vs_path);
     GLuint shader_program = create_shader_program(vertex_shader, fragment_shader);
     free(vertex_shader);
     free(fragment_shader);
     shader->program = shader_program;
+    return 0;
+}
+
+int shader_init(struct shader** shader) {
+    *shader = malloc(sizeof(struct shader));
+    memset(*shader, 0, sizeof(struct shader));
     return 0;
 }
 
@@ -91,4 +96,8 @@ int set_uniform_sampler2d(char* var, struct shader* shader, mat4 matrix) {
     }
     glUniformMatrix4fv(loc, 1, GL_FALSE, (void*)matrix);
     return 0;
+}
+
+void shader_use(struct shader* shader) {
+        glUseProgram(shader->program);
 }

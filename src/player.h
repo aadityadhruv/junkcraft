@@ -1,4 +1,5 @@
 #pragma once
+#include "world.h"
 #include "engine.h"
 #include "camera.h"
 #include "cglm/cglm.h"
@@ -17,6 +18,11 @@ struct player {
     vec3 velocity;
     vec3 accel;
     int grounded;
+    GLuint _vao_debug;
+    GLuint _vbo_debug;
+    GLuint _ebo_debug;
+    int debug_vertex_count;
+    mat4 debug_model;
 };
 
 void player_init(vec3 pos, struct player** player);
@@ -30,3 +36,5 @@ void player_move(struct player* player, struct engine* engine, enum DIRECTION mo
 void player_update(struct player* player, struct shader* shader);
 
 void player_physics(struct player* player, struct engine* engine, double dt);
+
+void player_draw(struct player* player, struct world* world, struct shader* shader);

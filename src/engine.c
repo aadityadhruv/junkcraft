@@ -4,6 +4,7 @@
 #include "chunk.h"
 #include "input.h"
 #include "player.h"
+#include "shader.h"
 #include "texture.h"
 #include "window.h"
 #include "world.h"
@@ -26,14 +27,17 @@ int engine_init(struct engine *engine) {
     engine->window = window;
 
     // Setup Shader pipeline
-    struct shader* shader = malloc(sizeof(struct shader));
-    memset(shader, 0, sizeof(struct shader));
-    if (shader_init(shader)) {
-        free(window);
-        free(shader);
-        return -1;
-    };
-    engine->shader = shader;
+    vector_init(&(engine->shaders));
+    struct shader* shader;
+    struct shader* debug_shader;
+    shader_init(&shader);
+    shader_init(&debug_shader);
+    char* shaders[2] = { "shaders/vertex.glsl", "shaders/fragment.glsl" };
+    char* debug_shaders[2] = { "shaders/vertex_debug.glsl", "shaders/fragment_debug.glsl" };
+    shader_add(shader, shaders[0], shaders[1]);
+    shader_add(debug_shader, debug_shaders[0], debug_shaders[1]);
+    VECTOR_INSERT(engine->shaders, shader);
+    VECTOR_INSERT(engine->shaders, debug_shader);
 
 
     // Load Textures
@@ -152,26 +156,38 @@ void engine_start(struct engine* engine) {
             fprintf(stderr, "x: %d, y: %d\n", engine->curr_chunk[0], engine->curr_chunk[1]);
         }
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         glClearColor(0.529f, 0.808f, 0.922f, 1.0f);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
+        glEnable(GL_STENCIL_TEST);
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-        glUseProgram(engine->shader->program);
+        struct shader* default_shader = vector_get(engine->shaders, 0);
+        struct shader* debug_shader = vector_get(engine->shaders, 1);
+        // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
         input_process(engine, dt);
         engine_fps(engine, fps);
         engine_update(engine);
         player_physics(engine->player, engine, dt);
-        player_update(engine->player, engine->shader);
+
+        // =============== DRAW ======================
+        // Draw player related data using debug_shader
+        shader_use(debug_shader);
+        // Set perspective and view matrix
+        player_update(engine->player, debug_shader);
+        player_draw(engine->player, engine->world, debug_shader);
+        // Switch to regular shader
+        shader_use(default_shader);
+        player_update(engine->player, default_shader);
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk = {0};
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
-                chunk_draw(chunk, engine->shader, engine->texture);
+                chunk_draw(chunk, default_shader, engine->texture);
             }
         }
         SDL_RenderPresent(engine->window->renderer);
