@@ -299,15 +299,14 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     glBindVertexArray(player->_vao_debug);
     // Get projection from camera direction to block
     // Allow highlighting "range" blocks around player
-    float range = 3;
+    float range = 7;
     // Get "step" vector for raycasting
     vec3 step = { 0 };
     glm_normalize_to(player->camera->direction, step);
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
-    glm_vec3_add(ray_position, player->position, ray_position);
-    glm_vec3_add(ray_position, step, ray_position);
-    // Found a target block
+    glm_vec3_add(ray_position, player->camera->position, ray_position);
+    //Found a target block
     int found = 0;
     while (1) {
         if (magnitude >= range) {
@@ -329,15 +328,17 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     int x = floorf(ray_position[0]);
     //Note: OpenGL FLIP
     int y = floorf(ray_position[1]);
-    int z = floorf(ray_position[2]);
-    fprintf(stderr, "FOUND BLOCK (%d, %d, %d)\n", x, y, z);
+    // Ceil cause negative
+    int z = ceilf(ray_position[2]);
+    //TODO: Raycasting sometimes points to block underneath because it player_physics_check_collision
+    //right through the center of 3 blocks.... need some way to fix
     mat4 translate;
     glm_mat4_identity(translate);
-    glm_mat4_scale(translate, 1.1f);
+    glm_mat4_scale(translate, 1.2f);
     vec3 t = { x, y, z };
     glm_translate(translate, t);
     set_uniform_mat4("model", shader, translate);
-    glLineWidth(5.0f);
+    glLineWidth(10.0f);
     glDrawElements(GL_LINES, player->debug_vertex_count, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
