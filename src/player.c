@@ -18,6 +18,7 @@
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
 #define MAX_WALK_VELOCITY 10
+#define MAX_JUMP_VELOCIY 20
 // Note: Difference between friction and move scale will essentially give
 // you net accel - how fast will you reach top speed
 // Higher the numbers for both, the snappier the movment feels. If it were 10 vs 20, 
@@ -292,6 +293,11 @@ void player_physics(struct player* player, struct engine* engine, double dt) {
         } else {
             player->velocity[0] =  -MAX_WALK_VELOCITY;
         }
+    }
+    if (fabsf(player->velocity[1]) > MAX_JUMP_VELOCIY) {
+        if (player->velocity[1] > 0) {
+            player->velocity[1] =  MAX_JUMP_VELOCIY;
+        } 
     }
     if (fabsf(player->velocity[2]) > MAX_WALK_VELOCITY) {
         if (player->velocity[2] > 0) {
