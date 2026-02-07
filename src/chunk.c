@@ -536,7 +536,12 @@ int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block) {
     int x = pos[0];
     int y = pos[1];
     int z = pos[2];
-    //TODO: BUGFIX IF X,Y,Z OOB
+    if (x < 0 || y < 0 || z < 0) {
+        return 1;
+    }
+    if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
+        return 1;
+    }
     if (chunk->blocks[x][y][z] != NULL) {
         if (block != NULL) {
             *block = chunk->blocks[x][y][z];
@@ -550,7 +555,12 @@ int chunk_block_place(struct chunk* chunk, vec3 pos) {
     int x = pos[0];
     int y = pos[1];
     int z = pos[2];
-    //TODO: BUGFIX IF X,Y,Z OOB
+    if (x < 0 || y < 0 || z < 0) {
+        return 1;
+    }
+    if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
+        return 1;
+    }
     if (chunk->blocks[x][y][z] == NULL) {
         struct block* blk = malloc(sizeof(struct block));
         block_init(blk, BLOCK_GRASS);
@@ -564,7 +574,12 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos) {
     int x = pos[0];
     int y = pos[1];
     int z = pos[2];
-    //TODO: BUGFIX IF X,Y,Z OOB
+    if (x < 0 || y < 0 || z < 0) {
+        return 1;
+    }
+    if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
+        return 1;
+    }
     if (chunk->blocks[x][y][z] != NULL) {
         free(chunk->blocks[x][y][z]);
         chunk->blocks[x][y][z] = NULL;

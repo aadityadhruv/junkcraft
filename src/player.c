@@ -356,8 +356,9 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     float y = floorf(ray_position[1]);
     // Ceil cause negative
     float z = ceilf(ray_position[2]);
-    //TODO: Raycasting sometimes points to block underneath because it player_physics_check_collision
+    //DONE: Raycasting sometimes points to block underneath because it player_physics_check_collision
     //right through the center of 3 blocks.... need some way to fix
+    // ABOVE is fixed with smaller scale step
     mat4 translate;
     glm_mat4_identity(translate);
     glm_mat4_scale(translate, 1.2f);
