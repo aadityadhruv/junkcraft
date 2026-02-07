@@ -60,15 +60,7 @@ int world_chunk_block_get(struct world* world, vec3 pos, struct block** block) {
     x = (abs(curr_chunk[0]) * CHUNK_WIDTH + x) % CHUNK_WIDTH;
     y = (abs(curr_chunk[1]) * CHUNK_LENGTH + y) % CHUNK_LENGTH;
     vec3 new_pos = { x, y, z };
-    // fprintf(stderr, "Block check: (%d, %d, %d) in (%d, %d)\n",
-    //         x,
-    //         y,
-    //         z,
-    //         curr_chunk[0],
-    //         curr_chunk[1]
-    //         );
     return chunk_block_get(c, new_pos, block);
-    // fprintf(stderr, "For block %d id: %d (1 means no block, 0 means block)\n", id, ret);
 }
 int world_chunk_block_delete(struct world* world, vec3 pos) {
     int x = floorf(pos[0]);
@@ -83,7 +75,6 @@ int world_chunk_block_delete(struct world* world, vec3 pos) {
     y = (abs(curr_chunk[1]) * CHUNK_LENGTH + y) % CHUNK_LENGTH;
     vec3 new_pos = { x, y, z };
     return chunk_block_delete(c, new_pos);
-    // fprintf(stderr, "For block %d id: %d (1 means no block, 0 means block)\n", id, ret);
 }
 int world_chunk_block_place(struct world* world, vec3 pos) {
     int x = floorf(pos[0]);
@@ -98,5 +89,4 @@ int world_chunk_block_place(struct world* world, vec3 pos) {
     y = (abs(curr_chunk[1]) * CHUNK_LENGTH + y) % CHUNK_LENGTH;
     vec3 new_pos = { x, y, z };
     return chunk_block_place(c, new_pos);
-    // fprintf(stderr, "For block %d id: %d (1 means no block, 0 means block)\n", id, ret);
 }

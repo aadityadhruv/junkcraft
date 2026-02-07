@@ -305,6 +305,7 @@ void player_physics(struct player* player, struct engine* engine, double dt) {
     player_camera_set_position(player);
 }
 
+// See: https://en.wikipedia.org/wiki/Slab_method
 float player_ray_block_intersect(struct player* player, struct world* world, vec3 coords) {
     vec3 step = { 0 };
     glm_vec3_normalize_to(player->camera->direction, step);

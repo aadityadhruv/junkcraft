@@ -570,6 +570,8 @@ int chunk_block_place(struct chunk* chunk, vec3 pos) {
     }
     return 1;
 }
+//TODO: Trigger a neighbor chunk load if on axis, otherwise 
+//neighbor block face is not rendered
 int chunk_block_delete(struct chunk* chunk, vec3 pos) {
     int x = pos[0];
     int y = pos[1];
