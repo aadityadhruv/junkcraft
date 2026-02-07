@@ -10,6 +10,7 @@
 #include "world.h"
 #include <SDL2/SDL_messagebox.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -40,14 +41,14 @@ void player_init(vec3 pos, struct player** player) {
     struct player* p = malloc(sizeof(struct player));
     memcpy(p->position, pos, sizeof(vec3));
     struct aabb* box = malloc(sizeof(struct aabb));
-    vec3 player_size = { 0.4f, 2.0f, -0.4f };
+    vec3 player_size = { 0.6f, 1.8f, -0.6f };
     // Little offset to use when calculating movement
-    vec3 box_start = { 0.0f, 0.1f, 0.0f };
+    vec3 box_start = { 0.2f, 0.1f, -0.2f };
     memcpy(box->dimension, player_size, sizeof(vec3));
     memcpy(box->start, box_start, sizeof(vec3));
     p->hitbox = box;
     // Set camera to height of player
-    vec3 cam_pos = { player_size[0] / 2.0f, 2.0f, player_size[2] / 2.0f };
+    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
     glm_vec3_add(cam_pos, pos, cam_pos);
     camera_init(&p->camera);
     camera_set_position(p->camera, cam_pos);
@@ -60,7 +61,7 @@ void player_init(vec3 pos, struct player** player) {
 }
 
 void player_camera_set_position(struct player* player) {
-    vec3 cam_pos = { player->hitbox->dimension[0] / 2.0f, 2.0f, player->hitbox->dimension[2] / 2.0f };
+    vec3 cam_pos = { 0.5, 1.8f, -0.5 };
     glm_vec3_add(cam_pos, player->position, cam_pos);
     camera_set_position(player->camera, cam_pos);
 }
@@ -310,8 +311,9 @@ float player_ray_block_intersect(struct player* player, struct world* world, vec
     float t_close = -INFINITY;
     for (int i = 0; i < 3; i++) {
         if (player->camera->direction[i] != 0) {
+            float high = (i != 2) ? 1.0 : -1.0f;
             float t_i_low = (coords[i] - player->camera->position[i]) / step[i];
-            float t_i_high = ((coords[i] + 1.0f) - player->camera->position[i] ) / step[i];
+            float t_i_high = ((coords[i] + high) - player->camera->position[i] ) / step[i];
             float t_i_close = MIN(t_i_low, t_i_high);
             t_close = MAX(t_i_close, t_close);
         }
@@ -326,6 +328,8 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     // Get "step" vector for raycasting
     vec3 step = { 0 };
     glm_normalize_to(player->camera->direction, step);
+    float scale = 0.1f;
+    glm_vec3_scale(step,scale, step);
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
     glm_vec3_add(ray_position, player->camera->position, ray_position);
@@ -348,10 +352,10 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
         return;
     }
     //So ray_position is at block coordinates
-    int x = floorf(ray_position[0]);
-    int y = floorf(ray_position[1]);
+    float x = floorf(ray_position[0]);
+    float y = floorf(ray_position[1]);
     // Ceil cause negative
-    int z = ceilf(ray_position[2]);
+    float z = ceilf(ray_position[2]);
     //TODO: Raycasting sometimes points to block underneath because it player_physics_check_collision
     //right through the center of 3 blocks.... need some way to fix
     mat4 translate;
@@ -541,6 +545,8 @@ void player_load_debug(struct player* player) {
 void player_block_delete(struct player* player, struct world* world) {
     vec3 step = { 0 };
     glm_normalize_to(player->camera->direction, step);
+    float scale = 0.1f;
+    glm_vec3_scale(step,scale, step);
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
     glm_vec3_add(ray_position, player->camera->position, ray_position);
@@ -548,6 +554,7 @@ void player_block_delete(struct player* player, struct world* world) {
     int found = 0;
     while (1) {
         if (magnitude >= BLOCK_RANGE) {
+            fprintf(stderr, "out of range\n");
             break;
         }
         // is_block == 0 if there is block
@@ -563,17 +570,20 @@ void player_block_delete(struct player* player, struct world* world) {
         return;
     }
     //So ray_position is at block coordinates
-    int x = floorf(ray_position[0]);
-    int y = floorf(ray_position[1]);
+    float x = floorf(ray_position[0]);
+    float y = floorf(ray_position[1]);
     // Ceil cause negative
-    int z = ceilf(ray_position[2]);
+    float z = ceilf(ray_position[2]);
     vec3 block_pos = { x, y, z };
+    glm_vec3_print(block_pos, stderr);
     world_chunk_block_delete(world, block_pos);
 }
 
 void player_block_place(struct player* player, struct world* world) {
     vec3 step = { 0 };
     glm_normalize_to(player->camera->direction, step);
+    float scale = 0.1f;
+    glm_vec3_scale(step,scale, step);
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
     glm_vec3_add(ray_position, player->camera->position, ray_position);
@@ -610,7 +620,9 @@ void player_block_place(struct player* player, struct world* world) {
     vec3 point_of_contact = { 0 };
     glm_vec3_add(point_of_contact, player->camera->position, point_of_contact);
     // Reset step value to camera direction normal
+    // glm_normalize_to(player->camera->direction, step);
     glm_normalize_to(player->camera->direction, step);
+    // glm_vec3_scale(step,scale, step);
     // p(t) = t * step + origin
     glm_vec3_scale(step, t, step);
     glm_vec3_add(point_of_contact, step, point_of_contact);
@@ -619,10 +631,24 @@ void player_block_place(struct player* player, struct world* world) {
     vec3 offset = { 0 };
     glm_vec3_sub(point_of_contact, block_coords, offset);
     glm_vec3_print(offset, stderr);
-    offset[0] = (int)offset[0];
-    offset[1] = (int)offset[1];
-    offset[2] = (int)offset[2];
-    glm_vec3_add(block_coords, offset, block_coords);
+    if (offset[0] == 0.0f) {
+        block_coords[0] -= 1;
+    }
+    if (offset[0] == 1.0f) {
+        block_coords[0] += 1;
+    }
+    if (offset[1] == 0.0f) {
+        block_coords[1] -= 1;
+    }
+    if (offset[1] == 1.0f) {
+        block_coords[1] += 1;
+    }
+    if (offset[2] == 0.0f) {
+        block_coords[2] += 1;
+    }
+    if (offset[2] == -1.0f) {
+        block_coords[2] -= 1;
+    }
     glm_vec3_print(block_coords, stderr);
     world_chunk_block_place(world, block_coords);
 }
