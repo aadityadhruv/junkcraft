@@ -27,6 +27,7 @@ void create_texture(GLuint* tbo, void* buf, vec2 size) {
     glBindTexture(GL_TEXTURE_2D, *tbo);
     float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, size[0], size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, buf);
     glGenerateMipmap(GL_TEXTURE_2D);
     // glBindTexture(GL_TEXTURE_2D, 0);

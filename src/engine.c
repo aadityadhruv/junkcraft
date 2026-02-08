@@ -48,7 +48,7 @@ int engine_init(struct engine *engine) {
     // Load Textures
     struct texture* texture = { 0 };
     texture_init(&engine->texture);
-    texture_load(engine->texture, "textures/grass.jpg");
+    texture_load(engine->texture, "textures/sheet.jpg");
 
     // Setup Objects to draw
     // memset(engine->loaded_chunks, 0, (1 + CHUNK_DISTANCE * 2) * (1 + CHUNK_DISTANCE * 2));

@@ -9,7 +9,7 @@ uniform sampler2D block_texture;
 void main() {
     vec3 top_ambient = vec3(0.5);
     vec3 ambient_dir = vec3(0.0f, 1.0f, 0.0f);
-    vec3 bottom_ambient = vec3(0.1);
+    vec3 bottom_ambient = vec3(0.4);
     float value = dot(normal, ambient_dir) * 0.5 + 0.3;
     vec3 inter = mix(bottom_ambient,top_ambient,value);
     vec3 ambient_color = inter;
