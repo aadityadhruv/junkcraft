@@ -48,7 +48,15 @@ int engine_init(struct engine *engine) {
     // Load Textures
     struct texture* texture = { 0 };
     texture_init(&engine->texture);
-    texture_load(engine->texture, "textures/sheet.jpg");
+    char* textures[] = {
+        "textures/01_grass.png",
+        "textures/02_stone.png",
+        "textures/03_rock.png",
+        "textures/04_sand.png",
+        "textures/05_snow.png",
+    };
+    texture_load(engine->texture, textures, sizeof(textures)/sizeof(char*));
+    block_metadata_init();
 
     // Setup Objects to draw
     // memset(engine->loaded_chunks, 0, (1 + CHUNK_DISTANCE * 2) * (1 + CHUNK_DISTANCE * 2));

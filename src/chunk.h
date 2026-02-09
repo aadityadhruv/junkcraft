@@ -86,7 +86,19 @@ void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* text
  * @return 0 if there is a block, 1 if there is no block
  */
 int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block);
+/**
+ * Create the vertex order to draw a face for the nth vertex combination
+ * @param face_order - Base face order
+ * @param size of face_order array
+ * @param nth index of vertex
+ * @return array containing new vertex order - memory needs to be freed
+ */
 int* chunk_face_order_add(int* face_order, int size, int idx);
+/**
+ * Set the correct texture coordinates for a block
+ *
+ */
+void chunk_block_face_vertex_set(float* face, enum block_face face_side, struct block* block);
 /**
  * Delete a block in the chunk at pos if it exists
  * @param chunk Target chunk

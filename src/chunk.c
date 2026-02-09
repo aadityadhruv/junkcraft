@@ -14,6 +14,7 @@
 #define MAX(x, y) (x > y) ? x : y
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
+extern struct block_metadata block_metadata[BLOCK_ID_COUNT];
 void _chunk_plains_gen(struct chunk* chunk);
 
 int chunk_gen(struct world* world, vec2 coord, struct chunk **chunk) {
@@ -229,6 +230,33 @@ void _chunk_plains_gen(struct chunk* chunk) {
     }
 }
 
+void chunk_block_face_vertex_set(float* face, enum block_face face_side, struct block *block) {
+    int x_start = 6;
+    int y_start = 7;
+    // To next vertex in face (face has 4 vertex and each is 8 floats)
+    int step = 8;
+    face[x_start] = block_metadata[block->block_id].texture_data[face_side].top_right[0];
+    face[y_start] = block_metadata[block->block_id].texture_data[face_side].top_right[1];
+
+    x_start += step;
+    y_start += step;
+
+    face[x_start] = block_metadata[block->block_id].texture_data[face_side].top_left[0];
+    face[y_start] = block_metadata[block->block_id].texture_data[face_side].top_left[1];
+
+    x_start += step;
+    y_start += step;
+
+    face[x_start] = block_metadata[block->block_id].texture_data[face_side].bottom_left[0];
+    face[y_start] = block_metadata[block->block_id].texture_data[face_side].bottom_left[1];
+
+    x_start += step;
+    y_start += step;
+
+    face[x_start] = block_metadata[block->block_id].texture_data[face_side].bottom_right[0];
+    face[y_start] = block_metadata[block->block_id].texture_data[face_side].bottom_right[1];
+}
+
 
 int* chunk_face_order_add(int* face_order, int size, int idx) {
     int* buf = malloc(size);
@@ -238,6 +266,9 @@ int* chunk_face_order_add(int* face_order, int size, int idx) {
     }
     return buf;
 }
+/**
+ * Generates a face in chunk local coordinates
+ */
 float* _chunk_face_add(float* face, int size, vec3 pos) {
     // "Hack" to update the face coords,
     // glm_vec3_add just does a[0] = a[0] + b[0], so using
@@ -391,6 +422,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                     vec3 bottom = { x, y, z - 1 };
 
                     if (_chunk_check_neighbor_block(world, chunk, front) == 0) {
+                        chunk_block_face_vertex_set(front_face, BLOCK_FRONT, blk);
                         VECTOR_INSERT(vertices, _chunk_face_add(front_face,
                                     sizeof(front_face), pos));
                         VECTOR_INSERT(vertex_order,
@@ -401,6 +433,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                     }
 
                     if (_chunk_check_neighbor_block(world, chunk, back) == 0) {
+                        chunk_block_face_vertex_set(back_face, BLOCK_BACK, blk);
                         VECTOR_INSERT(vertices, _chunk_face_add(back_face,
                                     sizeof(back_face), pos));
                         VECTOR_INSERT(vertex_order,
@@ -411,6 +444,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                     }
 
                     if (_chunk_check_neighbor_block(world, chunk, right) == 0) {
+                        chunk_block_face_vertex_set(right_face, BLOCK_RIGHT, blk);
                         VECTOR_INSERT(vertices, _chunk_face_add(right_face,
                                     sizeof(right_face), pos));
                         VECTOR_INSERT(vertex_order,
@@ -421,6 +455,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                     }
 
                     if (_chunk_check_neighbor_block(world, chunk, left) == 0) {
+                        chunk_block_face_vertex_set(left_face, BLOCK_LEFT, blk);
                         VECTOR_INSERT(vertices, _chunk_face_add(left_face,
                                     sizeof(left_face), pos));
                         VECTOR_INSERT(vertex_order,
@@ -431,6 +466,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                     }
 
                     if (_chunk_check_neighbor_block(world, chunk, top) == 0) {
+                        chunk_block_face_vertex_set(top_face, BLOCK_TOP, blk);
                         VECTOR_INSERT(vertices, _chunk_face_add(top_face,
                                     sizeof(top_face), pos));
                         VECTOR_INSERT(vertex_order,
@@ -441,6 +477,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                     }
 
                     if (_chunk_check_neighbor_block(world, chunk, bottom) == 0) {
+                        chunk_block_face_vertex_set(bottom_face, BLOCK_BOTTOM, blk);
                         VECTOR_INSERT(vertices, _chunk_face_add(bottom_face,
                                     sizeof(bottom_face), pos));
                         VECTOR_INSERT(vertex_order,
@@ -563,7 +600,7 @@ int chunk_block_place(struct chunk* chunk, vec3 pos) {
     }
     if (chunk->blocks[x][y][z] == NULL) {
         struct block* blk = malloc(sizeof(struct block));
-        block_init(blk, BLOCK_GRASS);
+        block_init(blk, BLOCK_STONE);
         chunk->blocks[x][y][z] = blk;
         chunk->loaded = 0;
         return 0;
