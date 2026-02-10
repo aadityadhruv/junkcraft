@@ -18,7 +18,8 @@ char* read_shader(char* path) {
     fseek(file, 0, SEEK_END);
     int file_size = ftell(file);
     rewind(file);
-    char* buf = malloc(file_size);
+    char* buf = malloc(file_size + 1);
+    memset(buf, 0, file_size + 1);
     fread(buf, file_size, 1, file);
     return buf;
 }
