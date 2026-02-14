@@ -16,9 +16,10 @@ void camera_init(struct camera** camera) {
     vec3 camera_up = { 0.0f, 1.0f, 0.0f };
     memcpy(cam->direction, camera_direction, sizeof(vec3));
     memcpy(cam->up, camera_up, sizeof(vec3));
-    glm_mat4_identity(cam->view);
-    glm_mat4_identity(cam->perspective);
     cam->fov = glm_rad(45.0f);
+    glm_look(cam->position, cam->direction, cam->up, cam->view);
+    // Projection (perspective) matrix
+    glm_perspective(cam->fov, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, -10.0f, cam->perspective);
     *camera = cam;
 }
 void camera_set_position(struct camera* camera, vec3 pos) {

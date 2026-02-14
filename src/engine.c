@@ -9,7 +9,6 @@
 #include "window.h"
 #include "world.h"
 #include <SDL2/SDL_render.h>
-#include <bits/types/timer_t.h>
 #include <junk/vector.h>
 #include <math.h>
 #include <stdio.h>
@@ -62,7 +61,7 @@ int engine_init(struct engine *engine) {
     // memset(engine->loaded_chunks, 0, (1 + CHUNK_DISTANCE * 2) * (1 + CHUNK_DISTANCE * 2));
 
     // Setup player
-    vec3 pos = { 0.0f, 40.0f, 0.0f };
+    vec3 pos = { 1.0f, 28.0f, -1.0f };
     player_init(pos, &engine->player);
 
     // Setup root chunk
@@ -208,14 +207,20 @@ void engine_start(struct engine* engine) {
         // Switch to regular shader
         shader_use(default_shader);
         player_update(engine->player, default_shader);
+        int cdc = 0;
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk = {0};
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
-                chunk_draw(chunk, default_shader, engine->texture);
+                vec2 frustum_check_chunk_coord = { chunk_coord[0], chunk_coord[1] };
+                if (player_is_point_in_frustum(engine->player, chunk->model, frustum_check_chunk_coord)) {
+                    cdc += 1;
+                    chunk_draw(chunk, default_shader, engine->texture);
+                }
             }
         }
+        fprintf(stderr, "Chunk draw calls: %d\n", cdc);
         shader_use(ui_shader);
         player_draw_ui(engine->player, ui_shader);
         SDL_RenderPresent(engine->window->renderer);

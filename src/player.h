@@ -50,3 +50,5 @@ void player_block_place(struct player* player, struct world* world);
 
 void player_load_ui(struct player* player);
 void player_draw_ui(struct player* player, struct shader* shader);
+
+int player_is_point_in_frustum(struct player* player, mat4 transform, vec2 position);

@@ -10,7 +10,7 @@
 // We want a square around curr_chunk, and a side of the square will be 1
 // (center chunk) + 2 * CHUNK_DISTANCE (either side of center)
 // loaded chunks = (1 + CHUNK_DISTANCE * 2)^2
-#define CHUNK_DISTANCE 10
+#define CHUNK_DISTANCE 1
 
 struct engine {
     struct window* window;

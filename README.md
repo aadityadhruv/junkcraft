@@ -14,7 +14,7 @@ Current features:
 Planned features include:
 
 - Technical
-    - Frustrum culling
+    - Frustum culling
     - Possible greedy culling
     - Improved AABB collision and movement physics
     - Skybox

@@ -1,9 +1,6 @@
 #include "player.h"
 #include "camera.h"
-#include "cglm/affine-pre.h"
-#include "cglm/affine.h"
-#include "cglm/io.h"
-#include "cglm/vec3.h"
+#include "cglm/cglm.h"
 #include "chunk.h"
 #include "shader.h"
 #include "util.h"
@@ -17,8 +14,9 @@
 
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
+#define SQUARE(x) x*x
 #define MAX_WALK_VELOCITY 10
-#define MAX_JUMP_VELOCIY 20
+#define MAX_JUMP_VELOCIY 40
 // Note: Difference between friction and move scale will essentially give
 // you net accel - how fast will you reach top speed
 // Higher the numbers for both, the snappier the movment feels. If it were 10 vs 20, 
@@ -659,4 +657,62 @@ void player_block_place(struct player* player, struct world* world) {
     }
     glm_vec3_print(block_coords, stderr);
     world_chunk_block_place(world, block_coords);
+}
+
+// Return 1 if intersection, 0 if not
+int _aabb_edge_projection_check(vec3* aabb, int aabb_v_count, vec3 point, vec3 normal) {
+    int positive_count = 0;
+    int negative_count = 0;
+    for (int i = 0; i < aabb_v_count; i++) {
+        vec3 target = { 0 };
+        glm_vec3_sub(aabb[i], point, target);
+        float dot = glm_vec3_dot(normal, target);
+        if (dot > 0) {
+            positive_count++;
+        } else if (dot < 0) {
+            negative_count++;
+        }
+        if (positive_count && negative_count) {
+            // Not a separating axis
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int __is_aabb_frustum_intersect(vec3* target1, vec3* target2, int target1_size, int target2_size) {
+    return 0;
+}
+
+int player_is_point_in_frustum(struct player* player, mat4 transform, vec2 position) {
+    mat4 clip_space;
+    // glm_mat4_mul(player->camera->view, transform, clip_space);
+    glm_mat4_mul(player->camera->perspective, player->camera->view, clip_space);
+    // Remove y
+    // clip_space[1][1] = 0.0f;
+
+    // TODO: Need to figure out the relation between w and perspective matrix
+    // math to better understand this, still unclear on the math behind some of this
+    // Switch to row-major
+    glm_mat4_transpose(clip_space);
+    vec4 p1 = { 0 };
+    glm_vec3_add(clip_space[3], clip_space[0], p1);
+    vec4 p2 = { 0 };
+    glm_vec3_sub(clip_space[3], clip_space[0], p2);
+    vec4 p3 = { 0 };
+    glm_vec3_add(clip_space[3], clip_space[1], p3);
+    vec4 p4 = { 0 };
+    glm_vec3_sub(clip_space[3], clip_space[1], p4);
+    vec4 p5 = { 0 };
+    glm_vec3_add(clip_space[3], clip_space[2], p5);
+    vec4 p6 = { 0 };
+    glm_vec3_sub(clip_space[3], clip_space[2], p6);
+    vec4* faces[] = { &p1, &p2, &p3, &p4, &p5, &p6 };
+
+    int count = 0;
+    for (int i = 0; i < 6; i++) {
+        count += _aabb_plane_intersection(*faces[i], position);
+    }
+    // If count == 0, it means no plane ever intersected, and we should skip this
+    return count;
 }
