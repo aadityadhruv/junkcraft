@@ -14,7 +14,8 @@
 #define MAX(x, y) (x > y) ? x : y
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 #define BIOME_SWITCH_PROBABILITY 0.2
-#define UNDERGROUND_LEVEL  60
+#define CAVERN_LAYER 60
+#define UNDERGROUND_LAYER 30
 
 extern struct block_metadata block_metadata[BLOCK_ID_COUNT];
 extern int32_t seed;
@@ -35,9 +36,9 @@ void chunk_get_poi(vec2 coord, vec3 poi) {
         case JUNK_BIOME_PLAINS:
             _chunk_poi_plains(coord, poi);
             break;
-        // case JUNK_BIOME_DESERT:
-        //     _chunk_poi_desert(coord, poi);
-        //     break;
+        case JUNK_BIOME_DESERT:
+            _chunk_poi_desert(coord, poi);
+            break;
         // case JUNK_BIOME_SNOW:
         //     _chunk_poi_plains(int coord[2], poi);
         //     break;
@@ -332,7 +333,10 @@ void _chunk_plains_gen(struct chunk* chunk) {
             for (int h = 0; h < z; h++) {
                 struct block* blk = malloc(sizeof(struct block));
                 // Adjust block coordinates with global chunk coordinates
-                if (h <= UNDERGROUND_LEVEL) {
+                if (h <= UNDERGROUND_LAYER) {
+                    block_init(blk, BLOCK_ROCK);
+                }
+                else if (h <= CAVERN_LAYER) {
                     block_init(blk, BLOCK_STONE);
                 } else {
                     block_init(blk, BLOCK_GRASS);
