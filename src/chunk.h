@@ -8,7 +8,7 @@
 #include <junk/vector.h>
 #define CHUNK_WIDTH 16
 #define CHUNK_LENGTH 16
-#define CHUNK_HEIGHT 128
+#define CHUNK_HEIGHT 256
 
 enum biome {
     JUNK_BIOME_PLAINS,

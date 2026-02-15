@@ -13,21 +13,25 @@
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
-#define BIOME_SWITCH_PROBABILITY 0.2
 #define CAVERN_LAYER 60
 #define UNDERGROUND_LAYER 30
 
 extern struct block_metadata block_metadata[BLOCK_ID_COUNT];
+extern enum biome chunk_biomes[WORLD_WIDTH][WORLD_LENGTH];
 extern int32_t seed;
 void _chunk_plains_gen(struct chunk* chunk);
+void _chunk_desert_gen(struct chunk* chunk);
+void _chunk_snow_gen(struct chunk* chunk);
+void _chunk_mountains_gen(struct chunk* chunk);
 enum biome chunk_get_biome(vec2 coord);
 void chunk_get_poi(vec2 coord, vec3 poi);
 void _chunk_poi_plains(vec2 coord, vec3 poi);
 void _chunk_poi_desert(vec2 coord, vec3 poi);
+void _chunk_poi_snow(vec2 coord, vec3 poi);
+void _chunk_poi_mountains(vec2 coord, vec3 poi);
 
 enum biome chunk_get_biome(vec2 coord) {
-    srand(seed + coord[0] * coord[1]);
-    return rand() % JUNK_BIOME_COUNT;
+    return chunk_biomes[(int)coord[0]][(int)coord[1]];
 }
 void chunk_get_poi(vec2 coord, vec3 poi) {
     enum biome b = chunk_get_biome(coord);
@@ -39,12 +43,12 @@ void chunk_get_poi(vec2 coord, vec3 poi) {
         case JUNK_BIOME_DESERT:
             _chunk_poi_desert(coord, poi);
             break;
-        // case JUNK_BIOME_SNOW:
-        //     _chunk_poi_plains(int coord[2], poi);
-        //     break;
-        // case JUNK_BIOME_MOUNTAINS:
-        //     _chunk_poi_plains(int coord[2], poi);
-        //     break;
+        case JUNK_BIOME_SNOW:
+            _chunk_poi_plains(coord, poi);
+            break;
+        case JUNK_BIOME_MOUNTAINS:
+            _chunk_poi_mountains(coord, poi);
+            break;
         default:
             _chunk_poi_plains(coord, poi);
             break;
@@ -55,12 +59,33 @@ void _chunk_poi_plains(vec2 coord, vec3 poi) {
     // Min POI block height
     int poi_min = 70;
     // Max POI block height
-    int poi_max = 80;
+    int poi_max = 75;
     vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
     memcpy(poi, poi1, sizeof(vec3));
 }
 void _chunk_poi_desert(vec2 coord, vec3 poi) {
-    fprintf(stderr, "Unimplemented: POI DESERT\n");
+    // Min POI block height
+    int poi_min = 70;
+    // Max POI block height
+    int poi_max = 72;
+    vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
+    memcpy(poi, poi1, sizeof(vec3));
+}
+void _chunk_poi_snow(vec2 coord, vec3 poi) {
+    // Min POI block height
+    int poi_min = 72;
+    // Max POI block height
+    int poi_max = 75;
+    vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
+    memcpy(poi, poi1, sizeof(vec3));
+}
+void _chunk_poi_mountains(vec2 coord, vec3 poi) {
+    // Min POI block height
+    int poi_min = 120;
+    // Max POI block height
+    int poi_max = 140;
+    vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
+    memcpy(poi, poi1, sizeof(vec3));
 }
 
 
@@ -69,14 +94,25 @@ void _chunk_poi_desert(vec2 coord, vec3 poi) {
 int chunk_gen(struct world* world, vec2 coord, struct chunk **chunk) {
     *chunk = malloc(sizeof(struct chunk));
     memcpy((*chunk)->coord,coord, sizeof(vec2));
-    _chunk_plains_gen(*chunk);
-    // switch (chunk->biome) {
-    //     case JUNK_BIOME_PLAINS:
-    //         _
-    //         break;
-    //     default:
-    //         break;
-    // }
+    (*chunk)->biome = chunk_get_biome(coord);
+    switch ((*chunk)->biome) {
+        case JUNK_BIOME_PLAINS:
+            _chunk_plains_gen(*chunk);
+            break;
+        case JUNK_BIOME_DESERT:
+            _chunk_desert_gen(*chunk);
+            break;
+        case JUNK_BIOME_SNOW:
+            _chunk_snow_gen(*chunk);
+            break;
+        case JUNK_BIOME_MOUNTAINS:
+            _chunk_mountains_gen(*chunk);
+            break;
+        default:
+            fprintf(stderr, "%d\n", (*chunk)->biome);
+            exit(1);
+            break;
+    }
     return 0;
 }
 
@@ -157,7 +193,7 @@ float _chunk_plains_get_z(vec2 target, vec3 poi, vec3 neighbor_poi[8], vec2 coor
         // Line direction vector
         // Literally just snap_vec, but renamed 
         // to match eq of line formula naming
-        vec3 r = { snap_vec[0], snap_vec[1], snap_vec[2] };
+        vec3 r = { snap_vec[0], snap_vec[1], snap_vec[2] * 1.25f };
         // The point on the POI-POI line who's z-value will be used
         // to calculate our target's z-value
         vec2 proj_target = { 0 };
@@ -288,6 +324,297 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         return 0;
     }
     return 1;
+}
+/**
+ * Helper function for _chunk_mountains_gen. 
+ * TODO: doc add
+ * similar to plains gen 
+ * @param target Point for which we are trying to figure out the z
+ * @param poi Starting point of the line, in local chunk coordinates
+ * @param neighbor_poi 8 POIs from the neighboring chunk, in world coordinates
+ * @param coord World coordinates of this chunk
+ * caluclated z
+ */
+float _chunk_mountains_get_z(vec2 target, vec3 poi, vec3 neighbor_poi[8], vec2 coord) {
+    // Exit early if we are POI
+    if (target[0] == poi[0] && target[1] == poi[1]) return poi[2];
+    // This vector is in "CHUNK COORDINATES"
+    vec2 diff = { (target[0] - poi[0]), (target[1] - poi[1]) };
+    vec2 unit = {0};
+    glm_vec2_normalize_to(diff, unit);
+    // Indcies for neighbors that gave max dot products
+    int max_index[2] = { 0, 0 };
+    // Store max dot product values
+    float maxes[2] = { -1.0f, -1.0f };
+    // Find max dot product neighbors
+    for (int i = 0; i < 8;i++) {
+        // This is the POI-POI line vector
+        vec3 snap_vec = { 0 };
+        // Because neighbor POIs are in world coordinates,
+        // we need to convert our local POI to world coordinates for this math
+        int x_offset = coord[0] * CHUNK_WIDTH;
+        int y_offset = coord[1] * CHUNK_LENGTH;
+        vec3 world_poi = { poi[0] + x_offset, poi[1] + y_offset, poi[2] };
+        glm_vec3_sub(neighbor_poi[i], world_poi, snap_vec);
+        glm_vec3_normalize(snap_vec);
+        // X-Y version of snap_vec
+        vec2 snap_vec_2d = { snap_vec[0], snap_vec[1] };
+        glm_vec2_normalize(snap_vec_2d);
+        // Dot will be positive for -90 to 90
+        // Also since it is normalized, the value will be between -1 and 1
+        // Can be used to control "snappiness"
+        float dot = glm_vec2_dot(unit, snap_vec_2d);
+        if (dot > maxes[0]) {
+            maxes[1] = maxes[0];
+            max_index[1] = max_index[0];
+            maxes[0] = dot;
+            max_index[0] = i;
+        }
+        else if (dot > maxes[1]) {
+            maxes[1] = dot;
+            max_index[1] = i;
+        }
+    }
+    float average_z = 0;
+    // For every neighbor POI-POI line, find the one that is within -90 to 90 of unit
+    for (int i = 0; i < 2; i++) {
+        // This is the POI-POI line vector
+        vec3 snap_vec = { 0 };
+        // Because neighbor POIs are in world coordinates,
+        // we need to convert our local POI to world coordinates for this math
+        int x_offset = coord[0] * CHUNK_WIDTH;
+        int y_offset = coord[1] * CHUNK_LENGTH;
+        vec3 world_poi = { poi[0] + x_offset, poi[1] + y_offset, poi[2] };
+        glm_vec3_sub(neighbor_poi[max_index[i]], world_poi, snap_vec);
+        glm_vec3_normalize(snap_vec);
+        // X-Y version of snap_vec
+        vec2 snap_vec_2d = { snap_vec[0], snap_vec[1] };
+        glm_vec2_normalize(snap_vec_2d);
+        // Line direction vector
+        // Literally just snap_vec, but renamed 
+        // to match eq of line formula naming
+        vec3 r = { snap_vec[0], snap_vec[1], snap_vec[2]  * 1 };
+        // The point on the POI-POI line who's z-value will be used
+        // to calculate our target's z-value
+        vec2 proj_target = { 0 };
+        vec2 proj_start = { poi[0], poi[1]};
+        // Project the target-poi line onto the snap_vec 2d line
+        float scale = glm_vec2_dot(diff,snap_vec_2d);
+        glm_vec2_scale(snap_vec_2d, scale, proj_target);
+        // The vector needs to start at POI to get the actual target 
+        // point
+        glm_vec2_add(proj_start, proj_target, proj_target);
+        // r*t + poi = { x, y, z }, solve first for t, then get z
+        float t = 0;
+        // Parallel to X-axis
+        if (r[0] == 0.0f && r[1] != 0.0f) {
+            t = (proj_target[1] - poi[1]) / r[1];
+        }
+        // Parallel to Y-axis
+        else if (r[1] == 0.0f && r[0] != 0.0f) {
+            t = (proj_target[0] - poi[0]) / r[0];
+        }
+        else if (r[0] != 0.0f && r[1] != 0.0f) {
+            // Non-parallel line, either X or y works
+            t = (proj_target[0] - poi[0]) / r[0];
+        }
+        else {
+          // Else we are POI itself, no need to do anything. t will be zero and
+          // the value of z == poi[2]. We subtract -1 from base_z because
+          // otherwise the POI will be a single block at it's z, all others will
+          // always be strictly less than it. This levels the plains
+          // NOTE: We never really reach this condition due to early exit at
+          // top, but I've just kept it for historic reasons
+        }
+        float z_off = poi[2] + t * r[2];
+        average_z += z_off;
+    }
+    average_z /= 2;
+    return MAX(1, average_z);
+}
+
+/**
+ * Basic Mountain chunk generation
+ * Algorithm: Pick 1 point of interest (POI). Interpolate block heights based on z-values returned
+ * from the helper _chunk_mountains_get_z()
+ *
+ */
+void _chunk_mountains_gen(struct chunk* chunk) {
+    srand(seed);
+    memset(chunk->blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
+    vec3 poi = { 0 };
+    chunk_get_poi(chunk->coord, poi);
+
+    vec3 neighbor_pois[8];
+    int neighbor_counter = 0;
+    // Get neighboring POI values
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            if (i == 0 && j == 0) continue;
+            // This basically just converts the world coordinates to array mappable coordinates
+            // Same code used in world_get_chunk to wrap around. TODO: move to func? 
+            int old_x = chunk->coord[0] + i;
+            int old_y = chunk->coord[1] + j;
+            int w = ((abs(old_x) / WORLD_WIDTH) + 1) * WORLD_WIDTH;
+            int l = ((abs(old_y) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
+            int x = (old_x + w) % WORLD_WIDTH;
+            int y = (old_y + l) % WORLD_LENGTH;
+            vec2 new_coord = { x , y };
+            chunk_get_poi(new_coord, neighbor_pois[neighbor_counter]);
+            // Translate neighbor chunk POIs to world coordinates
+            int x_offset = old_x * CHUNK_WIDTH;
+            int y_offset = old_y * CHUNK_LENGTH;
+            neighbor_pois[neighbor_counter][0] += x_offset;
+            neighbor_pois[neighbor_counter][1] += y_offset;
+            neighbor_counter+=1;
+        }
+    }
+    for (int x = 0; x < CHUNK_WIDTH; x++) {
+        for (int y = 0; y < CHUNK_LENGTH; y++) {
+            // Minimum z height
+            // Interpolation formula - simple linear
+            vec2 target = { x, y };
+            float z = _chunk_mountains_get_z(target, poi, neighbor_pois, chunk->coord);
+            for (int h = 0; h < z; h++) {
+                struct block* blk = malloc(sizeof(struct block));
+                // Adjust block coordinates with global chunk coordinates
+                if (h <= UNDERGROUND_LAYER) {
+                    block_init(blk, BLOCK_ROCK);
+                }
+                else if (h <= CAVERN_LAYER) {
+                    block_init(blk, BLOCK_STONE);
+                } 
+                else if (h <= 130) {
+                    float p = (float)rand() / RAND_MAX;
+                    if (p < 0.3) {
+                        block_init(blk, BLOCK_STONE);
+                    } else {
+                        block_init(blk, BLOCK_SNOW);
+                    }
+                }
+                else {
+                    block_init(blk, BLOCK_SNOW);
+                }
+                chunk->blocks[x][y][h] = blk;
+            }
+        }
+    }
+}
+
+/**
+ * Basic Snow chunk generation
+ * Algorithm: Pick 1 point of interest (POI). Interpolate block heights based on z-values returned
+ * from the helper _chunk_plains_get_z()
+ *
+ */
+void _chunk_snow_gen(struct chunk* chunk) {
+    memset(chunk->blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
+    vec3 poi = { 0 };
+    chunk_get_poi(chunk->coord, poi);
+
+    vec3 neighbor_pois[8];
+    int neighbor_counter = 0;
+    // Get neighboring POI values
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            if (i == 0 && j == 0) continue;
+            // This basically just converts the world coordinates to array mappable coordinates
+            // Same code used in world_get_chunk to wrap around. TODO: move to func? 
+            int old_x = chunk->coord[0] + i;
+            int old_y = chunk->coord[1] + j;
+            int w = ((abs(old_x) / WORLD_WIDTH) + 1) * WORLD_WIDTH;
+            int l = ((abs(old_y) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
+            int x = (old_x + w) % WORLD_WIDTH;
+            int y = (old_y + l) % WORLD_LENGTH;
+            vec2 new_coord = { x , y };
+            chunk_get_poi(new_coord, neighbor_pois[neighbor_counter]);
+            // Translate neighbor chunk POIs to world coordinates
+            int x_offset = old_x * CHUNK_WIDTH;
+            int y_offset = old_y * CHUNK_LENGTH;
+            neighbor_pois[neighbor_counter][0] += x_offset;
+            neighbor_pois[neighbor_counter][1] += y_offset;
+            neighbor_counter+=1;
+        }
+    }
+    for (int x = 0; x < CHUNK_WIDTH; x++) {
+        for (int y = 0; y < CHUNK_LENGTH; y++) {
+            // Minimum z height
+            // Interpolation formula - simple linear
+            vec2 target = { x, y };
+            float z = _chunk_plains_get_z(target, poi, neighbor_pois, chunk->coord);
+            for (int h = 0; h < z; h++) {
+                struct block* blk = malloc(sizeof(struct block));
+                // Adjust block coordinates with global chunk coordinates
+                if (h <= UNDERGROUND_LAYER) {
+                    block_init(blk, BLOCK_ROCK);
+                }
+                else if (h <= CAVERN_LAYER) {
+                    block_init(blk, BLOCK_STONE);
+                } else {
+                    block_init(blk, BLOCK_SNOW);
+                }
+                chunk->blocks[x][y][h] = blk;
+            }
+        }
+    }
+}
+
+/**
+ * Basic Desert chunk generation
+ * Algorithm: Pick 1 point of interest (POI). Interpolate block heights based on z-values returned
+ * from the helper _chunk_plains_get_z()
+ *
+ */
+void _chunk_desert_gen(struct chunk* chunk) {
+    memset(chunk->blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
+    vec3 poi = { 0 };
+    chunk_get_poi(chunk->coord, poi);
+
+    vec3 neighbor_pois[8];
+    int neighbor_counter = 0;
+    // Get neighboring POI values
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            if (i == 0 && j == 0) continue;
+            // This basically just converts the world coordinates to array mappable coordinates
+            // Same code used in world_get_chunk to wrap around. TODO: move to func? 
+            int old_x = chunk->coord[0] + i;
+            int old_y = chunk->coord[1] + j;
+            int w = ((abs(old_x) / WORLD_WIDTH) + 1) * WORLD_WIDTH;
+            int l = ((abs(old_y) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
+            int x = (old_x + w) % WORLD_WIDTH;
+            int y = (old_y + l) % WORLD_LENGTH;
+            vec2 new_coord = { x , y };
+            chunk_get_poi(new_coord, neighbor_pois[neighbor_counter]);
+            // Translate neighbor chunk POIs to world coordinates
+            int x_offset = old_x * CHUNK_WIDTH;
+            int y_offset = old_y * CHUNK_LENGTH;
+            neighbor_pois[neighbor_counter][0] += x_offset;
+            neighbor_pois[neighbor_counter][1] += y_offset;
+            neighbor_counter+=1;
+        }
+    }
+    for (int x = 0; x < CHUNK_WIDTH; x++) {
+        for (int y = 0; y < CHUNK_LENGTH; y++) {
+            // Minimum z height
+            // Interpolation formula - simple linear
+            vec2 target = { x, y };
+            float z = _chunk_plains_get_z(target, poi, neighbor_pois, chunk->coord);
+            for (int h = 0; h < z; h++) {
+                struct block* blk = malloc(sizeof(struct block));
+                // Adjust block coordinates with global chunk coordinates
+                if (h <= UNDERGROUND_LAYER) {
+                    block_init(blk, BLOCK_ROCK);
+                }
+                else if (h <= CAVERN_LAYER) {
+                    block_init(blk, BLOCK_STONE);
+                } else {
+                    block_init(blk, BLOCK_SAND);
+                }
+                chunk->blocks[x][y][h] = blk;
+            }
+        }
+    }
 }
 /**
  * Basic Plains chunk generation
