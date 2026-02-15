@@ -62,12 +62,12 @@ int engine_init(struct engine *engine) {
     // memset(engine->loaded_chunks, 0, (1 + CHUNK_DISTANCE * 2) * (1 + CHUNK_DISTANCE * 2));
 
     // Setup player
-    vec3 pos = { 0.0f, 40.0f, 0.0f };
+    vec3 pos = { 1.0f, 100.0f, -1.0f };
     player_init(pos, &engine->player);
 
     // Setup root chunk
     struct world* world;
-    world_init(time(NULL), &world);
+    world_init(1, &world);
     engine->world = world;
     //TODO: Move this loop to a function and flip chunk_coord sign correctly ONCE
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {

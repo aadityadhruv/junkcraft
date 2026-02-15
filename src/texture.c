@@ -31,7 +31,6 @@ void texture_load(struct texture* texture, char** path, int size) {
         stbi_image_free(data);
     fprintf(stderr, "Texture load %s\n", path[i]);
     }
-    glm_vec2_print(atlas_size, stderr);
     create_texture(&texture->_tbo, texture_data, atlas_size);
     fprintf(stderr, "Loaded all textures\n");
 }

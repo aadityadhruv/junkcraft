@@ -12,6 +12,10 @@
 
 enum biome {
     JUNK_BIOME_PLAINS,
+    JUNK_BIOME_DESERT,
+    JUNK_BIOME_SNOW,
+    JUNK_BIOME_MOUNTAINS,
+    JUNK_BIOME_COUNT
 };
 
 
@@ -40,8 +44,15 @@ struct chunk {
 };
 
 /**
- * Generate a chunk at coords for the given world. Memory allocation for chunk is
- * handled by the function.
+ * Generate a chunk at coords for the given world. Memory allocation for chunk
+ * is handled by the function. The chunk gen is predictable by seed. For a given
+ * seed, a chunk with coordinates (x, y) and seed s, the biome b = biome(x, y,
+ * seed). This means the biome should always be the same for a given seed and x,
+ * y coodinates. Each biome generates a set of POIs based on chunk_POI(biome, x,
+ * y, s). This is deterministic, and a biome will query it's neighbors POIs
+ * during generation to create it's terrain. So the flow is usually chunk_gen ->
+ * chunk_gen_<biome>(x, y, s) -> get_neighbor_poi(x+/- 1, y+/- 1, s) ->
+ * create_chunk
  *
  */
 int chunk_gen(struct world* wld, vec2 coord, struct chunk** chunk);

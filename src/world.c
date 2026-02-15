@@ -8,11 +8,38 @@
 // LOAD_DISTANCE determines how many chunks are loaded on world creation
 #define LOAD_DISTANCE 1
 
+int32_t seed;
+
+// void world_gen_chunk_pois(struct world* world, int32_t seed) {
+//     srand(seed);
+//     for (int i = 0; i < WORLD_WIDTH; i++) {
+//         for (int j = 0; j < WORLD_LENGTH; j++) {
+//             world->chunk_pois[i][j] = rand();
+//         }
+//     }
+// }
+// void world_gen_chunk_biome(struct world* world, int32_t seed) {
+//     srand(seed);
+//     for (int i = 0; i < WORLD_WIDTH; i++) {
+//         for (int j = 0; j < WORLD_LENGTH; j++) {
+//             world->chunk_biomes[i][j] = rand();
+//         }
+//     }
+// }
+// int32_t world_get_chunk_poi(struct world* world, int coord[2]) {
+//     int w = ((abs(coord[0]) / WORLD_WIDTH) + 1) * WORLD_WIDTH;
+//     int l = ((abs(coord[1]) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
+//     int x = (coord[0] + w) % WORLD_WIDTH;
+//     int y = (coord[1] + l) % WORLD_LENGTH;
+//     vec2 new_coord = { x, y };
+//     return world->chunk_pois[x][y];
+// }
+
 int world_init(int32_t seed, struct world** world) {
-    srand(seed);
     struct world* wld = malloc(sizeof(struct world));
     memset(wld, 0, sizeof(struct world));
     wld->seed = seed;
+    seed = seed;
     //TODO: Improve loading here
     for (int i = -LOAD_DISTANCE; i <= LOAD_DISTANCE; i++) {
         for (int j = -LOAD_DISTANCE; j <= LOAD_DISTANCE; j++) {
