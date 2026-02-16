@@ -2,7 +2,6 @@
 #include "player.h"
 #include "window.h"
 #include <SDL2/SDL_stdinc.h>
-#include <ft2build.h>
 #include "shader.h"
 // CHUNK_DISTANCE is essentially render distance, it shows you how many chunks
 // around the user you can see

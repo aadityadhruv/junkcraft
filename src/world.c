@@ -178,7 +178,7 @@ void world_all_chunk_gen_biome() {
         b_map[2][i] = snow_map[i];
         b_map[3][i] = mountain_map[i];
     }
-    enum biome root_biome = JUNK_BIOME_SNOW;
+    enum biome root_biome = JUNK_BIOME_PLAINS;
     int x = WORLD_WIDTH/2;
     int y = WORLD_LENGTH/2;
     chunk_biomes[WORLD_WIDTH/2][WORLD_LENGTH/2] = root_biome;

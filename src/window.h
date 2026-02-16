@@ -5,7 +5,6 @@
 
 
 struct window {
-    SDL_Renderer* renderer;
     SDL_Window* window;
 };
 

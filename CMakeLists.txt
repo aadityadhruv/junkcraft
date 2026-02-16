@@ -5,11 +5,11 @@ project(junkcraft VERSION 1.0
   LANGUAGES C)
 
 set(CMAKE_BUILD_TYPE Debug)
-message("Compiler: ${CMAKE_CXX_COMPILER_ID}")
+message("Compiler: ${CMAKE_C_COMPILER_ID}")
 
 add_subdirectory(src)
 find_package(SDL2)
-find_package(Freetype REQUIRED)
 find_library(JUNK junk)
-target_include_directories(junkcraft PRIVATE include Freetype_INCLUDE_DIRS /usr/include/freetype2)
-target_link_libraries(junkcraft PRIVATE SDL2 ${JUNK} m pthread freetype)
+find_path(JUNK_INCLUDE "junk/vector.h")
+target_include_directories(junkcraft PRIVATE include ${JUNK_INCLUDE})
+target_link_libraries(junkcraft PRIVATE SDL2 ${JUNK} m pthread)

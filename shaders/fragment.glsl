@@ -20,4 +20,4 @@ void main() {
     vec4 final_texture = texture(block_texture, text_coord);
     vec4 lighting = vec4(ambient_color + diffuse, 1.0f); 
     frag_colour =  lighting * final_texture;
-};
+}

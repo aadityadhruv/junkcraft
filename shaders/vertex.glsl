@@ -15,4 +15,4 @@ void main() {
   text_coord = i_text_coord;
   frag_pos = vec3(model*vec4(pos, 1.0));
 
-};
+}

@@ -9,7 +9,6 @@
 #include "window.h"
 #include "world.h"
 #include <SDL2/SDL_render.h>
-#include <bits/types/timer_t.h>
 #include <junk/vector.h>
 #include <math.h>
 #include <stdio.h>
@@ -218,7 +217,7 @@ void engine_start(struct engine* engine) {
         }
         shader_use(ui_shader);
         player_draw_ui(engine->player, ui_shader);
-        SDL_RenderPresent(engine->window->renderer);
+        SDL_GL_SwapWindow(engine->window->window);
         frames += 1;
     }
 }
