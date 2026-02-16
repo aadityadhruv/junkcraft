@@ -18,78 +18,23 @@
 
 extern struct block_metadata block_metadata[BLOCK_ID_COUNT];
 extern enum biome chunk_biomes[WORLD_WIDTH][WORLD_LENGTH];
+extern vec3 chunk_pois[WORLD_WIDTH][WORLD_LENGTH];
 extern int32_t seed;
 void _chunk_plains_gen(struct chunk* chunk);
 void _chunk_desert_gen(struct chunk* chunk);
 void _chunk_snow_gen(struct chunk* chunk);
 void _chunk_mountains_gen(struct chunk* chunk);
-enum biome chunk_get_biome(vec2 coord);
-void chunk_get_poi(vec2 coord, vec3 poi);
-void _chunk_poi_plains(vec2 coord, vec3 poi);
-void _chunk_poi_desert(vec2 coord, vec3 poi);
-void _chunk_poi_snow(vec2 coord, vec3 poi);
-void _chunk_poi_mountains(vec2 coord, vec3 poi);
 
 enum biome chunk_get_biome(vec2 coord) {
     return chunk_biomes[(int)coord[0]][(int)coord[1]];
 }
 void chunk_get_poi(vec2 coord, vec3 poi) {
-    enum biome b = chunk_get_biome(coord);
-    srand(seed + coord[0] * coord[1]);
-    switch (b) {
-        case JUNK_BIOME_PLAINS:
-            _chunk_poi_plains(coord, poi);
-            break;
-        case JUNK_BIOME_DESERT:
-            _chunk_poi_desert(coord, poi);
-            break;
-        case JUNK_BIOME_SNOW:
-            _chunk_poi_plains(coord, poi);
-            break;
-        case JUNK_BIOME_MOUNTAINS:
-            _chunk_poi_mountains(coord, poi);
-            break;
-        default:
-            _chunk_poi_plains(coord, poi);
-            break;
-    }
+    int w = ((abs((int)coord[0]) / WORLD_WIDTH) + 1) * WORLD_WIDTH;
+    int l = ((abs((int)coord[1]) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
+    int x = ((int)coord[0] + w) % WORLD_WIDTH;
+    int y = ((int)coord[1] + l) % WORLD_LENGTH;
+    memcpy(poi, chunk_pois[x][y], sizeof(vec3));
 }
-
-void _chunk_poi_plains(vec2 coord, vec3 poi) {
-    // Min POI block height
-    int poi_min = 70;
-    // Max POI block height
-    int poi_max = 75;
-    vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
-    memcpy(poi, poi1, sizeof(vec3));
-}
-void _chunk_poi_desert(vec2 coord, vec3 poi) {
-    // Min POI block height
-    int poi_min = 70;
-    // Max POI block height
-    int poi_max = 72;
-    vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
-    memcpy(poi, poi1, sizeof(vec3));
-}
-void _chunk_poi_snow(vec2 coord, vec3 poi) {
-    // Min POI block height
-    int poi_min = 72;
-    // Max POI block height
-    int poi_max = 75;
-    vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
-    memcpy(poi, poi1, sizeof(vec3));
-}
-void _chunk_poi_mountains(vec2 coord, vec3 poi) {
-    // Min POI block height
-    int poi_min = 120;
-    // Max POI block height
-    int poi_max = 140;
-    vec3 poi1 = { rand() % CHUNK_WIDTH, rand() % CHUNK_LENGTH, poi_min + (rand() % (poi_max - poi_min))};
-    memcpy(poi, poi1, sizeof(vec3));
-}
-
-
-
 
 int chunk_gen(struct world* world, vec2 coord, struct chunk **chunk) {
     *chunk = malloc(sizeof(struct chunk));
@@ -193,7 +138,7 @@ float _chunk_plains_get_z(vec2 target, vec3 poi, vec3 neighbor_poi[8], vec2 coor
         // Line direction vector
         // Literally just snap_vec, but renamed 
         // to match eq of line formula naming
-        vec3 r = { snap_vec[0], snap_vec[1], snap_vec[2] * 1.25f };
+        vec3 r = { snap_vec[0], snap_vec[1], snap_vec[2]  };
         // The point on the POI-POI line who's z-value will be used
         // to calculate our target's z-value
         vec2 proj_target = { 0 };

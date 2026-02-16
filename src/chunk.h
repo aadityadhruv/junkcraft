@@ -125,3 +125,12 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos);
  * @return 0 if a block was deleted, 1 if not
  */
 int chunk_block_place(struct chunk* chunk, vec3 pos);
+
+/**
+ * Get the biome for a chunk at coord
+ */
+enum biome chunk_get_biome(vec2 coord);
+/**
+ * Get the AVERAGED POI for a chunk
+ */
+void chunk_get_poi(vec2 coord, vec3 poi);
