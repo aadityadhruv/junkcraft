@@ -48,7 +48,7 @@ void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         }
     }
     else   {
-        float heat = noise_heat(x, y);
+        float heat = noise_heat(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH);
         if (heat > 0.6) {
             b = JUNK_BIOME_DESERT;
             float z = BIOME_BASE + z_val * DESERT_HEIGHT;
