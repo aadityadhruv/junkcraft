@@ -4,6 +4,28 @@
 #include <stdlib.h>
 #include <string.h>
 extern int seed;
+vec4 perlin_vecs[] = {
+    { -1,-1,-1,-1 },{ -1,-1,-1,0 },{ -1,-1,-1,1 },{ -1,-1,0,-1 },
+    { -1,-1,0,0 },{ -1,-1,0,1 },{ -1,-1,1,-1 },{ -1,-1,1,0 },
+    { -1,-1,1,1 },{ -1,0,-1,-1 },{ -1,0,-1,0 },{ -1,0,-1,1 },
+    { -1,0,0,-1 },{ -1,0,0,0 },{ -1,0,0,1 },{ -1,0,1,-1 },
+    { -1,0,1,0 },{ -1,0,1,1 },{ -1,1,-1,-1 },{ -1,1,-1,0 },
+    { -1,1,-1,1 },{ -1,1,0,-1 },{ -1,1,0,0 },{ -1,1,0,1 },
+    { -1,1,1,-1 },{ -1,1,1,0 },{ -1,1,1,1 },{ 0,-1,-1,-1 },
+    { 0,-1,-1,0 },{ 0,-1,-1,1 },{ 0,-1,0,-1 },{ 0,-1,0,0 },
+    { 0,-1,0,1 },{ 0,-1,1,-1 },{ 0,-1,1,0 },{ 0,-1,1,1 },
+    { 0,0,-1,-1 },{ 0,0,-1,0 },{ 0,0,-1,1 },{ 0,0,0,-1 },
+    { 0,0,0,0 },{ 0,0,0,1 },{ 0,0,1,-1 },{ 0,0,1,0 },
+    { 0,0,1,1 },{ 0,1,-1,-1 },{ 0,1,-1,0 },{ 0,1,-1,1 },
+    { 0,1,0,-1 },{ 0,1,0,0 },{ 0,1,0,1 },{ 0,1,1,-1 },
+    { 0,1,1,0 },{ 0,1,1,1 },{ 1,-1,-1,-1 },{ 1,-1,-1,0 },
+    { 1,-1,-1,1 },{ 1,-1,0,-1 },{ 1,-1,0,0 },{ 1,-1,0,1 },
+    { 1,-1,1,-1 },{ 1,-1,1,0 },{ 1,-1,1,1 },{ 1,0,-1,-1 },
+    { 1,0,-1,0 },{ 1,0,-1,1 },{ 1,0,0,-1 },{ 1,0,0,0 },
+    { 1,0,0,1 },{ 1,0,1,-1 },{ 1,0,1,0 },{ 1,0,1,1 },
+    { 1,1,-1,-1 },{ 1,1,-1,0 },{ 1,1,-1,1 },{ 1,1,0,-1 },
+    { 1,1,0,0 },{ 1,1,0,1 },{ 1,1,1,-1 },{ 1,1,1,0 }
+};
 
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
@@ -17,24 +39,34 @@ float lerp(float a, float b, float f)
 float fade(float t) {
     return t * t * t * (t * (t * 6 - 15) + 10); 
 }
-float noise_terrain(float x, float y) {
+float noise_heat(float x, float y) {
     float unit_diameter = 2 * M_PI;
-    // Controls "spread" over the terrain, how steep or sharp things are
-    float scale = 1.0f;
     x = x / (WORLD_WIDTH * CHUNK_WIDTH);
     y = y / (WORLD_LENGTH * CHUNK_LENGTH);
-    float angle_x =  scale * unit_diameter * x;
-    float angle_y =  scale * unit_diameter * y;
+    float angle_x =  unit_diameter * x;
+    float angle_y =  unit_diameter * y;
+    float freq = 2.0f;
+    // Get heatmap
+    float e = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
+    return e*e;
+}
+float noise_terrain(float x, float y) {
+    float unit_diameter = 2 * M_PI;
+    x = x / (WORLD_WIDTH * CHUNK_WIDTH);
+    y = y / (WORLD_LENGTH * CHUNK_LENGTH);
+    float angle_x =  unit_diameter * x;
+    float angle_y =  unit_diameter * y;
     // Controls how much variation you get - we are spreading
     // points over a larger lattice when this goes up so we are influcenced by more vectors
-    float freq = 16.0f;
+    float freq =  1.0f;
+    // This one generates a big chunk of elevated terrain, so we have like a decently sized mountain range, but not everywhere
     float val1 = 1 * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
-    freq = 10.0f;
+    val1 = val1*val1*val1;
+    freq = 16.0f;
+    // This val is for the plains, we are generating flatter plains like terrarin
     float val2 = 0.5 * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
-    freq = 5.0f;
-    float val3 = 0.25 * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
-    float e = ((val1 + val2 + val3)/ (1 + 0.5 + 0.25));
-    return e;
+    float e = (val1 + val2)/ (1.5);
+    return e*e;
 }
 float _noise_4d(float x1, float x2, float y1, float y2) {
     // Frequency
@@ -50,8 +82,7 @@ float _noise_4d(float x1, float x2, float y1, float y2) {
                 for (int l = 0; l <= 1; l++) {
                     vec4 base = { (int)floorf(x1) + i, (int)floorf(x2) + j, (int)floorf(y1) + k, (int)floorf(y2) + l };
                     srand(seed + ((base[0] * base[1]) + (base[2] * base[3])));
-                    vec4 g = { rand() , rand() , rand() , rand()  };
-                    memcpy(gradients[counter], g, sizeof(vec4));
+                    memcpy(gradients[counter], perlin_vecs[rand() % 80], sizeof(vec4));
                     vec4 dist;
                     glm_vec4_sub(point, base, dist);
                     memcpy(distances[counter], dist, sizeof(vec4));
@@ -100,6 +131,7 @@ float _noise_4d(float x1, float x2, float y1, float y2) {
     float i_lerp = lerp(j_lerps[0], j_lerps[1], u1);
     return ((i_lerp + 1) / 2.0f);
 }
+
 float _noise_2d(float x, float y) {
     int cx = x / CHUNK_WIDTH;
     int cy = y / CHUNK_LENGTH;

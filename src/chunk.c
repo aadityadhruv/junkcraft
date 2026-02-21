@@ -31,7 +31,7 @@ struct block* _chunk_snow_gen(float h);
 struct block* _chunk_mountains_gen(float h);
 void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
     enum biome b = JUNK_BIOME_PLAINS;
-    if (z_val > 0.8f) {
+    if (z_val > 0.6f) {
         b = JUNK_BIOME_MOUNTAINS;
         float z = BIOME_BASE + z_val * MOUNTAIN_HEIGHT;
         for (int h = 0; h < z; h++) {
@@ -39,7 +39,7 @@ void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
             chunk->blocks[x][y][h] = blk;
         }
     }
-    else if (z_val > 0.6f) {
+    else if (z_val > 0.4f) {
         b = JUNK_BIOME_SNOW;
         float z = BIOME_BASE + z_val * SNOW_HEIGHT;
         for (int h = 0; h < z; h++) {
@@ -48,22 +48,24 @@ void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         }
     }
     else   {
-        b = JUNK_BIOME_PLAINS;
-        float z = BIOME_BASE + z_val * PLAINS_HEIGHT;
-        for (int h = 0; h < z; h++) {
-            struct block* blk = _chunk_plains_gen(h);
-            chunk->blocks[x][y][h] = blk;
+        float heat = noise_heat(x, y);
+        if (heat > 0.6) {
+            b = JUNK_BIOME_DESERT;
+            float z = BIOME_BASE + z_val * DESERT_HEIGHT;
+            for (int h = 0; h < z; h++) {
+                struct block* blk = _chunk_desert_gen(h);
+                chunk->blocks[x][y][h] = blk;
+            }
+        }
+        else {
+            b = JUNK_BIOME_PLAINS;
+            float z = BIOME_BASE + z_val * PLAINS_HEIGHT;
+            for (int h = 0; h < z; h++) {
+                struct block* blk = _chunk_plains_gen(h);
+                chunk->blocks[x][y][h] = blk;
+            }
         }
     }
-    // else {
-    //     b = JUNK_BIOME_DESERT;
-    //     float z = BIOME_BASE + z_val * DESERT_HEIGHT;
-    //     for (int h = 0; h < z; h++) {
-    //         struct block* blk = _chunk_desert_gen(h);
-    //         chunk->blocks[x][y][h] = blk;
-    //     }
-    // }
-    // return b;
 }
 
 int chunk_gen(struct world* world, vec2 coord, struct chunk **c) {
