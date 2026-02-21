@@ -18,6 +18,9 @@ void main() {
     float diff = max(dot(norm, light_dir), 0.0);
     vec3 diffuse = diff * vec3(1.0);
     vec4 final_texture = texture(block_texture, text_coord);
+    if (final_texture.a < 0.1)  {
+        discard;
+    }
     vec4 lighting = vec4(ambient_color + diffuse, 1.0f); 
     frag_colour =  lighting * final_texture;
 }

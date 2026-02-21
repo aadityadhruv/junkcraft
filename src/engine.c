@@ -53,6 +53,8 @@ int engine_init(struct engine *engine) {
         "textures/03_rock.png",
         "textures/04_sand.png",
         "textures/05_snow.png",
+        "textures/06_wood.png",
+        "textures/07_leaf.png",
     };
     texture_load(engine->texture, textures, sizeof(textures)/sizeof(char*));
     block_metadata_init();

@@ -7,6 +7,8 @@ enum BLOCK_ID {
     BLOCK_ROCK,
     BLOCK_SAND,
     BLOCK_SNOW,
+    BLOCK_WOOD,
+    BLOCK_LEAF,
     BLOCK_ID_COUNT,
 };
 enum block_face {

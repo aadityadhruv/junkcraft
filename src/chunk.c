@@ -178,6 +178,11 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
     if (chunk->blocks[x][y][z] == NULL) {
         return 0;
     }
+    // See-through block TODO: Might want to rename this function or handle it differently.
+    // Despite there being a leaf block we mark as no neighbor because leaves are see-through.
+    if (chunk->blocks[x][y][z]->block_id == BLOCK_LEAF) {
+        return 0;
+    }
     return 1;
 }
 
@@ -627,7 +632,7 @@ int chunk_block_place(struct chunk* chunk, vec3 pos) {
     }
     if (chunk->blocks[x][y][z] == NULL) {
         struct block* blk = malloc(sizeof(struct block));
-        block_init(blk, BLOCK_STONE);
+        block_init(blk, BLOCK_LEAF);
         chunk->blocks[x][y][z] = blk;
         chunk->loaded = 0;
         return 0;
