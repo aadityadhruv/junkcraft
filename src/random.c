@@ -1,5 +1,6 @@
 #include "random.h"
 #include "chunk.h"
+#include <junk/vector.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -90,6 +91,7 @@ float noise_heat(float x, float y) {
     float e = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
     return e*e;
 }
+
 float noise_terrain(float x, float y) {
     float unit_diameter = 2 * M_PI;
     x = x / (WORLD_WIDTH * CHUNK_WIDTH);
@@ -108,6 +110,12 @@ float noise_terrain(float x, float y) {
     float e = (val1 + val2)/ (1.5);
     return e*e;
 }
+
+float noise_tree() {
+    srand(seed);
+    vec2 root = { rand(), rand() };
+}
+
 float _noise_4d(float x1, float x2, float y1, float y2) {
     // Frequency
     vec4 gradients[16] = {  };

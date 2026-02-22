@@ -34,6 +34,7 @@ int world_chunk_block_delete(struct world* world, vec3 pos);
  * Place a block in a chunk from world coordinates. This wraps chunk_block_place
  * @param World
  * @param pos block coordinates in world coordinates
+ * @param block_id type of block to place
  * @return 0 if block was placed, 1 if not
  */
-int world_chunk_block_place(struct world* world, vec3 pos);
+int world_chunk_block_place(struct world* world, vec3 pos, enum BLOCK_ID block_id);

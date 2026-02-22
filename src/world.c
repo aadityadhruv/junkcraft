@@ -117,11 +117,10 @@ int world_chunk_block_delete(struct world* world, vec3 pos) {
     vec3 new_pos = { x, y, z };
     return chunk_block_delete(c, new_pos);
 }
-int world_chunk_block_place(struct world* world, vec3 pos) {
-    int x = floorf(pos[0]);
-    //Note: OpenGL FLIP
-    int y = floorf(-pos[2]);
-    int z = floorf(pos[1]);
+int world_chunk_block_place(struct world* world, vec3 pos, enum BLOCK_ID block_id) {
+    int x = pos[0];
+    int y = pos[1];
+    int z = pos[2];
     int curr_chunk[2] = { floorf(x / (float)CHUNK_WIDTH), floorf(y / (float)CHUNK_LENGTH) };
     struct chunk* c = {0};
     world_get_chunk(world, curr_chunk, &c);
@@ -129,5 +128,5 @@ int world_chunk_block_place(struct world* world, vec3 pos) {
     x = (abs(curr_chunk[0]) * CHUNK_WIDTH + x) % CHUNK_WIDTH;
     y = (abs(curr_chunk[1]) * CHUNK_LENGTH + y) % CHUNK_LENGTH;
     vec3 new_pos = { x, y, z };
-    return chunk_block_place(c, new_pos);
+    return chunk_block_place(c, new_pos, block_id);
 }

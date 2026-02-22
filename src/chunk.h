@@ -122,9 +122,10 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos);
  * Place a block in the chunk at pos if it empty 
  * @param chunk Target chunk
  * @param pos block position
+ * @param block_id type of block to place
  * @return 0 if a block was deleted, 1 if not
  */
-int chunk_block_place(struct chunk* chunk, vec3 pos);
+int chunk_block_place(struct chunk* chunk, vec3 pos, enum BLOCK_ID block_id);
 
 /**
  * Get the biome for a z-val

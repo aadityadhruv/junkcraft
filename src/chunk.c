@@ -59,10 +59,41 @@ void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         }
         else {
             b = JUNK_BIOME_PLAINS;
-            float z = BIOME_BASE + z_val * PLAINS_HEIGHT;
+            int z = BIOME_BASE + z_val * PLAINS_HEIGHT;
             for (int h = 0; h < z; h++) {
                 struct block* blk = _chunk_plains_gen(h);
                 chunk->blocks[x][y][h] = blk;
+            }
+            // Generate tree at the point
+            if (rand() % 100 == 0.0f) {
+                float max_height = MIN(CHUNK_HEIGHT, z + 4);
+                for (int h = z; h < max_height; h++) {
+                    struct block* blk = malloc(sizeof(struct block));
+                    block_init(blk, BLOCK_WOOD);
+                    chunk->blocks[x][y][h] = blk;
+                }
+                for (int i = -2; i <= 2; i++) {
+                    for (int j = -2; j <= 2; j++) {
+                        vec3 pos1 = { x + i, y + j, max_height - 2};
+                        chunk_block_place(chunk, pos1, BLOCK_LEAF);
+                    }
+                }
+                for (int i = -1; i <= 1; i++) {
+                    for (int j = -1; j <= 1; j++) {
+                        vec3 pos1 = { x + i, y + j, max_height - 1};
+                        chunk_block_place(chunk, pos1, BLOCK_LEAF);
+                    }
+                }
+                vec3 pos0 = { x, y, max_height };
+                chunk_block_place(chunk, pos0, BLOCK_LEAF);
+                vec3 pos1 = { x, y + 1, max_height };
+                chunk_block_place(chunk, pos1, BLOCK_LEAF);
+                vec3 pos2 = { x + 1, y, max_height };
+                chunk_block_place(chunk, pos2, BLOCK_LEAF);
+                vec3 pos3 = { x - 1, y, max_height };
+                chunk_block_place(chunk, pos3, BLOCK_LEAF);
+                vec3 pos4 = { x, y - 1, max_height };
+                chunk_block_place(chunk, pos4, BLOCK_LEAF);
             }
         }
     }
@@ -620,7 +651,7 @@ int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block) {
     return 1;
 }
 
-int chunk_block_place(struct chunk* chunk, vec3 pos) {
+int chunk_block_place(struct chunk* chunk, vec3 pos, enum BLOCK_ID block_id) {
     int x = pos[0];
     int y = pos[1];
     int z = pos[2];
@@ -632,7 +663,7 @@ int chunk_block_place(struct chunk* chunk, vec3 pos) {
     }
     if (chunk->blocks[x][y][z] == NULL) {
         struct block* blk = malloc(sizeof(struct block));
-        block_init(blk, BLOCK_LEAF);
+        block_init(blk, block_id);
         chunk->blocks[x][y][z] = blk;
         chunk->loaded = 0;
         return 0;
@@ -654,6 +685,7 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos) {
     if (chunk->blocks[x][y][z] != NULL) {
         free(chunk->blocks[x][y][z]);
         chunk->blocks[x][y][z] = NULL;
+        // Loaded is set to zero so that OpenGL redraws
         chunk->loaded = 0;
         return 0;
     }

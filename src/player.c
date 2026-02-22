@@ -658,5 +658,11 @@ void player_block_place(struct player* player, struct world* world) {
         block_coords[2] -= 1;
     }
     glm_vec3_print(block_coords, stderr);
-    world_chunk_block_place(world, block_coords);
+    int nx = floorf(block_coords[0]);
+    //Note: OpenGL FLIP
+    int ny = floorf(-block_coords[2]);
+    int nz = floorf(block_coords[1]);
+    // In World coords, not opengl coords
+    vec3 world_block_coords = { nx, ny, nz };
+    world_chunk_block_place(world, world_block_coords, BLOCK_STONE);
 }
