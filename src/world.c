@@ -66,6 +66,15 @@ int world_init(int32_t seed, struct world** world) {
     return 0;
 }
 
+void world_get_chunk_no_gen(struct world* world, int coord[2], struct chunk** chunk) {
+    int w = ((abs(coord[0]) / WORLD_WIDTH) + 1) * WORLD_WIDTH;
+    int l = ((abs(coord[1]) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
+    int x = (coord[0] + w) % WORLD_WIDTH;
+    int y = (coord[1] + l) % WORLD_LENGTH;
+    vec2 new_coord = { x, y };
+    struct chunk* c = world->chunks[x][y];
+    *chunk = c;
+}
 int world_get_chunk(struct world* world, int coord[2], struct chunk** chunk) {
     int w = ((abs(coord[0]) / WORLD_WIDTH) + 1) * WORLD_WIDTH;
     int l = ((abs(coord[1]) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
@@ -76,7 +85,7 @@ int world_get_chunk(struct world* world, int coord[2], struct chunk** chunk) {
     if (c != NULL) {
         *chunk = c;
     } else {
-        chunk_gen(world, new_coord, chunk);
+        chunk_terrain_gen(world, new_coord, chunk);
         world->chunks[x][y] = *chunk;
     }
     return 0;

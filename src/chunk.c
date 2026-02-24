@@ -29,6 +29,55 @@ struct block* _chunk_plains_gen(float h);
 struct block* _chunk_desert_gen(float h);
 struct block* _chunk_snow_gen(float h);
 struct block* _chunk_mountains_gen(float h);
+
+void chunk_tree_gen(int x, int y, struct world* world, struct chunk* chunk) {
+            // Generate tree at the point
+            if (rand() % 100 == 0.0f) {
+                vec3 world_chunk_coords = { chunk->coord[0]*CHUNK_WIDTH, chunk->coord[1]*CHUNK_LENGTH, 0.0f };
+                // Get z-value at x,y
+                int z = 0;
+                for (int i = 0; i < CHUNK_HEIGHT; i++) {
+                    if (chunk->blocks[x][y][i] == NULL) break;
+                        z+=1;
+                }
+                int max_height = MIN(CHUNK_HEIGHT, z + 4);
+                for (int h = z; h < max_height; h++) {
+                    struct block* blk = malloc(sizeof(struct block));
+                    block_init(blk, BLOCK_WOOD);
+                    chunk->blocks[x][y][h] = blk;
+                }
+                for (int i = -2; i <= 2; i++) {
+                    for (int j = -2; j <= 2; j++) {
+                        vec3 pos1 = { x + i, y + j, max_height - 2};
+                        glm_vec3_add(pos1, world_chunk_coords, pos1);
+                        world_chunk_block_place(world, pos1, BLOCK_LEAF);
+                    }
+                }
+                for (int i = -1; i <= 1; i++) {
+                    for (int j = -1; j <= 1; j++) {
+                        vec3 pos1 = { x + i, y + j, max_height - 1};
+                        glm_vec3_add(pos1, world_chunk_coords, pos1);
+                        world_chunk_block_place(world, pos1, BLOCK_LEAF);
+                    }
+                }
+                vec3 pos0 = { x, y, max_height };
+                glm_vec3_add(pos0, world_chunk_coords, pos0);
+                world_chunk_block_place(world, pos0, BLOCK_LEAF);
+                vec3 pos1 = { x, y + 1, max_height };
+                glm_vec3_add(pos1, world_chunk_coords, pos1);
+                world_chunk_block_place(world, pos1, BLOCK_LEAF);
+                vec3 pos2 = { x + 1, y, max_height };
+                glm_vec3_add(pos2, world_chunk_coords, pos2);
+                world_chunk_block_place(world, pos2, BLOCK_LEAF);
+                vec3 pos3 = { x - 1, y, max_height };
+                glm_vec3_add(pos3, world_chunk_coords, pos3);
+                world_chunk_block_place(world, pos3, BLOCK_LEAF);
+                vec3 pos4 = { x, y - 1, max_height };
+                glm_vec3_add(pos4, world_chunk_coords, pos4);
+                world_chunk_block_place(world,  pos4, BLOCK_LEAF);
+            }
+}
+
 void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
     enum biome b = JUNK_BIOME_PLAINS;
     if (z_val > 0.6f) {
@@ -64,42 +113,11 @@ void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
                 struct block* blk = _chunk_plains_gen(h);
                 chunk->blocks[x][y][h] = blk;
             }
-            // Generate tree at the point
-            if (rand() % 100 == 0.0f) {
-                float max_height = MIN(CHUNK_HEIGHT, z + 4);
-                for (int h = z; h < max_height; h++) {
-                    struct block* blk = malloc(sizeof(struct block));
-                    block_init(blk, BLOCK_WOOD);
-                    chunk->blocks[x][y][h] = blk;
-                }
-                for (int i = -2; i <= 2; i++) {
-                    for (int j = -2; j <= 2; j++) {
-                        vec3 pos1 = { x + i, y + j, max_height - 2};
-                        chunk_block_place(chunk, pos1, BLOCK_LEAF);
-                    }
-                }
-                for (int i = -1; i <= 1; i++) {
-                    for (int j = -1; j <= 1; j++) {
-                        vec3 pos1 = { x + i, y + j, max_height - 1};
-                        chunk_block_place(chunk, pos1, BLOCK_LEAF);
-                    }
-                }
-                vec3 pos0 = { x, y, max_height };
-                chunk_block_place(chunk, pos0, BLOCK_LEAF);
-                vec3 pos1 = { x, y + 1, max_height };
-                chunk_block_place(chunk, pos1, BLOCK_LEAF);
-                vec3 pos2 = { x + 1, y, max_height };
-                chunk_block_place(chunk, pos2, BLOCK_LEAF);
-                vec3 pos3 = { x - 1, y, max_height };
-                chunk_block_place(chunk, pos3, BLOCK_LEAF);
-                vec3 pos4 = { x, y - 1, max_height };
-                chunk_block_place(chunk, pos4, BLOCK_LEAF);
-            }
         }
     }
 }
 
-int chunk_gen(struct world* world, vec2 coord, struct chunk **c) {
+int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
     struct chunk* chunk = malloc(sizeof(struct chunk));
     memcpy(chunk->coord,coord, sizeof(vec2));
     memset(chunk->blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
@@ -116,6 +134,28 @@ int chunk_gen(struct world* world, vec2 coord, struct chunk **c) {
         }
     }
     *c = chunk;
+    return 0;
+}
+
+int chunk_structure_gen(struct world* world, struct chunk* chunk) {
+    if (chunk->generated_structures == 1) return 1;
+    // Ensure neighbors have at least terrain generated
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            int coords[2] = { chunk->coord[0] + i, chunk->coord[1] + j };
+            struct chunk* chunk;
+            world_get_chunk_no_gen(world, coords, &chunk);
+            if (chunk == NULL) {
+                return 1;
+            }
+        }
+    }
+    for (int x = 0; x < CHUNK_WIDTH; x++) {
+        for (int y = 0; y < CHUNK_LENGTH; y++) {
+            chunk_tree_gen(x, y, world, chunk);
+        }
+    }
+    chunk->generated_structures = 1;
     return 0;
 }
 

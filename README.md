@@ -10,6 +10,8 @@ Current features:
 - Basic player movment physics - run and jump
 - Break and place blocks
 - Basic block variety and textures (in texture atlas)
+- Generate terrain based on perlin noise
+- Generate trees randomly
 
 Planned features include:
 
@@ -21,8 +23,8 @@ Planned features include:
     - Maybe some form of LODs 
     - Terrain blend
 - Gameplay
-    - Terrain generation and biomes
-    - Tree generation
+    - Terrain generation and biomes: Partially working 
+    - Tree generation: Partially working
     - Cave generation
     - Day/night cycle
     - Entities 
@@ -48,5 +50,5 @@ make
 
 ### Screenshots
 
-![Atop a tower](./res/tower1.png)
-![On the plains](./res/landscape.png)
+![View of a mountain](./res/mountain.png)
+![Atop a mountain](./res/mountain_top.png)

@@ -71,6 +71,24 @@ int engine_init(struct engine *engine) {
     world_init(1, &world);
     engine->world = world;
     //TODO: Move this loop to a function and flip chunk_coord sign correctly ONCE
+    // Pass 1 - generate terrain
+    for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+        for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+            struct chunk* chunk;
+            int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
+            world_get_chunk(engine->world, chunk_coord, &chunk);
+        }
+    }
+    // Pass 2 - generate structures
+    for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+        for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+            struct chunk* chunk;
+            int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
+            world_get_chunk(engine->world, chunk_coord, &chunk);
+            chunk_structure_gen(engine->world, chunk);
+        }
+    }
+    // Pass 3 - Load data to GPU
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
             struct chunk* chunk;
@@ -107,6 +125,15 @@ void engine_update(struct engine* engine) {
                 // Stage for loading chunk
                 chunk->staged_for_load = 1;
                 // fprintf(stderr, "Staged (%d, %d)\n", chunk_coord[0], chunk_coord[1]);
+            }
+        }
+        // Pass 2 - generate structures for newly generated chunks from above for loop
+        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+                struct chunk* chunk;
+                int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j };
+                world_get_chunk(engine->world, chunk_coord, &chunk);
+                chunk_structure_gen(engine->world, chunk);
             }
         }
         // Unload existing chunks

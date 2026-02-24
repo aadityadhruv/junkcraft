@@ -38,3 +38,8 @@ int world_chunk_block_delete(struct world* world, vec3 pos);
  * @return 0 if block was placed, 1 if not
  */
 int world_chunk_block_place(struct world* world, vec3 pos, enum BLOCK_ID block_id);
+/**
+ * Equivalent to world_get_chunk, but if the chunk doesn't exit, DON'T generate it, set chunk to NULL
+ * TODO: Refactor this, combine with world_get_chunk, this repeated code is disgusting
+ */
+void world_get_chunk_no_gen(struct world* world, int coord[2], struct chunk** chunk);

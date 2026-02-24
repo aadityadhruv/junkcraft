@@ -38,9 +38,8 @@ struct chunk {
     enum biome biome;
     vec2 coord;
     int loaded;
+    int generated_structures;
     int staged_for_load;
-    // usually used to force chunk updates
-    int dirty;
 };
 
 /**
@@ -55,7 +54,13 @@ struct chunk {
  * create_chunk
  *
  */
-int chunk_gen(struct world* wld, vec2 coord, struct chunk** chunk);
+int chunk_terrain_gen(struct world* wld, vec2 coord, struct chunk** chunk);
+/**
+ * Generate structures in a chunk. This is a second-pass, chunk_terrain_gen is always
+ * called first when generating a chunk
+ *
+ */
+int chunk_structure_gen(struct world* world, struct chunk* chunk);
 /**
  * Load a chunk to the given coordinates. Essentially, a chunk only knows of
  * it's local coordinate system. We want to load this particular chunk to a
