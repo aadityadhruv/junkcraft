@@ -111,11 +111,6 @@ float noise_terrain(float x, float y) {
     return e*e;
 }
 
-float noise_tree() {
-    srand(seed);
-    vec2 root = { rand(), rand() };
-}
-
 float _noise_4d(float x1, float x2, float y1, float y2) {
     // Frequency
     vec4 gradients[16] = {  };

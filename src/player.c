@@ -401,12 +401,11 @@ void player_load_ui(struct player* player) {
         0, 1, 2, 3
     };
 
-    create_vbo(&player->_vbo_ui, (void*)crosshair, sizeof(crosshair));
-    create_ebo(&player->_ebo_ui, (void*)vertex_draw_order, sizeof(vertex_draw_order));
-
     player->ui_vertex_count = ARRAY_SIZE(vertex_draw_order);
     glGenVertexArrays(1, &player->_vao_ui);
     glBindVertexArray(player->_vao_ui);
+    create_vbo(&player->_vbo_ui, (void*)crosshair, sizeof(crosshair));
+    create_ebo(&player->_ebo_ui, (void*)vertex_draw_order, sizeof(vertex_draw_order));
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, player->_vbo_ui);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -521,13 +520,13 @@ void player_load_debug(struct player* player) {
         memcpy(tmp_order + i*face_size, data, face_size * sizeof(int));
         free(data);
     }
-    // Do the same for debug VBOs and EBOs
-    create_vbo(&player->_vbo_debug, (void*)tmp_vertex, sizeof(tmp_vertex));
-    create_ebo(&player->_ebo_debug, (void*)tmp_order, sizeof(tmp_order));
 
     player->debug_vertex_count = ARRAY_SIZE(tmp_order);
     glGenVertexArrays(1, &player->_vao_debug);
     glBindVertexArray(player->_vao_debug);
+    // Do the same for debug VBOs and EBOs
+    create_vbo(&player->_vbo_debug, (void*)tmp_vertex, sizeof(tmp_vertex));
+    create_ebo(&player->_ebo_debug, (void*)tmp_order, sizeof(tmp_order));
     // Enable 3 attribs - position normals texture
     glEnableVertexAttribArray(0);
     // glEnableVertexAttribArray(1);
@@ -536,9 +535,9 @@ void player_load_debug(struct player* player) {
     glBindBuffer(GL_ARRAY_BUFFER, player->_vbo_debug);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
     // set vao_buffer to normals buffer obj
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(3*sizeof(float)));
-    // set vao_buffer to texture buffer obj
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(6*sizeof(float)));
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(3*sizeof(float)));
+    // // set vao_buffer to texture buffer obj
+    // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(6*sizeof(float)));
     // Set EBO to the vertex_order
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, player->_ebo_debug);
     //NOTE: This is important, otherwise with multiple chunk_load calls, it

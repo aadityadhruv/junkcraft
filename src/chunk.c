@@ -119,6 +119,7 @@ void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
 
 int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
     struct chunk* chunk = malloc(sizeof(struct chunk));
+    memset(chunk, 0, sizeof(struct chunk));
     memcpy(chunk->coord,coord, sizeof(vec2));
     memset(chunk->blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
     // fprintf(stderr, "=================== CHUNK (%f, %f) ===================\n", chunk->coord[0], chunk->coord[1]);
@@ -403,7 +404,6 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     chunk->loaded = 1;
     chunk->staged_for_load = 0;
     return;
-        
     }
     // fprintf(stderr, "Loaded chunk (%d, %d)\n", coord[0], coord[1]);
     // ================ OpenGL work ================
@@ -499,7 +499,6 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
         0.0f, -1.0f, 0.0f, // Bottom normal
         0.5f, 0.5f,
     };
-
     int vertex_draw_order[] = {
         1, 2, 3,   3, 0, 1, // CCW 2-triangles (quad)
     };
@@ -593,9 +592,11 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
             }
         }
     }
-    float tmp_vertex[vector_length(vertices) * sizeof(front_face)];
-    int tmp_order[vector_length(vertex_order) * sizeof(vertex_draw_order)];
-    // fprintf(stderr, "Chunk blk_c: %d v_s: %d, v_o: %d\n", blk_c, vector_length(vertices) / 6, vector_length(vertex_order) / 6);
+    float tmp_vertex[vector_length(vertices) * ARRAY_SIZE(front_face)];
+    int tmp_order[vector_length(vertex_order) * ARRAY_SIZE(vertex_draw_order)];
+    memset(tmp_vertex, 0, sizeof(tmp_vertex));
+    memset(tmp_order, 0, sizeof(tmp_order));
+    // fprintf(stderr, "Chunk blk_c: %d v_s: %d, v_o: %d\n", blk_c, vector_length(vertices)*4, vector_length(vertex_order));
     // fprintf(stderr, "%d|%d|%d|%d|%d|%d|", v_count[0], v_count[1], v_count[2], v_count[3], v_count[4], v_count[5]);
     for (int i = 0; i < vector_length(vertices); i++) {
         float* face = vector_get(vertices, i);
@@ -610,6 +611,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
         free(order);
     }
     
+    glGenVertexArrays(1, &chunk->_vao);
+    glBindVertexArray(chunk->_vao);
+
     // Create VBO and EBO buffer data
     // VBO EBO size is sizeof() because we want TOTAL BYTES (float * count)
     create_vbo(&chunk->_vbo, (void*)tmp_vertex, sizeof(tmp_vertex));
@@ -617,22 +621,20 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     // Here we only want ARRAY_SIZE, not float * count
     chunk->vertex_count = vector_length(vertex_order) * ARRAY_SIZE(vertex_draw_order);
 
-
-    glGenVertexArrays(1, &chunk->_vao);
-    glBindVertexArray(chunk->_vao);
     // Enable 3 attribs - position normals texture
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     // set vao_buffer to pos buffer obj
     glBindBuffer(GL_ARRAY_BUFFER, chunk->_vbo);
+    // Set EBO to the vertex_order
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, chunk->_ebo);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
     // set vao_buffer to normals buffer obj
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(3*sizeof(float)));
     // set vao_buffer to texture buffer obj
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(6*sizeof(float)));
-    // Set EBO to the vertex_order
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, chunk->_ebo);
+
     //NOTE: This is important, otherwise with multiple chunk_load calls, it
     //creates a segfault since the bindings get all messed up. Why it gets
     //messed up? Let's say we make 2 chunks. Chunk 1 creates VBOs, then VAO,
@@ -658,7 +660,6 @@ void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* text
 }
 
 void chunk_unload(struct chunk* chunk) {
-    chunk->loaded = 0;
     // Clear VBO data
     glDeleteBuffers(1, &chunk->_vbo);
     // Clear EBO data
@@ -667,6 +668,7 @@ void chunk_unload(struct chunk* chunk) {
     glDeleteVertexArrays(1, &chunk->_vao);
     chunk->loaded = 0;
     chunk->staged_for_load = 0;
+    chunk->dirty = 0;
 }
 
 // Regenerate chunk data
@@ -705,7 +707,8 @@ int chunk_block_place(struct chunk* chunk, vec3 pos, enum BLOCK_ID block_id) {
         struct block* blk = malloc(sizeof(struct block));
         block_init(blk, block_id);
         chunk->blocks[x][y][z] = blk;
-        chunk->loaded = 0;
+        // Set dirty flag, we will unload/reload in engine loop
+        chunk->dirty = 1;
         return 0;
     }
     return 1;
@@ -725,8 +728,8 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos) {
     if (chunk->blocks[x][y][z] != NULL) {
         free(chunk->blocks[x][y][z]);
         chunk->blocks[x][y][z] = NULL;
-        // Loaded is set to zero so that OpenGL redraws
-        chunk->loaded = 0;
+        // Set dirty flag, we will unload/reload in engine loop
+        chunk->dirty = 1;
         return 0;
     }
     return 1;

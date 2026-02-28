@@ -40,6 +40,8 @@ struct chunk {
     int loaded;
     int generated_structures;
     int staged_for_load;
+    // Blocks placed/deleted
+    int dirty;
 };
 
 /**

@@ -59,9 +59,6 @@ int engine_init(struct engine *engine) {
     texture_load(engine->texture, textures, sizeof(textures)/sizeof(char*));
     block_metadata_init();
 
-    // Setup Objects to draw
-    // memset(engine->loaded_chunks, 0, (1 + CHUNK_DISTANCE * 2) * (1 + CHUNK_DISTANCE * 2));
-
     // Setup player
     vec3 pos = { 1.0f, 100.0f, -1.0f };
     player_init(pos, &engine->player);
@@ -168,7 +165,8 @@ void engine_update(struct engine* engine) {
             struct chunk* chunk = {0};
             int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
             world_get_chunk(engine->world, chunk_coord, &chunk);
-            if (!chunk->loaded) {
+            if (chunk->dirty) {
+                chunk_unload(chunk);
                 chunk_load(engine->world, chunk, chunk_coord);
             }
         }
@@ -239,7 +237,7 @@ void engine_start(struct engine* engine) {
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk = {0};
-                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
+                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 chunk_draw(chunk, default_shader, engine->texture);
             }
