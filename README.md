@@ -12,6 +12,7 @@ Current features:
 - Basic block variety and textures (in texture atlas)
 - Generate terrain based on perlin noise
 - Generate trees randomly
+- Really basic, non-wrapping 3d cave gen
 
 Planned features include:
 
@@ -25,7 +26,7 @@ Planned features include:
 - Gameplay
     - Terrain generation and biomes: Partially working 
     - Tree generation: Partially working
-    - Cave generation
+    - Cave generation: Really really basic
     - Day/night cycle
     - Entities 
     - Local play

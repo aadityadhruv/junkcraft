@@ -14,21 +14,14 @@
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
-#define MOUNTAIN_HEIGHT 100
-#define SNOW_HEIGHT 100
-#define BIOME_BASE 70
-#define PLAINS_HEIGHT 100
-#define DESERT_HEIGHT 100
-#define CAVERN_LAYER 60
-#define UNDERGROUND_LAYER 30
 
 extern struct block_metadata block_metadata[BLOCK_ID_COUNT];
 extern enum biome chunk_biomes[WORLD_WIDTH][WORLD_LENGTH];
 extern int32_t seed;
-struct block* _chunk_plains_gen(float h);
-struct block* _chunk_desert_gen(float h);
-struct block* _chunk_snow_gen(float h);
-struct block* _chunk_mountains_gen(float h);
+struct block* _chunk_plains_gen(struct chunk* chunk, float x, float y, float z);
+struct block* _chunk_desert_gen(struct chunk* chunk, float x, float y, float z);
+struct block* _chunk_snow_gen(struct chunk* chunk, float x, float y, float z);
+struct block* _chunk_mountains_gen(struct chunk*, float x, float y, float z);
 
 void chunk_tree_gen(int x, int y, struct world* world, struct chunk* chunk) {
             // Generate tree at the point
@@ -37,7 +30,8 @@ void chunk_tree_gen(int x, int y, struct world* world, struct chunk* chunk) {
                 // Get z-value at x,y
                 int z = 0;
                 for (int i = 0; i < CHUNK_HEIGHT; i++) {
-                    if (chunk->blocks[x][y][i] == NULL) break;
+                    // Don't spawn trees underground, and only on empty blocks
+                    if ( i > CAVERN_LAYER && chunk->blocks[x][y][i] == NULL) break;
                         z+=1;
                 }
                 int max_height = MIN(CHUNK_HEIGHT, z + 4);
@@ -84,7 +78,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         b = JUNK_BIOME_MOUNTAINS;
         float z = BIOME_BASE + z_val * MOUNTAIN_HEIGHT;
         for (int h = 0; h < z; h++) {
-            struct block* blk = _chunk_mountains_gen(h);
+            struct block* blk = _chunk_mountains_gen(chunk, x, y, h);
             chunk->blocks[x][y][h] = blk;
         }
     }
@@ -92,7 +86,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         b = JUNK_BIOME_SNOW;
         float z = BIOME_BASE + z_val * SNOW_HEIGHT;
         for (int h = 0; h < z; h++) {
-            struct block* blk = _chunk_snow_gen(h);
+            struct block* blk = _chunk_snow_gen(chunk, x, y, h);
             chunk->blocks[x][y][h] = blk;
         }
     }
@@ -102,7 +96,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
             b = JUNK_BIOME_DESERT;
             float z = BIOME_BASE + z_val * DESERT_HEIGHT;
             for (int h = 0; h < z; h++) {
-                struct block* blk = _chunk_desert_gen(h);
+                struct block* blk = _chunk_desert_gen(chunk, x, y, h);
                 chunk->blocks[x][y][h] = blk;
             }
         }
@@ -110,7 +104,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
             b = JUNK_BIOME_PLAINS;
             int z = BIOME_BASE + z_val * PLAINS_HEIGHT;
             for (int h = 0; h < z; h++) {
-                struct block* blk = _chunk_plains_gen(h);
+                struct block* blk = _chunk_plains_gen(chunk, x, y, h);
                 chunk->blocks[x][y][h] = blk;
             }
         }
@@ -281,12 +275,19 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
  * Basic Mountain chunk generation
  *
  */
-struct block* _chunk_mountains_gen(float h) {
+struct block* _chunk_mountains_gen(struct chunk* chunk, float x, float y, float h) {
     struct block* blk = malloc(sizeof(struct block));
+    float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
+        if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            return NULL;
+        }
         block_init(blk, BLOCK_ROCK);
     }
     else if (h <= CAVERN_LAYER) {
+        if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            return NULL;
+        }
         block_init(blk, BLOCK_STONE);
     } 
     else if (h <= (BIOME_BASE + MOUNTAIN_HEIGHT) * 0.6) {
@@ -307,12 +308,19 @@ struct block* _chunk_mountains_gen(float h) {
  * Basic Snow chunk generation
  *
  */
-struct block* _chunk_snow_gen(float h) {
+struct block* _chunk_snow_gen(struct chunk* chunk, float x, float y, float h) {
     struct block* blk = malloc(sizeof(struct block));
+    float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
+        if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            return NULL;
+        }
         block_init(blk, BLOCK_ROCK);
     }
     else if (h <= CAVERN_LAYER) {
+        if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            return NULL;
+        }
         block_init(blk, BLOCK_STONE);
     } else {
         block_init(blk, BLOCK_SNOW);
@@ -324,12 +332,19 @@ struct block* _chunk_snow_gen(float h) {
  * Basic Desert chunk generation
  *
  */
-struct block* _chunk_desert_gen(float h) {
+struct block* _chunk_desert_gen(struct chunk* chunk, float x, float y, float h) {
     struct block* blk = malloc(sizeof(struct block));
+    float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
+        if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            return NULL;
+        }
         block_init(blk, BLOCK_ROCK);
     }
     else if (h <= CAVERN_LAYER) {
+        if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            return NULL;
+        }
         block_init(blk, BLOCK_STONE);
     } else {
         block_init(blk, BLOCK_SAND);
@@ -340,12 +355,19 @@ struct block* _chunk_desert_gen(float h) {
  * Basic Plains chunk generation
  *
  */
-struct block* _chunk_plains_gen(float h) {
+struct block* _chunk_plains_gen(struct chunk* chunk, float x, float y, float h) {
     struct block* blk = malloc(sizeof(struct block));
+    float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
+        if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            return NULL;
+        }
         block_init(blk, BLOCK_ROCK);
     }
     else if (h <= CAVERN_LAYER) {
+        if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            return NULL;
+        }
         block_init(blk, BLOCK_STONE);
     } else {
         block_init(blk, BLOCK_GRASS);

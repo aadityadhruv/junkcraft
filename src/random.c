@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 extern int seed;
-vec4 perlin_vecs[] = {
+vec4 perlin_vecs_4d[] = {
     { -1,-1,-1,-1 },{ -1,-1,-1,0 },{ -1,-1,-1,1 },{ -1,-1,0,-1 },
     { -1,-1,0,0 },{ -1,-1,0,1 },{ -1,-1,1,-1 },{ -1,-1,1,0 },
     { -1,-1,1,1 },{ -1,0,-1,-1 },{ -1,0,-1,0 },{ -1,0,-1,1 },
@@ -26,6 +26,16 @@ vec4 perlin_vecs[] = {
     { 1,0,0,1 },{ 1,0,1,-1 },{ 1,0,1,0 },{ 1,0,1,1 },
     { 1,1,-1,-1 },{ 1,1,-1,0 },{ 1,1,-1,1 },{ 1,1,0,-1 },
     { 1,1,0,0 },{ 1,1,0,1 },{ 1,1,1,-1 },{ 1,1,1,0 }
+};
+
+vec3 perlin_vecs_3d[] = { 
+    { -1,-1,-1 },{ -1,-1,0 },{ -1,-1,1 },{ -1,0,-1 },
+    { -1,0,0 },{ -1,0,1 },{ -1,1,-1 },{ -1,1,0 },
+    { -1,1,1 },{ 0,-1,-1 },{ 0,-1,0 },{ 0,-1,1 },
+    { 0,0,-1 },{ 0,0,0 },{ 0,0,1 },{ 0,1,-1 },
+    { 0,1,0 },{ 0,1,1 },{ 1,-1,-1 },{ 1,-1,0 },
+    { 1,-1,1 },{ 1,0,-1 },{ 1,0,0 },{ 1,0,1 },
+    { 1,1,-1 },{ 1,1,0 },{ 1,1,1 },
 };
 
 // Perlin hash function
@@ -71,6 +81,7 @@ int permutation[] = {
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
 float _noise_2d(float x, float y);
+float _noise_3d(float x1, float y1, float z1);
 float _noise_4d(float x1, float x2, float y1, float y2);
 float lerp(float a, float b, float f)
 {
@@ -111,6 +122,18 @@ float noise_terrain(float x, float y) {
     return e*e;
 }
 
+float noise_caves(float x, float y, float z) {
+    x = x / (WORLD_WIDTH * CHUNK_WIDTH);
+    y = y / (WORLD_LENGTH * CHUNK_LENGTH);
+    z = z / (CAVE_GEN_LAYER);
+    float freq = 16.0f;
+    float h1 = _noise_3d(freq*x, freq*y, 4*z);
+    freq = 8.0f;
+    float h2 = 0.5 * _noise_3d(freq*x, freq*y, 2*z);
+    float h = (h1 + h2) / (1.5f);
+    return sqrtf(sqrtf(h));
+}
+
 float _noise_4d(float x1, float x2, float y1, float y2) {
     // Frequency
     vec4 gradients[16] = {  };
@@ -134,7 +157,7 @@ float _noise_4d(float x1, float x2, float y1, float y2) {
                     pz &= 255;
                     pw &= 255;
                     int idx = permutation[permutation[permutation[permutation[px] + py] + pz] + pw];
-                    memcpy(gradients[counter], perlin_vecs[idx], sizeof(vec4));
+                    memcpy(gradients[counter], perlin_vecs_4d[idx], sizeof(vec4));
                     vec4 dist;
                     glm_vec4_sub(point, base, dist);
                     memcpy(distances[counter], dist, sizeof(vec4));
@@ -172,6 +195,64 @@ float _noise_4d(float x1, float x2, float y1, float y2) {
     lerp_counter = 0;
     for (int i = 0; i < 4; i++) {
         k_lerps[i] = lerp(l_lerps[lerp_counter], l_lerps[lerp_counter + 1], u2);
+        lerp_counter += 2;
+    }
+    float j_lerps[2];
+    lerp_counter = 0;
+    for (int i = 0; i < 2; i++) {
+        j_lerps[i] = lerp(k_lerps[lerp_counter], k_lerps[lerp_counter + 1], v1);
+        lerp_counter += 2;
+    }
+    float i_lerp = lerp(j_lerps[0], j_lerps[1], u1);
+    return ((i_lerp + 1) / 2.0f);
+}
+
+float _noise_3d(float x1, float y1, float z1) {
+    // Frequency
+    vec3 gradients[8] = {  };
+    vec3 distances[8] = {  };
+    int counter = 0;
+    
+    vec4 point = { x1, y1, z1 };
+    for (int i = 0; i <= 1; i++) {
+        for (int j = 0; j <= 1; j++) {
+            for (int k = 0; k <= 1; k++) {
+                vec3 base = { (int)floorf(x1) + i, (int)floorf(y1) + j, (int)floorf(y1) + k };
+                int px = base[0];
+                int py = base[1]; 
+                int pz = base[2];
+                px &= 255;
+                py &= 255;
+                pz &= 255;
+                int idx = permutation[permutation[permutation[px] + py] + pz];
+                memcpy(gradients[counter], perlin_vecs_4d[idx], sizeof(vec3));
+                vec3 dist;
+                glm_vec3_sub(point, base, dist);
+                memcpy(distances[counter], dist, sizeof(vec3));
+                counter += 1;
+            }
+        }
+    }
+    float dots[8];
+    for (int i = 0; i < 8; i++) {
+            glm_vec3_normalize(gradients[i]);
+             glm_vec3_normalize(distances[i]);
+            dots[i] = glm_vec3_dot(gradients[i], distances[i]);
+    }
+    vec3 base = { floorf(x1), floorf(y1), floorf(z1) };
+    vec3 unit = { 0 };
+    glm_vec3_sub(point, base, unit);
+    // glm_vec3_normalize(point);
+    float u1 = unit[0];
+    float v1 = unit[1];
+    float w1 = unit[2];
+    u1 = fade(u1);
+    v1 = fade(v1);
+    w1 = fade(w1);
+    float k_lerps[4];
+    int lerp_counter = 0;
+    for (int i = 0; i < 4; i++) {
+        k_lerps[i] = lerp(dots[lerp_counter], dots[lerp_counter + 1], w1);
         lerp_counter += 2;
     }
     float j_lerps[2];
