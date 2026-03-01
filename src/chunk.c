@@ -78,7 +78,7 @@ void chunk_tree_gen(int x, int y, struct world* world, struct chunk* chunk) {
             }
 }
 
-void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
+enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
     enum biome b = JUNK_BIOME_PLAINS;
     if (z_val > 0.6f) {
         b = JUNK_BIOME_MOUNTAINS;
@@ -115,6 +115,8 @@ void chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
             }
         }
     }
+
+    return b;
 }
 
 int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
@@ -122,6 +124,8 @@ int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
     memset(chunk, 0, sizeof(struct chunk));
     memcpy(chunk->coord,coord, sizeof(vec2));
     memset(chunk->blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
+    enum biome chunk_biome_counter[JUNK_BIOME_COUNT];
+    memset(chunk_biome_counter, 0, sizeof(chunk_biome_counter));
     // fprintf(stderr, "=================== CHUNK (%f, %f) ===================\n", chunk->coord[0], chunk->coord[1]);
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_LENGTH; y++) {
@@ -131,9 +135,21 @@ int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
             float z_val = noise_terrain(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH);
             z_val = MAX(0, z_val);
             struct block* blk;
-            chunk_block_gen(x, y, z_val, chunk);
+            chunk_biome_counter[chunk_block_gen(x, y, z_val, chunk)] += 1;
         }
     }
+    // The biome of a chunk is the biome for which the highest number of blocks
+    // were created. Basically if 70% of this chunk is PLAINS and 30% desert,
+    // this chunk is a desert
+    enum biome max_biome = JUNK_BIOME_PLAINS;
+    int max_biome_counter = 0;
+    for (int i = 0; i < JUNK_BIOME_COUNT; i++) {
+        if (chunk_biome_counter[i] > max_biome_counter) {
+            max_biome = i;
+            max_biome_counter = chunk_biome_counter[i];
+        }
+    }
+    chunk->biome = max_biome;
     *c = chunk;
     return 0;
 }
@@ -151,9 +167,12 @@ int chunk_structure_gen(struct world* world, struct chunk* chunk) {
             }
         }
     }
-    for (int x = 0; x < CHUNK_WIDTH; x++) {
-        for (int y = 0; y < CHUNK_LENGTH; y++) {
-            chunk_tree_gen(x, y, world, chunk);
+    if (chunk->biome == JUNK_BIOME_PLAINS) {
+        // Only gen trees for PLAINS biomes
+        for (int x = 0; x < CHUNK_WIDTH; x++) {
+            for (int y = 0; y < CHUNK_LENGTH; y++) {
+                chunk_tree_gen(x, y, world, chunk);
+            }
         }
     }
     chunk->generated_structures = 1;
