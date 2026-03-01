@@ -22,14 +22,19 @@ void texture_load(struct texture* texture, char** path, int size) {
     vec2 atlas_size = { atlas_width,  0 };
     for (int i = 0; i < size; i++) {
         int width, height, nr_channels;
-        unsigned char *data = stbi_load(path[i], &width, &height, &nr_channels, 0);
+        char tpath[200];
+        memset(tpath, 0, 200);
+        char* d = "/home/aaditya/git/junkcraft/";
+        strcat(tpath, d);
+        strcat(tpath, path[i]);
+        unsigned char *data = stbi_load(tpath, &width, &height, &nr_channels, 0);
         int data_size = width * height * nr_channels;
         texture_data = realloc(texture_data, total_buffer_size + data_size);
         memcpy(texture_data + total_buffer_size, data, data_size);
         atlas_size[1] += height;
         total_buffer_size += data_size;
         stbi_image_free(data);
-    fprintf(stderr, "Texture load %s\n", path[i]);
+    fprintf(stderr, "Texture load %s\n", tpath);
     }
     create_texture(&texture->_tbo, texture_data, atlas_size);
     fprintf(stderr, "Loaded all textures\n");

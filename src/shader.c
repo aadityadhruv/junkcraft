@@ -14,7 +14,12 @@
  * @return buf Contents of shader file as a string
  */
 char* read_shader(char* path) {
-    FILE* file = fopen(path, "r");
+    char cwd[200];
+    memset(cwd, 0, 200);
+    char* d = "/home/aaditya/git/junkcraft/";
+    strcat(cwd, d);
+    strcat(cwd, path);
+    FILE* file = fopen(cwd, "r");
     fseek(file, 0, SEEK_END);
     int file_size = ftell(file);
     rewind(file);

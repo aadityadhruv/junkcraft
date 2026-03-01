@@ -33,6 +33,7 @@ int engine_init(struct engine *engine) {
     shader_init(&shader);
     shader_init(&debug_shader);
     shader_init(&ui_shader);
+    fprintf(stderr, "Loading shaders...\n");
     char* shaders[2] = { "shaders/vertex.glsl", "shaders/fragment.glsl" };
     char* debug_shaders[2] = { "shaders/vertex_debug.glsl", "shaders/fragment_debug.glsl" };
     char* ui_shaders[2] = { "shaders/vertex_ui.glsl", "shaders/fragment_debug.glsl" };
@@ -42,6 +43,7 @@ int engine_init(struct engine *engine) {
     VECTOR_INSERT(engine->shaders, shader);
     VECTOR_INSERT(engine->shaders, debug_shader);
     VECTOR_INSERT(engine->shaders, ui_shader);
+    fprintf(stderr, "Shaders compiled and loaded\n");
 
 
     // Load Textures
