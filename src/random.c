@@ -111,14 +111,17 @@ float noise_terrain(float x, float y) {
     float angle_y =  unit_diameter * y;
     // Controls how much variation you get - we are spreading
     // points over a larger lattice when this goes up so we are influcenced by more vectors
-    float freq =  1.0f;
+    float freq =  WORLD_WIDTH / 4.0f;
     // This one generates a big chunk of elevated terrain, so we have like a decently sized mountain range, but not everywhere
-    float val1 = 1 * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
-    val1 = val1*val1*val1;
-    freq = 16.0f;
+    float val1 = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
+    val1 = val1*val1;
+    freq = WORLD_WIDTH;
+    float val3 = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
+    val3 = sqrtf(sqrtf(val3));
+    freq = WORLD_WIDTH / 2.0f;
     // This val is for the plains, we are generating flatter plains like terrarin
     float val2 = 0.5 * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
-    float e = (val1 + val2)/ (1.5);
+    float e = (val1 + val2 + val3)/ (2.5);
     return e*e;
 }
 
@@ -126,12 +129,28 @@ float noise_caves(float x, float y, float z) {
     x = x / (WORLD_WIDTH * CHUNK_WIDTH);
     y = y / (WORLD_LENGTH * CHUNK_LENGTH);
     z = z / (CAVE_GEN_LAYER);
-    float freq = 16.0f;
-    float h1 = _noise_3d(freq*x, freq*y, 4*z);
-    freq = 8.0f;
-    float h2 = 0.5 * _noise_3d(freq*x, freq*y, 2*z);
-    float h = (h1 + h2) / (1.5f);
-    return sqrtf(sqrtf(h));
+    // Number of noise iterations
+    int num = 3;
+    // x and y init frequency
+    float freq = WORLD_WIDTH*2;
+    // z init frequency
+    float z_freq = CAVE_GEN_LAYER / 10.0f;
+    // init amplitude
+    float amp = 1.0f;
+    // Denominator to normalize with
+    float div = 0.0f;
+    // Total h
+    float h = 0.0f;
+    for (int i = 0; i < num; i++) {
+        float noise = amp * _noise_3d(freq*x, freq*y, z_freq*z);
+        div += amp;
+        h += noise;
+        freq /= 2;
+        z_freq /= 2;
+        amp *= 2;
+    }
+    h /= div;
+    return sqrtf(sqrtf(sqrtf(h)));
 }
 
 float _noise_4d(float x1, float x2, float y1, float y2) {

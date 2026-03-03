@@ -62,7 +62,7 @@ int engine_init(struct engine *engine) {
     block_metadata_init();
 
     // Setup player
-    vec3 pos = { 1.0f, 100.0f, -1.0f };
+    vec3 pos = { 1.0f, 200.0f, -1.0f };
     player_init(pos, &engine->player);
 
     // Setup root chunk

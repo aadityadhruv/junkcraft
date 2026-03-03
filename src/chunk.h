@@ -17,7 +17,7 @@
 #define CAVERN_LAYER 60
 #define CAVE_GEN_LAYER 55
 #define UNDERGROUND_LAYER 20
-#define CAVE_THRESHOLD 0.8
+#define CAVE_THRESHOLD 0.9
 
 enum biome {
     JUNK_BIOME_PLAINS,

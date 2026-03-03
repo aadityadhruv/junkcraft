@@ -280,12 +280,14 @@ struct block* _chunk_mountains_gen(struct chunk* chunk, float x, float y, float 
     float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            free(blk);
             return NULL;
         }
         block_init(blk, BLOCK_ROCK);
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            free(blk);
             return NULL;
         }
         block_init(blk, BLOCK_STONE);
@@ -313,12 +315,14 @@ struct block* _chunk_snow_gen(struct chunk* chunk, float x, float y, float h) {
     float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            free(blk);
             return NULL;
         }
         block_init(blk, BLOCK_ROCK);
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            free(blk);
             return NULL;
         }
         block_init(blk, BLOCK_STONE);
@@ -337,12 +341,14 @@ struct block* _chunk_desert_gen(struct chunk* chunk, float x, float y, float h) 
     float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            free(blk);
             return NULL;
         }
         block_init(blk, BLOCK_ROCK);
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            free(blk);
             return NULL;
         }
         block_init(blk, BLOCK_STONE);
@@ -360,12 +366,14 @@ struct block* _chunk_plains_gen(struct chunk* chunk, float x, float y, float h) 
     float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            free(blk);
             return NULL;
         }
         block_init(blk, BLOCK_ROCK);
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
+            free(blk);
             return NULL;
         }
         block_init(blk, BLOCK_STONE);
