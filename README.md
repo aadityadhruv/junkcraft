@@ -13,6 +13,8 @@ Current features:
 - Generate terrain based on perlin noise
 - Generate trees randomly
 - Really basic, non-wrapping 3d cave gen
+- Ore generation: bad random ore generation, probably will switch to noise based
+  ore distribution
 
 Planned features include:
 

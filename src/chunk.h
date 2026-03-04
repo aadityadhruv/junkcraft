@@ -19,6 +19,16 @@
 #define UNDERGROUND_LAYER 20
 #define CAVE_THRESHOLD 0.9
 
+// ======= Ore spawn config ======
+
+#define AL_SPAWN 5
+#define COAL_SPAWN 5
+#define FE_SPAWN 3
+#define CU_SPAWN 3
+#define AU_SPAWN 2
+#define C_SPAWN 2
+#define CC_SPAWN 1
+
 enum biome {
     JUNK_BIOME_PLAINS,
     JUNK_BIOME_DESERT,

@@ -8,25 +8,41 @@
 #include <stdlib.h>
 #include <string.h>
 
+char* textures[] = {
+    "textures/001_grass.png",
+    "textures/002_stone.png",
+    "textures/003_rock.png",
+    "textures/004_sand.png",
+    "textures/005_snow.png",
+    "textures/006_wood.png",
+    "textures/007_leaf.png",
+    "textures/008_aluminium_ore.png",
+    "textures/009_coal_ore.png",
+    "textures/010_iron_ore.png",
+    "textures/011_copper_ore.png",
+    "textures/012_gold_ore.png",
+    "textures/013_diamond_ore.png",
+    "textures/014_graphite.png",
+};
 
 void texture_init(struct texture** texture) {
     *texture = malloc(sizeof(struct texture));
     memset(*texture, 0, sizeof(struct texture));
 }
 
-void texture_load(struct texture* texture, char** path, int size) {
+void texture_load(struct texture* texture) {
     unsigned char* texture_data = NULL;
     int atlas_width = 192;
     int atlas_height = 32;
     int total_buffer_size = 0;
     vec2 atlas_size = { atlas_width,  0 };
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < sizeof(textures)/sizeof(char*); i++) {
         int width, height, nr_channels;
         char tpath[200];
         memset(tpath, 0, 200);
         char* d = "/home/aaditya/git/junkcraft/";
         strcat(tpath, d);
-        strcat(tpath, path[i]);
+        strcat(tpath, textures[i]);
         unsigned char *data = stbi_load(tpath, &width, &height, &nr_channels, 0);
         int data_size = width * height * nr_channels;
         texture_data = realloc(texture_data, total_buffer_size + data_size);

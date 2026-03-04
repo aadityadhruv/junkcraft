@@ -23,6 +23,38 @@ struct block* _chunk_desert_gen(struct chunk* chunk, float x, float y, float z);
 struct block* _chunk_snow_gen(struct chunk* chunk, float x, float y, float z);
 struct block* _chunk_mountains_gen(struct chunk*, float x, float y, float z);
 
+enum BLOCK_ID chunk_ore_gen(int h) {
+    // Graphite spawns below layer 20
+    if (h < 20) {
+        return (CC_SPAWN >= ((rand() % 1000))) ? BLOCK_GRAPHITE : BLOCK_ROCK;
+    }
+    if (h < 30) {
+        if(C_SPAWN >= ((rand() % 1000))) {
+            return BLOCK_DIAMOND_ORE;
+        }
+        else if (AU_SPAWN >= ((rand() % 1000))) {
+            return BLOCK_COPPER_ORE;
+        }
+    }
+    if (h < 50) {
+        if(FE_SPAWN >= ((rand() % 1000))) {
+            return BLOCK_IRON_ORE;
+        }
+        else if (CU_SPAWN >= ((rand() % 1000))) {
+            return BLOCK_COPPER_ORE;
+        }
+    }
+    if (h < 60) {
+        if(COAL_SPAWN >= ((rand() % 1000))) {
+            return BLOCK_COAL_ORE;
+        }
+        else if (AL_SPAWN >= ((rand() % 1000))) {
+            return BLOCK_ALUMINIUM_ORE;
+        }
+    }
+    return BLOCK_STONE;
+}
+
 void chunk_tree_gen(int x, int y, struct world* world, struct chunk* chunk) {
             // Generate tree at the point
             if (rand() % 100 == 0.0f) {
@@ -369,14 +401,14 @@ struct block* _chunk_plains_gen(struct chunk* chunk, float x, float y, float h) 
             free(blk);
             return NULL;
         }
-        block_init(blk, BLOCK_ROCK);
+        block_init(blk, chunk_ore_gen(h));
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
             free(blk);
             return NULL;
         }
-        block_init(blk, BLOCK_STONE);
+        block_init(blk, chunk_ore_gen(h));
     } else {
         block_init(blk, BLOCK_GRASS);
     }

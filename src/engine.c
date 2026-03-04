@@ -49,16 +49,7 @@ int engine_init(struct engine *engine) {
     // Load Textures
     struct texture* texture = { 0 };
     texture_init(&engine->texture);
-    char* textures[] = {
-        "textures/01_grass.png",
-        "textures/02_stone.png",
-        "textures/03_rock.png",
-        "textures/04_sand.png",
-        "textures/05_snow.png",
-        "textures/06_wood.png",
-        "textures/07_leaf.png",
-    };
-    texture_load(engine->texture, textures, sizeof(textures)/sizeof(char*));
+    texture_load(engine->texture);
     block_metadata_init();
 
     // Setup player
