@@ -18,7 +18,7 @@
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
 #define MAX_WALK_VELOCITY 10
-#define MAX_JUMP_VELOCIY 20
+#define MAX_JUMP_VELOCIY 10
 // Note: Difference between friction and move scale will essentially give
 // you net accel - how fast will you reach top speed
 // Higher the numbers for both, the snappier the movment feels. If it were 10 vs 20, 
@@ -26,7 +26,7 @@
 // so higher both, the snappier
 #define FRICTION 100
 #define MOVE_SCALE 110 
-#define JUMP_SCALE 500
+#define JUMP_SCALE 50000
 #define GRAVITY -30.0f
 #define BLOCK_RANGE 7
 
@@ -74,11 +74,14 @@ void player_rotate(struct player* player, vec2 offset) {
 void player_move(struct player* player, struct engine* engine, enum DIRECTION move, double dt) {
     vec3 unit_direction = { 0 };
     glm_normalize_to(player->camera->direction, unit_direction);
+    // Remove any "up" axis part
+    unit_direction[1] = 0.0f;
+    glm_vec3_normalize(unit_direction);
     if (move == FORWARD) {
         // Do nothing, we move in unit_direction direction
     } else if (move == BACKWARD) {
         // Go in the reverse direction
-        vec3 neg = { -1.0f, -1.0f, -1.0f };
+        vec3 neg = { -1.0f, 0.0f, -1.0f };
         glm_vec3_mul(neg, unit_direction, unit_direction);
     } else if (move == LEFT) {
         // Right hand rule - this will be on the left (negative)
@@ -244,7 +247,7 @@ void player_physics(struct player* player, struct engine* engine, double dt) {
     // Get the direction of normalized motion (-velocity/speed) and then scale that by the friction constant.
     float speed = glm_vec3_norm(player->velocity) + 0.01f;
     float friction = FRICTION;
-    vec3 f2 = { -player->velocity[0] * friction / speed, -player->velocity[1] * 10 / speed, -player->velocity[2] * friction / speed };
+    vec3 f2 = { -player->velocity[0] * friction / speed, 0.0f, -player->velocity[2] * friction / speed };
     // Apply the friction to acceleration (F = ma), so force/accel applied here
     glm_vec3_add(player->accel, f2, player->accel);
 
@@ -254,6 +257,7 @@ void player_physics(struct player* player, struct engine* engine, double dt) {
     glm_vec3_scale(player->accel, dt, velocity);
     // Add dv/dt (vec3 velocity) caused by the acceleration
     glm_vec3_add(player->velocity, velocity, player->velocity);
+    glm_vec3_print(player->velocity, stderr);
     // fprintf(stderr, "Accel");
     // glm_vec3_print(player->accel, stderr);
     // fprintf(stderr, "Vel");
@@ -268,23 +272,23 @@ void player_physics(struct player* player, struct engine* engine, double dt) {
     player->accel[2] = 0;
 
     vec3 displacement = { 0 };
-    vec3 unit_velocity = { 0 };
-    glm_vec3_normalize_to(player->velocity, unit_velocity);
+    vec3 dt_velocity = { 0 };
+    glm_vec3_scale(player->velocity, dt, dt_velocity);
     // Check if can move
-    if (!player_can_move_x(player, engine, unit_velocity[0])) {
+    if (!player_can_move_x(player, engine, dt_velocity[0])) {
         player->velocity[0] = 0.0f;
     }
-    if (!player_can_move_y(player, engine, unit_velocity[1])) {
+    if (!player_can_move_y(player, engine, dt_velocity[1])) {
         player->velocity[1] = 0.0f;
-        if (unit_velocity[1] <= 0.0f) {
+        if (dt_velocity[1] <= 0.0f) {
             player->grounded = 1;
         }
     } else {
-        if (unit_velocity[1] <= 0.0f) {
+        if (dt_velocity[1] <= 0.0f) {
             player->grounded = 0;
         } 
     }
-    if (!player_can_move_z(player, engine, unit_velocity[2]) ) {
+    if (!player_can_move_z(player, engine, dt_velocity[2]) ) {
         player->velocity[2] = 0.0f;
     }
     if (fabsf(player->velocity[0]) > MAX_WALK_VELOCITY) {
