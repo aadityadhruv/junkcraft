@@ -50,3 +50,17 @@ void player_block_place(struct player* player, struct world* world);
 
 void player_load_ui(struct player* player);
 void player_draw_ui(struct player* player, struct shader* shader);
+
+/**
+ * Frustum culling
+ *
+ * Check for overlap of frustum-chunk and chunk-frustum, and return 1 if there is
+ * and overlap, 0 if there is none
+ *
+ * Used the algorithm from https://iquilezles.org/articles/frustumcorrect/
+ * 
+ * @param player player struct corresponding to camera to perform frustum culling on
+ * @param chunk_coord chunk coordinates in world coords
+ *
+ */
+int player_is_point_in_frustum(struct player* player, vec2 chunk_coord);

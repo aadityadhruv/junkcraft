@@ -133,7 +133,9 @@ void engine_update(struct engine* engine) {
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
                 // unload chunk
-                if (chunk->staged_for_load == 0) {
+                // Note: Chunk could possibly be already unloaded if 
+                // it's not in view frustum so check for it
+                if (chunk->staged_for_load == 0 && chunk->loaded != 0) {
                 // fprintf(stderr, "Unloaded (%d, %d)\n", chunk_coord[0], chunk_coord[1]);
                     chunk_unload(chunk);
                 }
@@ -232,7 +234,15 @@ void engine_start(struct engine* engine) {
                 struct chunk* chunk = {0};
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
                 world_get_chunk(engine->world, chunk_coord, &chunk);
-                chunk_draw(chunk, default_shader, engine->texture);
+                vec2 frustum_check_chunk_coord = { (float)chunk_coord[0], (float)chunk_coord[1] };
+                if (player_is_point_in_frustum(engine->player, frustum_check_chunk_coord)) {
+                    if (chunk->loaded == 0) chunk_load(engine->world, chunk, chunk_coord);
+                    chunk_draw(chunk, default_shader, engine->texture);
+                } else {
+                    if (chunk->loaded) {
+                        chunk_unload(chunk);
+                    }
+                }
             }
         }
         shader_use(ui_shader);

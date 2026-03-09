@@ -5,6 +5,7 @@
 #include "cglm/mat4.h"
 #include "cglm/util.h"
 #include "cglm/vec3.h"
+#include "engine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,13 +13,15 @@
 void camera_init(struct camera** camera) {
     struct camera* cam = malloc(sizeof(struct camera));
     memset(cam, 0, sizeof(struct camera));
-    vec3 camera_direction = { 0.0f, -0.0f, -5.0f };
+    vec3 camera_direction = { 0.0f, -0.0f, -1.0f };
     vec3 camera_up = { 0.0f, 1.0f, 0.0f };
     memcpy(cam->direction, camera_direction, sizeof(vec3));
     memcpy(cam->up, camera_up, sizeof(vec3));
-    glm_mat4_identity(cam->view);
-    glm_mat4_identity(cam->perspective);
     cam->fov = glm_rad(45.0f);
+    glm_look(cam->position, cam->direction, cam->up, cam->view);
+    // Projection (perspective) matrix
+    float dist = (CHUNK_LENGTH + CHUNK_WIDTH) * CHUNK_DISTANCE;
+    glm_perspective(cam->fov, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, dist, cam->perspective);
     *camera = cam;
 }
 void camera_set_position(struct camera* camera, vec3 pos) {
@@ -28,7 +31,8 @@ void camera_set_position(struct camera* camera, vec3 pos) {
 void camera_update(struct camera* camera, struct shader* shader) {
     glm_look(camera->position, camera->direction, camera->up, camera->view);
     // Projection (perspective) matrix
-    glm_perspective(camera->fov, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, -10.0f, camera->perspective);
+    float dist = (CHUNK_LENGTH + CHUNK_WIDTH) * CHUNK_DISTANCE;
+    glm_perspective(camera->fov, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, dist, camera->perspective);
     set_uniform_mat4("view", shader, camera->view);
     set_uniform_mat4("perspective", shader, camera->perspective);
 }

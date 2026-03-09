@@ -1,9 +1,8 @@
 #include "player.h"
 #include "camera.h"
-#include "cglm/affine-pre.h"
-#include "cglm/affine.h"
-#include "cglm/io.h"
-#include "cglm/vec3.h"
+#include "cglm/cglm.h"
+#include "cglm/mat4.h"
+#include "cglm/vec4.h"
 #include "chunk.h"
 #include "shader.h"
 #include "util.h"
@@ -17,6 +16,7 @@
 
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
+#define SQUARE(x) x*x
 #define MAX_WALK_VELOCITY 10
 #define MAX_JUMP_VELOCIY 10
 // Note: Difference between friction and move scale will essentially give
@@ -257,7 +257,6 @@ void player_physics(struct player* player, struct engine* engine, double dt) {
     glm_vec3_scale(player->accel, dt, velocity);
     // Add dv/dt (vec3 velocity) caused by the acceleration
     glm_vec3_add(player->velocity, velocity, player->velocity);
-    glm_vec3_print(player->velocity, stderr);
     // fprintf(stderr, "Accel");
     // glm_vec3_print(player->accel, stderr);
     // fprintf(stderr, "Vel");
@@ -668,4 +667,149 @@ void player_block_place(struct player* player, struct world* world) {
     // In World coords, not opengl coords
     vec3 world_block_coords = { nx, ny, nz };
     world_chunk_block_place(world, world_block_coords, BLOCK_STONE);
+}
+
+// Return 1 if intersection, 0 if not
+int _aabb_edge_projection_check(vec3* aabb, int aabb_v_count, vec3 point, vec3 normal) {
+    int positive_count = 0;
+    int negative_count = 0;
+    for (int i = 0; i < aabb_v_count; i++) {
+        vec3 target = { 0 };
+        glm_vec3_sub(aabb[i], point, target);
+        float dot = glm_vec3_dot(normal, target);
+        if (dot > 0) {
+            positive_count++;
+        } else if (dot < 0) {
+            negative_count++;
+        }
+        if (positive_count && negative_count) {
+            // Not a separating axis
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int player_is_point_in_frustum(struct player* player, vec2 chunk_coord) {
+    mat4 clip_space;
+    glm_mat4_mul(player->camera->perspective, player->camera->view, clip_space);
+
+    // Switch to row-major to extract planes from the view-perspective matrix
+    glm_mat4_transpose(clip_space);
+    vec4 p1 = { 0 };
+    glm_vec3_add(clip_space[3], clip_space[0], p1);
+    vec4 p2 = { 0 };
+    glm_vec3_sub(clip_space[3], clip_space[0], p2);
+    vec4 p3 = { 0 };
+    glm_vec3_add(clip_space[3], clip_space[1], p3);
+    vec4 p4 = { 0 };
+    glm_vec3_sub(clip_space[3], clip_space[1], p4);
+    vec4 p5 = { 0 };
+    glm_vec3_add(clip_space[3], clip_space[2], p5);
+    vec4 p6 = { 0 };
+    glm_vec3_sub(clip_space[3], clip_space[2], p6);
+    vec4* faces[6] = { &p1, &p2, &p3, &p4, &p5, &p6 };
+
+    vec4 chunk_coords[8] = {
+        { chunk_coord[0] * CHUNK_WIDTH,  -INFINITY, -chunk_coord[1] * CHUNK_LENGTH, 1.0f },
+        { chunk_coord[0] * CHUNK_WIDTH + CHUNK_WIDTH, -INFINITY, -chunk_coord[1] * CHUNK_LENGTH, 1.0f },
+        { chunk_coord[0] * CHUNK_WIDTH, -INFINITY, -chunk_coord[1] * CHUNK_LENGTH - CHUNK_LENGTH, 1.0f },
+        { chunk_coord[0] * CHUNK_WIDTH + CHUNK_WIDTH, -INFINITY, -chunk_coord[1] * CHUNK_LENGTH - CHUNK_LENGTH, 1.0f },
+
+        { chunk_coord[0] * CHUNK_WIDTH,  INFINITY, -chunk_coord[1] * CHUNK_LENGTH, 1.0f },
+        { chunk_coord[0] * CHUNK_WIDTH + CHUNK_WIDTH, INFINITY, -chunk_coord[1] * CHUNK_LENGTH, 1.0f },
+        { chunk_coord[0] * CHUNK_WIDTH, INFINITY, -chunk_coord[1] * CHUNK_LENGTH - CHUNK_LENGTH, 1.0f },
+        { chunk_coord[0] * CHUNK_WIDTH + CHUNK_WIDTH, INFINITY, -chunk_coord[1] * CHUNK_LENGTH - CHUNK_LENGTH, 1.0f },
+    };
+
+
+    for (int i = 0; i < 6; i++) {
+        int count = 0;
+        for (int j = 0; j < 8; j++) {
+            float dot = glm_vec4_dot(*faces[i], chunk_coords[j]);
+            int sign = (dot < 0) ? 1 : 0;
+            count += sign;
+        }
+        // If all coords are outside a frustum plane, exit early
+        if (count == 8) {
+
+    fprintf(stderr, "cull");
+    glm_vec2_print(chunk_coord, stderr);
+        return 0;
+        }
+    }
+
+    mat4 vp_inv;
+    mat4 p_inv;
+    mat4 v_inv;
+    glm_mat4_inv_fast(player->camera->perspective, p_inv);
+    glm_mat4_inv_fast(player->camera->view, v_inv);
+    glm_mat4_mul(v_inv, p_inv, vp_inv);
+    // Normalized clip space frustum coords, we'll translate them to world-space
+    vec4 nf1 = { -1.0f, -1.0f, -1.0f, 1.0f };
+    vec4 nf2 = { -1.0f, 1.0f, -1.0f, 1.0f };
+    vec4 nf3 = { 1.0f, -1.0f, -1.0f, 1.0f };
+    vec4 nf4 = { 1.0f, 1.0f, -1.0f, 1.0f };
+
+    vec4 nf5 = { -1.0f, -1.0f, 1.0f, 1.0f };
+    vec4 nf6 = { -1.0f, 1.0f, 1.0f, 1.0f };
+    vec4 nf7 = { 1.0f, -1.0f, 1.0f, 1.0f };
+    vec4 nf8 = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    vec4 f1;
+    vec4 f2;
+    vec4 f3;
+    vec4 f4;
+    vec4 f5;
+    vec4 f6;
+    vec4 f7;
+    vec4 f8;
+    glm_mat4_mulv(vp_inv, nf1, f1);
+    glm_mat4_mulv(vp_inv, nf2, f2);
+    glm_mat4_mulv(vp_inv, nf3, f3);
+    glm_mat4_mulv(vp_inv, nf3, f3);
+    glm_mat4_mulv(vp_inv, nf4, f4);
+    glm_mat4_mulv(vp_inv, nf5, f5);
+    glm_mat4_mulv(vp_inv, nf6, f6);
+    glm_mat4_mulv(vp_inv, nf7, f7);
+    glm_mat4_mulv(vp_inv, nf8, f8);
+    glm_vec4_divs(f1, f1[3], f1);
+    glm_vec4_divs(f2, f2[3], f2);
+    glm_vec4_divs(f3, f3[3], f3);
+    glm_vec4_divs(f4, f4[3], f4);
+    glm_vec4_divs(f5, f5[3], f5);
+    glm_vec4_divs(f6, f6[3], f6);
+    glm_vec4_divs(f7, f7[3], f7);
+    glm_vec4_divs(f8, f8[3], f8);
+
+    vec4* frustum_coords[8];
+    frustum_coords[0] = &f1;
+    frustum_coords[1] = &f2;
+    frustum_coords[2] = &f3;
+    frustum_coords[3] = &f4;
+    frustum_coords[4] = &f5;
+    frustum_coords[5] = &f6;
+    frustum_coords[6] = &f7;
+    frustum_coords[7] = &f8;
+
+    vec4 chunk_faces[6] = { 
+        { 1.0f, 0.0f, 0.0f, -(chunk_coord[0] * CHUNK_WIDTH) },
+        { -1.0f, 0.0f, 0.0f, (chunk_coord[0] * CHUNK_WIDTH + CHUNK_WIDTH) },
+        { 0.0f, 0.0f, -1.0f, (-chunk_coord[1] * CHUNK_LENGTH) },
+        { 0.0f, 0.0f, 1.0f, -(-chunk_coord[1] * CHUNK_LENGTH - CHUNK_LENGTH) },
+        { 0.0f, 1.0f, 0.0f, -(-INFINITY) },
+        { 0.0f, -1.0f, 0.0f, INFINITY },
+    };
+    for (int i = 0; i < 6; i++) {
+        int count = 0;
+        for (int j = 0; j < 8; j++) {
+            float dot = glm_vec4_dot(chunk_faces[i], *frustum_coords[j]);
+            int sign = (dot < 0) ? 1 : 0;
+            count += sign;
+        }
+        // If all coords are outside a frustum plane, exit early
+        if (count == 8) return 0;
+    }
+
+    return 1;
 }

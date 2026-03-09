@@ -7,7 +7,22 @@ project(junkcraft VERSION 1.0
 set(CMAKE_BUILD_TYPE Debug)
 message("Compiler: ${CMAKE_C_COMPILER_ID}")
 
+
 add_subdirectory(src)
+target_compile_options(junkcraft PRIVATE
+    -Wall
+    -Wextra
+    -Wdouble-promotion
+    -Wconversion
+    -Wno-sign-conversion
+    -Wno-unused-parameter
+    -Wno-unused-function
+    # -fsanitize=address,undefined
+    -g3
+)
+# target_link_options(junkcraft PRIVATE
+#     -fsanitize=address,undefined
+# )
 find_package(SDL2)
 find_library(JUNK junk)
 find_path(JUNK_INCLUDE "junk/vector.h")
