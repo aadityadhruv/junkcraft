@@ -1,5 +1,17 @@
 #include "util.h"
 
+//TODO: merge this with other functions... so much repetition 
+void create_vbo_dyn(GLuint *vbo, void* buf, int size) {
+    //tell opengl we want mem for 1 buffer object
+    glGenBuffers(1, vbo);
+    // set aray_buffer to above
+    glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+    // copy vertex data to gpu memory
+    glBufferData(GL_ARRAY_BUFFER, size, buf, GL_DYNAMIC_DRAW);
+    // cleanup
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void create_vbo(GLuint *vbo, void* buf, int size) {
     //tell opengl we want mem for 1 buffer object
     glGenBuffers(1, vbo);
@@ -25,7 +37,6 @@ void create_ebo(GLuint *ebo, void* buf, int size) {
 void create_texture(GLuint* tbo, void* buf, vec2 size) {
     glGenTextures(1, tbo);
     glBindTexture(GL_TEXTURE_2D, *tbo);
-    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

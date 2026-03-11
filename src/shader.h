@@ -13,4 +13,5 @@ struct shader {
 int shader_init(struct shader** shader);
 int shader_add(struct shader* shader, char* vs_path, char* fs_path);
 int set_uniform_mat4(char* var, struct shader* shader, mat4 matrix);
+int set_uniform_sampler2d(char* var, struct shader* shader, int texture_id);
 void shader_use(struct shader* shader);

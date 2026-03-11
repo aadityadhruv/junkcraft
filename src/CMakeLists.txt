@@ -13,4 +13,5 @@ add_executable(junkcraft
     texture.c
     player.c
     random.c
+    text.c
 )

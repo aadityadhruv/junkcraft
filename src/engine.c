@@ -1,10 +1,12 @@
 #include "engine.h"
 #include "block.h"
-#include "cglm/io.h"
+#include "cglm/cglm.h"
+#include "config.h"
 #include "chunk.h"
 #include "input.h"
 #include "player.h"
 #include "shader.h"
+#include "text.h"
 #include "texture.h"
 #include "window.h"
 #include "world.h"
@@ -30,19 +32,24 @@ int engine_init(struct engine *engine) {
     struct shader* shader;
     struct shader* debug_shader;
     struct shader* ui_shader;
+    struct shader* text_shader;
     shader_init(&shader);
     shader_init(&debug_shader);
     shader_init(&ui_shader);
+    shader_init(&text_shader);
     fprintf(stderr, "Loading shaders...\n");
     char* shaders[2] = { "shaders/vertex.glsl", "shaders/fragment.glsl" };
     char* debug_shaders[2] = { "shaders/vertex_debug.glsl", "shaders/fragment_debug.glsl" };
     char* ui_shaders[2] = { "shaders/vertex_ui.glsl", "shaders/fragment_debug.glsl" };
+    char* text_shaders[2] = { "shaders/vertex_text.glsl", "shaders/fragment_text.glsl" };
     shader_add(shader, shaders[0], shaders[1]);
     shader_add(debug_shader, debug_shaders[0], debug_shaders[1]);
     shader_add(ui_shader, ui_shaders[0], ui_shaders[1]);
+    shader_add(text_shader, text_shaders[0], text_shaders[1]);
     VECTOR_INSERT(engine->shaders, shader);
     VECTOR_INSERT(engine->shaders, debug_shader);
     VECTOR_INSERT(engine->shaders, ui_shader);
+    VECTOR_INSERT(engine->shaders, text_shader);
     fprintf(stderr, "Shaders compiled and loaded\n");
 
 
@@ -52,6 +59,11 @@ int engine_init(struct engine *engine) {
     texture_load(engine->texture);
     block_metadata_init();
 
+    // Load text data
+    if (text_init(&engine->text) != 0) {
+        perror("Failed to load text subsystem!");
+        return -1;
+    }
     // Setup player
     vec3 pos = { 1.0f, 200.0f, -1.0f };
     player_init(pos, &engine->player);
@@ -88,6 +100,9 @@ int engine_init(struct engine *engine) {
             chunk_load(world, chunk, chunk_coord);
         }
     }
+
+
+
     // Final step - Start the game
     engine->game_loop = 1;
     const Uint8* numkeys = SDL_GetKeyboardState(NULL);
@@ -101,11 +116,6 @@ void engine_update(struct engine* engine) {
     // Chunk update
     // We moved a chunk - load new chunks with chunk_load
     if (engine->curr_chunk[0] != curr_chunk[0] || engine->curr_chunk[1] != curr_chunk[1]) {
-        fprintf(stderr, "CHUNK Update! From (%d, %d) to (%d, %d)\n",
-                engine->curr_chunk[0],
-                engine->curr_chunk[1],
-                curr_chunk[0],
-                curr_chunk[1]);
         // Stage relevant chunks for loading
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
@@ -169,15 +179,22 @@ void engine_update(struct engine* engine) {
 
 }
 
-void engine_fps(struct engine* engine, float fps) {
-    // TTF_Font* font = TTF_OpenFont("fonts/PixelifySans-Regular.ttf", 8.0f);
-    // SDL_RenderClear(engine->window->renderer);
-    // SDL_Color black = {0, 0, 0};
-    // char fps_text[36];
-    // snprintf(fps_text, 36, "FPS: %.2f", fps);
-    // SDL_Surface* text = TTF_RenderText_Solid(font, fps_text, black);
-    // SDL_Texture* texture = SDL_CreateTextureFromSurface(engine->window->renderer, text);
-    // SDL_RenderCopy(engine->window->renderer, texture, NULL, &rect);
+void engine_debug(struct engine* engine, struct shader* text_shader, float fps) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        shader_use(text_shader);
+        char frames[40];
+        memset(frames, 0, 20);
+        int l  = snprintf(frames, 40, "FPS: %d", (int)fps);
+        text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 9.0f/10.0f, 1.0f, l);
+        l  = snprintf(frames, 40, "Chunk:[%d, %d]",engine->curr_chunk[0], engine->curr_chunk[1]);
+        text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 8.0f/10.0f, 1.0f, l);
+        l  = snprintf(frames, 40, "Position :[%.2f, %.2f, %.2f]",
+                engine->player->position[0],
+                engine->player->position[1],
+                engine->player->position[2]);
+        text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 7.0f/10.0f, 1.0f, l);
+        glDisable(GL_BLEND);
 }
 
 void engine_start(struct engine* engine) {
@@ -198,8 +215,6 @@ void engine_start(struct engine* engine) {
             fps = frames / diff;
             frames = 0;
             frame_last_time = now;
-            fprintf(stderr, "FPS: %.2f\n", fps);
-            fprintf(stderr, "x: %d, y: %d\n", engine->curr_chunk[0], engine->curr_chunk[1]);
         }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -213,10 +228,11 @@ void engine_start(struct engine* engine) {
         struct shader* default_shader = vector_get(engine->shaders, 0);
         struct shader* debug_shader = vector_get(engine->shaders, 1);
         struct shader* ui_shader = vector_get(engine->shaders, 2);
+        struct shader* text_shader = vector_get(engine->shaders, 3);
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
         input_process(engine, dt);
-        engine_fps(engine, fps);
+        engine_debug(engine, text_shader, fps);
         engine_update(engine);
         player_physics(engine->player, engine, dt);
 
@@ -247,6 +263,7 @@ void engine_start(struct engine* engine) {
         }
         shader_use(ui_shader);
         player_draw_ui(engine->player, ui_shader);
+
         SDL_GL_SwapWindow(engine->window->window);
         frames += 1;
     }
