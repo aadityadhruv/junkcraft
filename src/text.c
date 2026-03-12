@@ -52,8 +52,8 @@ int text_init(struct text** t) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         text->chars[c].advance = face->glyph->advance.x;
-        vec2 size = { face->glyph->bitmap.width, face->glyph->bitmap.rows };
-        vec2 bearing = { face->glyph->bitmap_left, face->glyph->bitmap_top };
+        vec2 size = { (float) face->glyph->bitmap.width, (float) face->glyph->bitmap.rows };
+        vec2 bearing = { (float)face->glyph->bitmap_left, (float)face->glyph->bitmap_top };
         memcpy(text->chars[c].bearing, bearing, sizeof(vec2));
         memcpy(text->chars[c].size, size, sizeof(vec2));
         text->chars[c].advance = face->glyph->advance.x;
@@ -105,7 +105,7 @@ void text_draw(struct text* text, struct shader* shader, char* string, float x, 
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        x += (c.advance >> 6) * scale;
+        x += (float)(c.advance >> 6) * scale;
     }
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);

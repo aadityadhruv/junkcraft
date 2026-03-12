@@ -54,7 +54,6 @@ int engine_init(struct engine *engine) {
 
 
     // Load Textures
-    struct texture* texture = { 0 };
     texture_init(&engine->texture);
     texture_load(engine->texture);
     block_metadata_init();
@@ -112,7 +111,7 @@ int engine_init(struct engine *engine) {
 
 void engine_update(struct engine* engine) {
     // NOTE: OpenGL FLIP
-    int curr_chunk[2] = { floorf(engine->player->position[0] / (float)CHUNK_WIDTH), floorf(-engine->player->position[2] / (float)CHUNK_LENGTH) };
+    int curr_chunk[2] = { (int)floorf(engine->player->position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player->position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
     // We moved a chunk - load new chunks with chunk_load
     if (engine->curr_chunk[0] != curr_chunk[0] || engine->curr_chunk[1] != curr_chunk[1]) {
@@ -190,9 +189,9 @@ void engine_debug(struct engine* engine, struct shader* text_shader, float fps) 
         l  = snprintf(frames, 40, "Chunk:[%d, %d]",engine->curr_chunk[0], engine->curr_chunk[1]);
         text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 8.0f/10.0f, 1.0f, l);
         l  = snprintf(frames, 40, "Position :[%.2f, %.2f, %.2f]",
-                engine->player->position[0],
-                engine->player->position[1],
-                engine->player->position[2]);
+                (double)engine->player->position[0],
+                (double)engine->player->position[1],
+                (double)engine->player->position[2]);
         text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 7.0f/10.0f, 1.0f, l);
         glDisable(GL_BLEND);
 }
@@ -200,7 +199,7 @@ void engine_debug(struct engine* engine, struct shader* text_shader, float fps) 
 void engine_start(struct engine* engine) {
     float frames = 0;
     time_t frame_last_time = time(NULL);
-    float fps = 0.0f;
+    float fps = 0.0;
     struct timespec last_update;
     clock_gettime(CLOCK_MONOTONIC, &last_update);
     while (engine->game_loop) {
@@ -208,11 +207,11 @@ void engine_start(struct engine* engine) {
         time_t diff = now - frame_last_time;
         struct timespec curr;
         clock_gettime(CLOCK_MONOTONIC, &curr);
-        double dt = (curr.tv_sec - last_update.tv_sec) + ((curr.tv_nsec - last_update.tv_nsec) / ((double) 1000000000));
+        double dt = (double)(curr.tv_sec - last_update.tv_sec) + ((double)(curr.tv_nsec - last_update.tv_nsec) / ((double) 1000000000));
         clock_gettime(CLOCK_MONOTONIC, &last_update);
         // Calculate FPS every second
-        if (diff >= 1.0f) {
-            fps = frames / diff;
+        if (diff >= 1.0l) {
+            fps = frames / (float)diff;
             frames = 0;
             frame_last_time = now;
         }

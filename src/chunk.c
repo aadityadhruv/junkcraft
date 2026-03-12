@@ -108,7 +108,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
     enum biome b = JUNK_BIOME_PLAINS;
     if (z_val > 0.6f) {
         b = JUNK_BIOME_MOUNTAINS;
-        float z = BIOME_BASE + z_val * MOUNTAIN_HEIGHT;
+        int z = (int) (BIOME_BASE + z_val * MOUNTAIN_HEIGHT);
         for (int h = 0; h < z; h++) {
             struct block* blk = _chunk_mountains_gen(chunk, x, y, h);
             chunk->blocks[x][y][h] = blk;
@@ -116,7 +116,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
     }
     else if (z_val > 0.4f) {
         b = JUNK_BIOME_SNOW;
-        float z = BIOME_BASE + z_val * SNOW_HEIGHT;
+        int z = (int) (BIOME_BASE + z_val * SNOW_HEIGHT);
         for (int h = 0; h < z; h++) {
             struct block* blk = _chunk_snow_gen(chunk, x, y, h);
             chunk->blocks[x][y][h] = blk;
@@ -124,9 +124,9 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
     }
     else   {
         float heat = noise_heat(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH);
-        if (heat > 0.6) {
+        if (heat > 0.6f) {
             b = JUNK_BIOME_DESERT;
-            float z = BIOME_BASE + z_val * DESERT_HEIGHT;
+            int z = (int) (BIOME_BASE + z_val * DESERT_HEIGHT);
             for (int h = 0; h < z; h++) {
                 struct block* blk = _chunk_desert_gen(chunk, x, y, h);
                 chunk->blocks[x][y][h] = blk;
@@ -134,7 +134,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         }
         else {
             b = JUNK_BIOME_PLAINS;
-            int z = BIOME_BASE + z_val * PLAINS_HEIGHT;
+            int z = (int)(BIOME_BASE + z_val * PLAINS_HEIGHT);
             for (int h = 0; h < z; h++) {
                 struct block* blk = _chunk_plains_gen(chunk, x, y, h);
                 chunk->blocks[x][y][h] = blk;
@@ -155,12 +155,8 @@ int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
     // fprintf(stderr, "=================== CHUNK (%f, %f) ===================\n", chunk->coord[0], chunk->coord[1]);
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_LENGTH; y++) {
-            // Minimum z height
-            // Interpolation formula - simple linear
-            vec2 target = { x, y };
             float z_val = noise_terrain(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH);
             z_val = MAX(0, z_val);
-            struct block* blk;
             chunk_biome_counter[chunk_block_gen(x, y, z_val, chunk)] += 1;
         }
     }
@@ -170,7 +166,7 @@ int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
     enum biome max_biome = JUNK_BIOME_PLAINS;
     int max_biome_counter = 0;
     for (int i = 0; i < JUNK_BIOME_COUNT; i++) {
-        if (chunk_biome_counter[i] > max_biome_counter) {
+        if ((int)chunk_biome_counter[i] > max_biome_counter) {
             max_biome = i;
             max_biome_counter = chunk_biome_counter[i];
         }
@@ -325,7 +321,7 @@ struct block* _chunk_mountains_gen(struct chunk* chunk, float x, float y, float 
         block_init(blk, BLOCK_STONE);
     } 
     else if (h <= (BIOME_BASE + MOUNTAIN_HEIGHT) * 0.6) {
-        float p = (float)rand() / RAND_MAX;
+        float p = (float) rand() / (float) RAND_MAX;
         if (p < 0.3) {
             block_init(blk, BLOCK_STONE);
         } else {
@@ -446,7 +442,8 @@ void chunk_block_face_vertex_set(float* face, enum block_face face_side, struct 
 int* chunk_face_order_add(int* face_order, int size, int idx) {
     int* buf = malloc(size);
     memcpy(buf, face_order, size);
-    for (int i = 0; i < size / sizeof(int); i++) {
+    int array_size = size / sizeof(int);
+    for (int i = 0; i < array_size; i++) {
         buf[i] += idx;
     }
     return buf;

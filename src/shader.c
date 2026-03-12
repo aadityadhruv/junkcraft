@@ -21,7 +21,7 @@ char* read_shader(char* path) {
     strcat(cwd, path);
     FILE* file = fopen(cwd, "r");
     fseek(file, 0, SEEK_END);
-    int file_size = ftell(file);
+    long file_size = ftell(file);
     rewind(file);
     char* buf = malloc(file_size + 1);
     memset(buf, 0, file_size + 1);
@@ -84,7 +84,7 @@ int shader_init(struct shader** shader) {
 }
 
 int set_uniform_mat4(char* var, struct shader* shader, mat4 matrix) {
-    GLuint loc = glGetUniformLocation(shader->program, var);
+    GLint loc = glGetUniformLocation(shader->program, var);
     if (loc == -1) {
         fprintf(stderr, "Invalid var %s for get_uniform_mat4: Does not exist\n", var);
         exit(1);
@@ -94,7 +94,7 @@ int set_uniform_mat4(char* var, struct shader* shader, mat4 matrix) {
     return 0;
 }
 int set_uniform_sampler2d(char* var, struct shader* shader, int texture_id) {
-    GLuint loc = glGetUniformLocation(shader->program, var);
+    GLint loc = glGetUniformLocation(shader->program, var);
     if (loc == -1) {
         fprintf(stderr, "Invalid var %s for set_uniform_sampler2d: Does not exist\n", var);
         exit(1);

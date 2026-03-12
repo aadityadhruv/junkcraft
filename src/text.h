@@ -8,7 +8,7 @@ struct character {
     unsigned int texture;
     vec2 size;
     vec2 bearing;
-    unsigned int advance;
+    long advance;
 };
 
 struct text {

@@ -71,7 +71,6 @@ void world_get_chunk_no_gen(struct world* world, int coord[2], struct chunk** ch
     int l = ((abs(coord[1]) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
     int x = (coord[0] + w) % WORLD_WIDTH;
     int y = (coord[1] + l) % WORLD_LENGTH;
-    vec2 new_coord = { x, y };
     struct chunk* c = world->chunks[x][y];
     *chunk = c;
 }

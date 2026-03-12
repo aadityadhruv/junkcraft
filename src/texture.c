@@ -33,10 +33,10 @@ void texture_init(struct texture** texture) {
 void texture_load(struct texture* texture) {
     unsigned char* texture_data = NULL;
     int atlas_width = 192;
-    int atlas_height = 32;
     int total_buffer_size = 0;
     vec2 atlas_size = { atlas_width,  0 };
-    for (int i = 0; i < sizeof(textures)/sizeof(char*); i++) {
+    int textures_len = sizeof(textures)/sizeof(char*);
+    for (int i = 0; i < textures_len; i++) {
         int width, height, nr_channels;
         char tpath[200];
         memset(tpath, 0, 200);

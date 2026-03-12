@@ -175,7 +175,7 @@ float _noise_4d(float x1, float x2, float y1, float y2) {
                     py &= 255;
                     pz &= 255;
                     pw &= 255;
-                    int idx = permutation[permutation[permutation[permutation[px] + py] + pz] + pw];
+                    int idx = permutation[permutation[permutation[permutation[px] + py] + pz] + pw] % (sizeof(perlin_vecs_4d) / sizeof(vec4));
                     memcpy(gradients[counter], perlin_vecs_4d[idx], sizeof(vec4));
                     vec4 dist;
                     glm_vec4_sub(point, base, dist);
@@ -243,8 +243,8 @@ float _noise_3d(float x1, float y1, float z1) {
                 px &= 255;
                 py &= 255;
                 pz &= 255;
-                int idx = permutation[permutation[permutation[px] + py] + pz];
-                memcpy(gradients[counter], perlin_vecs_4d[idx], sizeof(vec3));
+                int idx = permutation[permutation[permutation[px] + py] + pz] % (sizeof(perlin_vecs_3d) / sizeof(vec3));
+                memcpy(gradients[counter], perlin_vecs_3d[idx], sizeof(vec3));
                 vec3 dist;
                 glm_vec3_sub(point, base, dist);
                 memcpy(distances[counter], dist, sizeof(vec3));

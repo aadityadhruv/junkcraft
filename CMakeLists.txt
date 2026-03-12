@@ -12,8 +12,8 @@ add_subdirectory(src)
 target_compile_options(junkcraft PRIVATE
     -Wall
     -Wextra
-    -Wdouble-promotion
-    -Wconversion
+    -Wno-double-promotion
+    -Wno-conversion
     -Wno-sign-conversion
     -Wno-unused-parameter
     -Wno-unused-function

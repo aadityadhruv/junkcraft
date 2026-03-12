@@ -2,7 +2,6 @@
 #include "camera.h"
 #include "cglm/types.h"
 #include "player.h"
-#include "pthread.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_keycode.h>
@@ -11,7 +10,6 @@
 #include <SDL2/SDL_video.h>
 
 pthread_t input_init(struct engine* engine) {
-    pthread_t thread;
     SDL_SetRelativeMouseMode(SDL_TRUE);
     SDL_SetWindowMouseGrab(engine->window->window, SDL_TRUE);
     // pthread_create(&thread, NULL, (void*)input_handle, engine);
