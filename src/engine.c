@@ -28,7 +28,7 @@ int engine_init(struct engine *engine) {
     engine->window = window;
 
     // Setup Shader pipeline
-    vector_init(&(engine->shaders));
+    junk_vector_init(&(engine->shaders));
     struct shader* shader;
     struct shader* debug_shader;
     struct shader* ui_shader;
@@ -46,10 +46,10 @@ int engine_init(struct engine *engine) {
     shader_add(debug_shader, debug_shaders[0], debug_shaders[1]);
     shader_add(ui_shader, ui_shaders[0], ui_shaders[1]);
     shader_add(text_shader, text_shaders[0], text_shaders[1]);
-    VECTOR_INSERT(engine->shaders, shader);
-    VECTOR_INSERT(engine->shaders, debug_shader);
-    VECTOR_INSERT(engine->shaders, ui_shader);
-    VECTOR_INSERT(engine->shaders, text_shader);
+    JUNK_VECTOR_INSERT(engine->shaders, shader);
+    JUNK_VECTOR_INSERT(engine->shaders, debug_shader);
+    JUNK_VECTOR_INSERT(engine->shaders, ui_shader);
+    JUNK_VECTOR_INSERT(engine->shaders, text_shader);
     fprintf(stderr, "Shaders compiled and loaded\n");
 
 
@@ -224,10 +224,10 @@ void engine_start(struct engine* engine) {
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-        struct shader* default_shader = vector_get(engine->shaders, 0);
-        struct shader* debug_shader = vector_get(engine->shaders, 1);
-        struct shader* ui_shader = vector_get(engine->shaders, 2);
-        struct shader* text_shader = vector_get(engine->shaders, 3);
+        struct shader* default_shader = junk_vector_get(engine->shaders, 0);
+        struct shader* debug_shader = junk_vector_get(engine->shaders, 1);
+        struct shader* ui_shader = junk_vector_get(engine->shaders, 2);
+        struct shader* text_shader = junk_vector_get(engine->shaders, 3);
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
         input_process(engine, dt);
