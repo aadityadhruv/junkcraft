@@ -35,23 +35,28 @@ int engine_init(struct engine *engine) {
     struct shader* debug_shader;
     struct shader* ui_shader;
     struct shader* text_shader;
+    struct shader* sky_shader;
     shader_init(&shader);
     shader_init(&debug_shader);
     shader_init(&ui_shader);
     shader_init(&text_shader);
+    shader_init(&sky_shader);
     fprintf(stderr, "Loading shaders...\n");
     char* shaders[2] = { "shaders/vertex.glsl", "shaders/fragment.glsl" };
     char* debug_shaders[2] = { "shaders/vertex_debug.glsl", "shaders/fragment_debug.glsl" };
     char* ui_shaders[2] = { "shaders/vertex_ui.glsl", "shaders/fragment_debug.glsl" };
     char* text_shaders[2] = { "shaders/vertex_text.glsl", "shaders/fragment_text.glsl" };
+    char* sky_shaders[2] = { "shaders/vertex_sky.glsl", "shaders/fragment_sky.glsl" };
     shader_add(shader, shaders[0], shaders[1]);
     shader_add(debug_shader, debug_shaders[0], debug_shaders[1]);
     shader_add(ui_shader, ui_shaders[0], ui_shaders[1]);
     shader_add(text_shader, text_shaders[0], text_shaders[1]);
+    shader_add(sky_shader, sky_shaders[0], sky_shaders[1]);
     JUNK_VECTOR_INSERT(engine->shaders, shader);
     JUNK_VECTOR_INSERT(engine->shaders, debug_shader);
     JUNK_VECTOR_INSERT(engine->shaders, ui_shader);
     JUNK_VECTOR_INSERT(engine->shaders, text_shader);
+    JUNK_VECTOR_INSERT(engine->shaders, sky_shader);
     fprintf(stderr, "Shaders compiled and loaded\n");
 
 
@@ -242,14 +247,20 @@ void engine_start(struct engine* engine) {
         struct shader* debug_shader = junk_vector_get(engine->shaders, 1);
         struct shader* ui_shader = junk_vector_get(engine->shaders, 2);
         struct shader* text_shader = junk_vector_get(engine->shaders, 3);
+        struct shader* sky_shader = junk_vector_get(engine->shaders, 4);
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
         input_process(engine, dt);
-        engine_debug(engine, text_shader, fps);
         engine_update(engine);
         player_physics(engine->player, engine, dt);
 
         // =============== DRAW ======================
+        // Draw sky objects
+        glDisable(GL_DEPTH_TEST);
+        shader_use(sky_shader);
+        player_update(engine->player, sky_shader);
+        clock_draw(engine->clk, engine->player, sky_shader);
+        glEnable(GL_DEPTH_TEST);
         // Draw player related data using debug_shader
         shader_use(debug_shader);
         // Set perspective and view matrix
@@ -258,8 +269,7 @@ void engine_start(struct engine* engine) {
         // Switch to regular shader
         shader_use(default_shader);
         float light_intensity = clock_get_light_intensity(engine->clk);
-        vec3 light_color = { 1 - light_intensity, 1 - light_intensity, 1 - light_intensity };
-        glm_vec3_print(light_color, stderr);
+        vec3 light_color = { light_intensity, light_intensity, light_intensity };
         set_uniform_vec3("light_color", default_shader, light_color);
         player_update(engine->player, default_shader);
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
@@ -278,8 +288,13 @@ void engine_start(struct engine* engine) {
                 }
             }
         }
+        // Second pass of "no depth" draws
+        // UI and text need to be in front
+        glDisable(GL_DEPTH_TEST);
+        engine_debug(engine, text_shader, fps);
         shader_use(ui_shader);
         player_draw_ui(engine->player, ui_shader);
+        glEnable(GL_DEPTH_TEST);
 
         SDL_GL_SwapWindow(engine->window->window);
         frames += 1;
