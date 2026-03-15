@@ -2,6 +2,7 @@
 #include "player.h"
 #include "window.h"
 #include "text.h"
+#include "clock.h"
 #include <SDL2/SDL_stdinc.h>
 #include "shader.h"
 // CHUNK_DISTANCE is essentially render distance, it shows you how many chunks
@@ -10,7 +11,7 @@
 // We want a square around curr_chunk, and a side of the square will be 1
 // (center chunk) + 2 * CHUNK_DISTANCE (either side of center)
 // loaded chunks = (1 + CHUNK_DISTANCE * 2)^2
-#define CHUNK_DISTANCE 10
+#define CHUNK_DISTANCE 4
 
 struct engine {
     struct window* window;
@@ -18,6 +19,7 @@ struct engine {
     struct player* player;
     struct texture* texture;
     struct text* text;
+    struct clock* clk;
     int game_loop;
     int curr_chunk[2];
     struct world* world;

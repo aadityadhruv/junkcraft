@@ -1,6 +1,7 @@
 #include "engine.h"
 #include "block.h"
 #include "cglm/cglm.h"
+#include "clock.h"
 #include "config.h"
 #include "chunk.h"
 #include "input.h"
@@ -16,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
 
 int engine_init(struct engine *engine) {
     // Setup the Window
@@ -63,6 +65,15 @@ int engine_init(struct engine *engine) {
         perror("Failed to load text subsystem!");
         return -1;
     }
+
+
+    // Load clock
+    if (clock_init(&engine->clk) != 0) {
+        perror("Failed to load clock!");
+        return -1;
+    }
+
+
     // Setup player
     vec3 pos = { 1.0f, 200.0f, -1.0f };
     player_init(pos, &engine->player);
@@ -216,8 +227,11 @@ void engine_start(struct engine* engine) {
             frame_last_time = now;
         }
 
+        clock_tick(engine->clk, dt);
+        vec3 sky_color;
+        clock_get_sky_color(engine->clk, sky_color);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        glClearColor(0.529f, 0.808f, 0.922f, 1.0f);
+        glClearColor(sky_color[0], sky_color[1], sky_color[2], 1.0f);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glEnable(GL_STENCIL_TEST);
@@ -243,6 +257,10 @@ void engine_start(struct engine* engine) {
         player_draw(engine->player, engine->world, debug_shader);
         // Switch to regular shader
         shader_use(default_shader);
+        float light_intensity = clock_get_light_intensity(engine->clk);
+        vec3 light_color = { 1 - light_intensity, 1 - light_intensity, 1 - light_intensity };
+        glm_vec3_print(light_color, stderr);
+        set_uniform_vec3("light_color", default_shader, light_color);
         player_update(engine->player, default_shader);
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {

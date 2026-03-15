@@ -15,7 +15,7 @@ void main() {
     vec3 norm = normalize(normal);
     vec3 light_dir = normalize(vec3(1.0f, 2.0f, 1.0f));
     float diff = max(dot(norm, light_dir), 0.0);
-    vec3 diffuse = diff * vec3(1.0);
+    vec3 diffuse = diff * light_color;
     vec4 final_texture = texture(block_texture, text_coord);
     if (final_texture.a < 0.1)  {
         discard;

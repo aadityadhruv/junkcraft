@@ -1,5 +1,9 @@
 #include "util.h"
 
+float lerp(float a, float b, float f)
+{
+    return a * (1.0 - f) + (b * f);
+}
 //TODO: merge this with other functions... so much repetition 
 void create_vbo_dyn(GLuint *vbo, void* buf, int size) {
     //tell opengl we want mem for 1 buffer object

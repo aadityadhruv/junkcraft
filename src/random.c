@@ -1,5 +1,6 @@
 #include "random.h"
 #include "chunk.h"
+#include "util.h"
 #include <junk/vector.h>
 #include <math.h>
 #include <stdlib.h>
@@ -83,10 +84,6 @@ int permutation[] = {
 float _noise_2d(float x, float y);
 float _noise_3d(float x1, float y1, float z1);
 float _noise_4d(float x1, float x2, float y1, float y2);
-float lerp(float a, float b, float f)
-{
-    return a * (1.0 - f) + (b * f);
-}
 
 float fade(float t) {
     return t * t * t * (t * (t * 6 - 15) + 10); 
