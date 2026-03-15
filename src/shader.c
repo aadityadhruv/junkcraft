@@ -93,6 +93,26 @@ int set_uniform_mat4(char* var, struct shader* shader, mat4 matrix) {
     glUniformMatrix4fv(loc, 1, GL_FALSE, (void*)matrix);
     return 0;
 }
+int set_uniform_float(char* var, struct shader* shader, float f) {
+    GLint loc = glGetUniformLocation(shader->program, var);
+    if (loc == -1) {
+        fprintf(stderr, "Invalid var %s for set_uniform_float: Does not exist\n", var);
+        exit(1);
+        return -1;
+    }
+    glUniform1f(loc, f);
+    return 0;
+}
+int set_uniform_vec2(char* var, struct shader* shader, vec2 vec) {
+    GLint loc = glGetUniformLocation(shader->program, var);
+    if (loc == -1) {
+        fprintf(stderr, "Invalid var %s for set_uniform_vec2: Does not exist\n", var);
+        exit(1);
+        return -1;
+    }
+    glUniform2fv(loc, 1, (void*)vec);
+    return 0;
+}
 int set_uniform_vec3(char* var, struct shader* shader, vec3 vec) {
     GLint loc = glGetUniformLocation(shader->program, var);
     if (loc == -1) {

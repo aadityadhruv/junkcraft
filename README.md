@@ -15,6 +15,7 @@ Current features:
 - Really basic, non-wrapping 3d cave gen
 - Ore generation: bad random ore generation, probably will switch to noise based
   ore distribution
+- Working day/night cycle with a sun/moon/starry skybox, and changing light levels
 
 Planned features include:
 
@@ -22,14 +23,15 @@ Planned features include:
     - Frustum culling
     - Possible greedy culling
     - Improved AABB collision and movement physics
-    - Skybox
+    - ~~Skybox~~
     - Maybe some form of LODs 
     - Terrain blend
+    - Ambient occlusion
 - Gameplay
     - Terrain generation and biomes: Partially working 
     - Tree generation: Partially working
     - Cave generation: Really really basic
-    - Day/night cycle
+    - ~~Day/night cycle~~
     - Entities 
     - Local play
 
@@ -53,5 +55,7 @@ make
 
 ### Screenshots
 
+![sunrise](./res/sunrise.png)
+![moonrise](./res/moonrise.png)
 ![View of a mountain](./res/mountain.png)
 ![Atop a mountain](./res/mountain_top.png)
