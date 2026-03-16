@@ -1,5 +1,7 @@
 #include "player.h"
 #include "camera.h"
+#include "cglm/affine.h"
+#include "config.h"
 #include "cglm/cglm.h"
 #include "cglm/mat4.h"
 #include "cglm/vec4.h"
@@ -40,6 +42,8 @@ void player_load_debug(struct player* player);
 
 void player_init(vec3 pos, struct player** player) {
     struct player* p = malloc(sizeof(struct player));
+    // TODO: Prevents some form of memory corruption? Why...???
+    memset(p, 0, sizeof(struct player));
     memcpy(p->position, pos, sizeof(vec3));
     struct aabb* box = malloc(sizeof(struct aabb));
     vec3 player_size = { 0.6f, 1.8f, -0.6f };
@@ -380,39 +384,105 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     glBindVertexArray(0);
 }
 void player_draw_ui(struct player* player, struct shader* shader) {
+    mat4 ortho;
+    glm_ortho(0.0f, SCREEN_WIDTH, 0.0f, SCREEN_HEIGHT, 0.0f, 1.0f, ortho);
+    set_uniform_mat4("projection", shader, ortho);
     // =========== DRAW UI ================
     glBindVertexArray(player->_vao_ui);
     mat4 translate;
+    vec3 color = { 0, 0, 0 };
     glm_mat4_identity(translate);
     // Scale down crosshair
-    glm_scale_uni(translate, 0.05f);
     set_uniform_mat4("model", shader, translate);
+    set_uniform_vec3("color", shader, color);
     glLineWidth(5.0f);
     glDrawElements(GL_LINES, player->ui_vertex_count, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+    // =========== DRAW HOTBAR ================
+    glBindVertexArray(player->inventory._vao_inventory);
+    float x_unit = 1 / 12.0f;
+    for (int i = 0; i < 10; i++) {
+        vec3 hb_color = { 1.0f, 1.0f, 1.0f };
+        set_uniform_vec3("color", shader, hb_color);
+        glm_mat4_identity(translate);
+        vec4 pos = { (i + 1) * x_unit * SCREEN_WIDTH, 0.0f, -0.1f, 0.0f };
+        glm_translate(translate, pos);
+        set_uniform_mat4("model", shader, translate);
+        glDrawElements(GL_TRIANGLES, player->inventory.inventory_vertex_count, GL_UNSIGNED_INT, 0);
+
+        
+        enum BLOCK_ID hotbar_block = player->inventory.blocks[i];
+
+        glm_mat4_identity(translate);
+        float scale = 0.9f;
+        // (1 - scale)/2.0f * "box" width
+        float offset = (1 - scale)/2.0f * (1/12.0f) * SCREEN_WIDTH;
+        vec4 inbox_pos = { (i + 1) * x_unit * SCREEN_WIDTH + offset, offset, 0.0f, 0.0f };
+        glm_translate(translate, inbox_pos);
+        glm_scale_uni(translate, scale);
+        set_uniform_mat4("model", shader, translate);
+
+
+        vec3 new_hb_color = { 206 / 255.0f, 206 / 255.0f, 206 / 255.0f };
+        set_uniform_vec3("color", shader, new_hb_color);
+        glDrawElements(GL_TRIANGLES, player->inventory.inventory_vertex_count, GL_UNSIGNED_INT, 0);
+    }
     glBindVertexArray(0);
 }
 
 void player_load_ui(struct player* player) {
     // =============== Crosshair Data ===================
+    vec2 center = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
+    float scaler = SCREEN_WIDTH * (1 / 48.0f);
     float crosshair[] = {
-        0.0f, 1.0f, 0.0f, // up
-        0.0f, -1.0f, 0.0f, // down
-        1.0f, 0.0f, 0.0f, // right
-        -1.0f, 0.0f, 0.0f, // left
+        center[0] + scaler, center[1], 
+        center[0] - scaler, center[1], 
+        center[0], center[1] + scaler, 
+        center[0], center[1] - scaler, 
     };
-    int vertex_draw_order[] = {
+    int crosshair_draw_order[] = {
         0, 1, 2, 3
     };
+    // =============== Hotbar Data ===================
+    float box_scaler = SCREEN_WIDTH * (1 / 12.0f);
+    float hotbar_item[] = {
+        box_scaler, box_scaler, // top-right
+        1.0f, 1.0f,
+        0.0f, box_scaler, // top-left
+        0.0f, 1.0f,
+        0.0f, 0.0f, // bottom-left
+        0.0f, 0.0f,
+        box_scaler, 0.0f, // bottom-right
+        1.0f, 0.0f,
 
-    player->ui_vertex_count = ARRAY_SIZE(vertex_draw_order);
+    };
+    int hotbar_draw_order[] = {
+        1, 2, 3,   3, 0, 1, // CCW 2-triangles (quad)
+    };
+
+    player->ui_vertex_count = ARRAY_SIZE(crosshair_draw_order);
     glGenVertexArrays(1, &player->_vao_ui);
     glBindVertexArray(player->_vao_ui);
     create_vbo(&player->_vbo_ui, (void*)crosshair, sizeof(crosshair));
-    create_ebo(&player->_ebo_ui, (void*)vertex_draw_order, sizeof(vertex_draw_order));
+    create_ebo(&player->_ebo_ui, (void*)crosshair_draw_order, sizeof(crosshair_draw_order));
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, player->_vbo_ui);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, player->_ebo_ui);
+    glBindVertexArray(0);
+
+    // === Send hotbar data
+    player->inventory.inventory_vertex_count = ARRAY_SIZE(hotbar_item);
+    glGenVertexArrays(1, &player->inventory._vao_inventory);
+    glBindVertexArray(player->inventory._vao_inventory);
+    create_vbo(&player->inventory._vbo_inventory, (void*)hotbar_item, sizeof(hotbar_item));
+    create_ebo(&player->inventory._ebo_inventory, (void*)hotbar_draw_order, sizeof(hotbar_draw_order));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, player->inventory._vbo_inventory);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (GLvoid*) (2 * sizeof(float)));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, player->inventory._ebo_inventory);
     glBindVertexArray(0);
 }
 void player_load_debug(struct player* player) {
