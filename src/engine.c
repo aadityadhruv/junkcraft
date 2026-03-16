@@ -44,7 +44,7 @@ int engine_init(struct engine *engine) {
     fprintf(stderr, "Loading shaders...\n");
     char* shaders[2] = { "shaders/vertex.glsl", "shaders/fragment.glsl" };
     char* debug_shaders[2] = { "shaders/vertex_debug.glsl", "shaders/fragment_debug.glsl" };
-    char* ui_shaders[2] = { "shaders/vertex_ui.glsl", "shaders/fragment_debug.glsl" };
+    char* ui_shaders[2] = { "shaders/vertex_ui.glsl", "shaders/fragment_ui.glsl" };
     char* text_shaders[2] = { "shaders/vertex_text.glsl", "shaders/fragment_text.glsl" };
     char* sky_shaders[2] = { "shaders/vertex_sky.glsl", "shaders/fragment_sky.glsl" };
     shader_add(shader, shaders[0], shaders[1]);

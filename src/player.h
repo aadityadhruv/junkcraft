@@ -1,4 +1,5 @@
 #pragma once
+#include "block.h"
 #include "world.h"
 #include "engine.h"
 #include "camera.h"
@@ -10,10 +11,19 @@ struct aabb {
     vec3 dimension;
     vec3 start;
 };
+struct player_inventory {
+    // First 10 are hotbar
+    enum BLOCK_ID blocks[40];
+    GLuint _vao_inventory;
+    GLuint _vbo_inventory;
+    GLuint _ebo_inventory;
+    int inventory_vertex_count;
+};
 struct player {
     vec3 position;
     struct camera* camera;
     struct aabb* hitbox;
+    struct player_inventory inventory;
     float weight;
     vec3 velocity;
     vec3 accel;
