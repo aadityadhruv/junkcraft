@@ -487,8 +487,8 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     // ================ OpenGL work ================
     // Initalize vertices and vertex order vectors. These will be dynamically
     // sized buffer data we send to the GPU
-    struct junk_vector* vertices;
-    struct junk_vector* vertex_order;
+    struct junk_vector vertices;
+    struct junk_vector vertex_order;
     junk_vector_init(&vertices);
     junk_vector_init(&vertex_order);
 
@@ -603,9 +603,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
 
                     if (_chunk_check_neighbor_block(world, chunk, front) == 0) {
                         chunk_block_face_vertex_set(front_face, BLOCK_FRONT, blk);
-                        JUNK_VECTOR_INSERT(vertices, _chunk_face_add(front_face,
+                        JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(front_face,
                                     sizeof(front_face), pos));
-                        JUNK_VECTOR_INSERT(vertex_order,
+                        JUNK_VECTOR_INSERT(&vertex_order,
                                 chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
@@ -614,9 +614,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
 
                     if (_chunk_check_neighbor_block(world, chunk, back) == 0) {
                         chunk_block_face_vertex_set(back_face, BLOCK_BACK, blk);
-                        JUNK_VECTOR_INSERT(vertices, _chunk_face_add(back_face,
+                        JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(back_face,
                                     sizeof(back_face), pos));
-                        JUNK_VECTOR_INSERT(vertex_order,
+                        JUNK_VECTOR_INSERT(&vertex_order,
                                 chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
@@ -625,9 +625,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
 
                     if (_chunk_check_neighbor_block(world, chunk, right) == 0) {
                         chunk_block_face_vertex_set(right_face, BLOCK_RIGHT, blk);
-                        JUNK_VECTOR_INSERT(vertices, _chunk_face_add(right_face,
+                        JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(right_face,
                                     sizeof(right_face), pos));
-                        JUNK_VECTOR_INSERT(vertex_order,
+                        JUNK_VECTOR_INSERT(&vertex_order,
                                 chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
@@ -636,9 +636,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
 
                     if (_chunk_check_neighbor_block(world, chunk, left) == 0) {
                         chunk_block_face_vertex_set(left_face, BLOCK_LEFT, blk);
-                        JUNK_VECTOR_INSERT(vertices, _chunk_face_add(left_face,
+                        JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(left_face,
                                     sizeof(left_face), pos));
-                        JUNK_VECTOR_INSERT(vertex_order,
+                        JUNK_VECTOR_INSERT(&vertex_order,
                                 chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
@@ -647,9 +647,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
 
                     if (_chunk_check_neighbor_block(world, chunk, top) == 0) {
                         chunk_block_face_vertex_set(top_face, BLOCK_TOP, blk);
-                        JUNK_VECTOR_INSERT(vertices, _chunk_face_add(top_face,
+                        JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(top_face,
                                     sizeof(top_face), pos));
-                        JUNK_VECTOR_INSERT(vertex_order,
+                        JUNK_VECTOR_INSERT(&vertex_order,
                                 chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
@@ -658,9 +658,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
 
                     if (_chunk_check_neighbor_block(world, chunk, bottom) == 0) {
                         chunk_block_face_vertex_set(bottom_face, BLOCK_BOTTOM, blk);
-                        JUNK_VECTOR_INSERT(vertices, _chunk_face_add(bottom_face,
+                        JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(bottom_face,
                                     sizeof(bottom_face), pos));
-                        JUNK_VECTOR_INSERT(vertex_order,
+                        JUNK_VECTOR_INSERT(&vertex_order,
                                 chunk_face_order_add(vertex_draw_order,
                                     sizeof(vertex_draw_order), vertex_index));
                         vertex_index += 4;
@@ -670,20 +670,20 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
             }
         }
     }
-    float tmp_vertex[junk_vector_length(vertices) * ARRAY_SIZE(front_face)];
-    int tmp_order[junk_vector_length(vertex_order) * ARRAY_SIZE(vertex_draw_order)];
+    float tmp_vertex[junk_vector_length(&vertices) * ARRAY_SIZE(front_face)];
+    int tmp_order[junk_vector_length(&vertex_order) * ARRAY_SIZE(vertex_draw_order)];
     memset(tmp_vertex, 0, sizeof(tmp_vertex));
     memset(tmp_order, 0, sizeof(tmp_order));
     // fprintf(stderr, "Chunk blk_c: %d v_s: %d, v_o: %d\n", blk_c, junk_vector_length(vertices)*4, junk_vector_length(vertex_order));
     // fprintf(stderr, "%d|%d|%d|%d|%d|%d|", v_count[0], v_count[1], v_count[2], v_count[3], v_count[4], v_count[5]);
-    for (int i = 0; i < junk_vector_length(vertices); i++) {
-        float* face = junk_vector_get(vertices, i);
+    for (int i = 0; i < junk_vector_length(&vertices); i++) {
+        float* face = junk_vector_get(&vertices, i);
         // Copy from heap mem to tmp buffer, and then free
         memcpy(tmp_vertex + (i*ARRAY_SIZE(front_face)), face, sizeof(front_face));
         free(face);
     }
-    for (int i = 0; i < junk_vector_length(vertex_order); i++) {
-        int* order = junk_vector_get(vertex_order, i);
+    for (int i = 0; i < junk_vector_length(&vertex_order); i++) {
+        int* order = junk_vector_get(&vertex_order, i);
         // Copy from heap mem to tmp buffer, and then free
         memcpy(tmp_order + (i*ARRAY_SIZE(vertex_draw_order)), order, sizeof(vertex_draw_order));
         free(order);
@@ -697,7 +697,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     create_vbo(&chunk->_vbo, (void*)tmp_vertex, sizeof(tmp_vertex));
     create_ebo(&chunk->_ebo, (void*)tmp_order, sizeof(tmp_order));
     // Here we only want ARRAY_SIZE, not float * count
-    chunk->vertex_count = junk_vector_length(vertex_order) * ARRAY_SIZE(vertex_draw_order);
+    chunk->vertex_count = junk_vector_length(&vertex_order) * ARRAY_SIZE(vertex_draw_order);
 
     // Enable 3 attribs - position normals texture
     glEnableVertexAttribArray(0);

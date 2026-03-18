@@ -52,11 +52,11 @@ int engine_init(struct engine *engine) {
     shader_add(ui_shader, ui_shaders[0], ui_shaders[1]);
     shader_add(text_shader, text_shaders[0], text_shaders[1]);
     shader_add(sky_shader, sky_shaders[0], sky_shaders[1]);
-    JUNK_VECTOR_INSERT(engine->shaders, shader);
-    JUNK_VECTOR_INSERT(engine->shaders, debug_shader);
-    JUNK_VECTOR_INSERT(engine->shaders, ui_shader);
-    JUNK_VECTOR_INSERT(engine->shaders, text_shader);
-    JUNK_VECTOR_INSERT(engine->shaders, sky_shader);
+    JUNK_VECTOR_INSERT(&engine->shaders, shader);
+    JUNK_VECTOR_INSERT(&engine->shaders, debug_shader);
+    JUNK_VECTOR_INSERT(&engine->shaders, ui_shader);
+    JUNK_VECTOR_INSERT(&engine->shaders, text_shader);
+    JUNK_VECTOR_INSERT(&engine->shaders, sky_shader);
     fprintf(stderr, "Shaders compiled and loaded\n");
 
 
@@ -243,11 +243,11 @@ void engine_start(struct engine* engine) {
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
         //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-        struct shader* default_shader = junk_vector_get(engine->shaders, 0);
-        struct shader* debug_shader = junk_vector_get(engine->shaders, 1);
-        struct shader* ui_shader = junk_vector_get(engine->shaders, 2);
-        struct shader* text_shader = junk_vector_get(engine->shaders, 3);
-        struct shader* sky_shader = junk_vector_get(engine->shaders, 4);
+        struct shader* default_shader = junk_vector_get(&engine->shaders, 0);
+        struct shader* debug_shader = junk_vector_get(&engine->shaders, 1);
+        struct shader* ui_shader = junk_vector_get(&engine->shaders, 2);
+        struct shader* text_shader = junk_vector_get(&engine->shaders, 3);
+        struct shader* sky_shader = junk_vector_get(&engine->shaders, 4);
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
         input_process(engine, dt);
