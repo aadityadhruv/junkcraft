@@ -185,7 +185,7 @@ int chunk_structure_gen(struct world* world, struct chunk* chunk) {
             struct chunk* chunk;
             world_get_chunk_no_gen(world, coords, &chunk);
             if (chunk == NULL) {
-                return 1;
+                return -1;
             }
         }
     }
@@ -198,6 +198,7 @@ int chunk_structure_gen(struct world* world, struct chunk* chunk) {
         }
     }
     chunk->generated_structures = 1;
+    chunk->dirty = 1;
     return 0;
 }
 
@@ -223,7 +224,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         glm_vec2_add(left, chunk->coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* left_chunk = { 0 };
-        world_get_chunk(world, neighbor, &left_chunk);
+        world_get_chunk_no_gen(world, neighbor, &left_chunk);
         // If not created, we don't care, it's not being rendered, so mark as no neighbor
         // TODO: Previously had chunk->loaded == 0, but this causes a problem. When we move
         // from one chunk to another, everything gets unloaded, and then we start loading everything. 
@@ -242,7 +243,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         glm_vec2_add(right, chunk->coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* right_chunk = { 0 };
-        world_get_chunk(world, neighbor, &right_chunk);
+        world_get_chunk_no_gen(world, neighbor, &right_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
         if (right_chunk == NULL) {
             return 0;
@@ -257,7 +258,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         glm_vec2_add(bottom, chunk->coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* bottom_chunk = { 0 };
-        world_get_chunk(world, neighbor, &bottom_chunk);
+        world_get_chunk_no_gen(world, neighbor, &bottom_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
         if (bottom_chunk == NULL) {
             return 0;
@@ -272,7 +273,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         glm_vec2_add(top, chunk->coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* top_chunk = { 0 };
-        world_get_chunk(world, neighbor, &top_chunk);
+        world_get_chunk_no_gen(world, neighbor, &top_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
         if (top_chunk == NULL) {
             return 0;
@@ -480,7 +481,6 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     glm_mat4_identity(chunk->model);
     glm_translate(chunk->model, translation);
     chunk->loaded = 1;
-    chunk->staged_for_load = 0;
     return;
     }
     // fprintf(stderr, "Loaded chunk (%d, %d)\n", coord[0], coord[1]);
@@ -688,6 +688,8 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
         memcpy(tmp_order + (i*ARRAY_SIZE(vertex_draw_order)), order, sizeof(vertex_draw_order));
         free(order);
     }
+    junk_vector_free(&vertices);
+    junk_vector_free(&vertex_order);
     
     glGenVertexArrays(1, &chunk->_vao);
     glBindVertexArray(chunk->_vao);
@@ -727,7 +729,6 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     glm_mat4_identity(chunk->model);
     glm_translate(chunk->model, translation);
     chunk->loaded = 1;
-    chunk->staged_for_load = 0;
 }
 
 void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* texture) {
@@ -745,8 +746,6 @@ void chunk_unload(struct chunk* chunk) {
     // Clear VAO
     glDeleteVertexArrays(1, &chunk->_vao);
     chunk->loaded = 0;
-    chunk->staged_for_load = 0;
-    chunk->dirty = 0;
 }
 
 // Regenerate chunk data

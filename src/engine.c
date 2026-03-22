@@ -80,7 +80,7 @@ int engine_init(struct engine *engine) {
 
 
     // Setup player
-    vec3 pos = { 1.0f, 200.0f, -1.0f };
+    vec3 pos = { 1.0f, 100.0f, -1.0f };
     player_init(pos, &engine->player);
 
     // Setup root chunk
@@ -88,31 +88,13 @@ int engine_init(struct engine *engine) {
     world_init(1, &world);
     engine->world = world;
     //TODO: Move this loop to a function and flip chunk_coord sign correctly ONCE
-    // Pass 1 - generate terrain
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-            struct chunk* chunk;
+            // Pass 1 - generate terrain
             int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
-            world_get_chunk(engine->world, chunk_coord, &chunk);
-        }
-    }
-    // Pass 2 - generate structures
-    for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
-        for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-            struct chunk* chunk;
-            int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
-            world_get_chunk(engine->world, chunk_coord, &chunk);
-            chunk_structure_gen(engine->world, chunk);
-        }
-    }
-    // Pass 3 - Load data to GPU
-    for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
-        for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-            struct chunk* chunk;
-            int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
-            world_get_chunk(engine->world, chunk_coord, &chunk);
-            // Load chunk
-            chunk_load(world, chunk, chunk_coord);
+            world_submit_chunk_terrain_gen(engine->world, chunk_coord);
+            // Pass 2 - generate structures
+            world_submit_chunk_structure_gen(engine->world, chunk_coord);
         }
     }
 
@@ -129,54 +111,17 @@ void engine_update(struct engine* engine) {
     // NOTE: OpenGL FLIP
     int curr_chunk[2] = { (int)floorf(engine->player->position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player->position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
-    // We moved a chunk - load new chunks with chunk_load
+    // We moved a chunk - gen new chunks if needed
     if (engine->curr_chunk[0] != curr_chunk[0] || engine->curr_chunk[1] != curr_chunk[1]) {
         // Stage relevant chunks for loading
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-                struct chunk* chunk;
                 int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j };
-                world_get_chunk(engine->world, chunk_coord, &chunk);
-                // Stage for loading chunk
-                chunk->staged_for_load = 1;
-                // fprintf(stderr, "Staged (%d, %d)\n", chunk_coord[0], chunk_coord[1]);
+                world_submit_chunk_terrain_gen(engine->world, chunk_coord);
+                // Pass 2 - generate structures
+                world_submit_chunk_structure_gen(engine->world, chunk_coord);
             }
         }
-        // Pass 2 - generate structures for newly generated chunks from above for loop
-        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
-            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-                struct chunk* chunk;
-                int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j };
-                world_get_chunk(engine->world, chunk_coord, &chunk);
-                chunk_structure_gen(engine->world, chunk);
-            }
-        }
-        // Unload existing chunks
-        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
-            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-                struct chunk* chunk;
-                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
-                world_get_chunk(engine->world, chunk_coord, &chunk);
-                // unload chunk
-                // Note: Chunk could possibly be already unloaded if 
-                // it's not in view frustum so check for it
-                if (chunk->staged_for_load == 0 && chunk->loaded != 0) {
-                // fprintf(stderr, "Unloaded (%d, %d)\n", chunk_coord[0], chunk_coord[1]);
-                    chunk_unload(chunk);
-                }
-            }
-        }
-        // Load chunks that are needed
-        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
-            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-                struct chunk* chunk;
-                int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j };
-                world_get_chunk(engine->world, chunk_coord, &chunk);
-                // Load chunks - if already loaded will only update coords
-                chunk_load(engine->world, chunk, chunk_coord);
-            }
-        }
-        // Update the curr_chunk
         memcpy(engine->curr_chunk, curr_chunk, sizeof(vec2));
     }
     // Reload a chunk if it is dirty
@@ -184,10 +129,11 @@ void engine_update(struct engine* engine) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
             struct chunk* chunk = {0};
             int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
-            world_get_chunk(engine->world, chunk_coord, &chunk);
-            if (chunk->dirty) {
+            world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
+            if (chunk != NULL && chunk->dirty) {
                 chunk_unload(chunk);
                 chunk_load(engine->world, chunk, chunk_coord);
+                chunk->dirty = 0;
             }
         }
     }
@@ -276,9 +222,15 @@ void engine_start(struct engine* engine) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk = {0};
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
-                world_get_chunk(engine->world, chunk_coord, &chunk);
+                world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
+                // If chunk is not genarated yet, skip for now. It will be loaded in the world chunk loading
+                // queues
+                if (chunk == NULL) continue;
                 vec2 frustum_check_chunk_coord = { (float)chunk_coord[0], (float)chunk_coord[1] };
-                if (player_is_point_in_frustum(engine->player, frustum_check_chunk_coord)) {
+                //TODO: Frustum check is bugged (?) it's causing weird artifacts when structures
+                // are also generated.... no idea whether bug is structure gen side or frustum check side
+                // but disabling this fixes it
+                if (1 || player_is_point_in_frustum(engine->player, frustum_check_chunk_coord)) {
                     if (chunk->loaded == 0) chunk_load(engine->world, chunk, chunk_coord);
                     chunk_draw(chunk, default_shader, engine->texture);
                 } else {

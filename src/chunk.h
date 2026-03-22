@@ -58,7 +58,6 @@ struct chunk {
     vec2 coord;
     int loaded;
     int generated_structures;
-    int staged_for_load;
     // Blocks placed/deleted
     int dirty;
 };

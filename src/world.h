@@ -1,11 +1,22 @@
 #pragma once
 #include "chunk.h"
+#include "junk/queue.h"
+#include <bits/pthreadtypes.h>
 #include <stdint.h>
 #define WORLD_LENGTH 128
 #define WORLD_WIDTH 128
+#define CHUNK_THREADS 16
 
 struct world {
     struct chunk* chunks[WORLD_WIDTH][WORLD_LENGTH];
+    struct junk_queue chunk_terrain_queue;
+    struct junk_queue chunk_structure_queue;
+    pthread_t chunk_threads[CHUNK_THREADS];
+    pthread_mutex_t chunk_locks[WORLD_WIDTH][WORLD_LENGTH];
+    pthread_mutex_t structure_locks[WORLD_WIDTH][WORLD_LENGTH];
+    pthread_mutex_t terrain_gen_lock;
+    pthread_mutex_t structure_gen_lock;
+    pthread_t structure_threads[CHUNK_THREADS];
     int32_t seed;
 };
 
@@ -43,3 +54,15 @@ int world_chunk_block_place(struct world* world, vec3 pos, enum BLOCK_ID block_i
  * TODO: Refactor this, combine with world_get_chunk, this repeated code is disgusting
  */
 void world_get_chunk_no_gen(struct world* world, int coord[2], struct chunk** chunk);
+
+
+/**
+ * Submit a coordinate coresponding to a chunk for it to be generated
+ * If it already exists, nothing will happen. Chunk generation will be handled
+ * by the world's chunk_threads array of threads. 
+ * @param world The world to generate chunks for
+ * @param coordinates of the chunk to generate
+ *
+ */
+void world_submit_chunk_terrain_gen(struct world* world, int coord[2]);
+void world_submit_chunk_structure_gen(struct world* world, int coord[2]);
