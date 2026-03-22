@@ -80,7 +80,7 @@ int engine_init(struct engine *engine) {
 
 
     // Setup player
-    vec3 pos = { 1.0f, 100.0f, -1.0f };
+    vec3 pos = { 1.0f, 200.0f, -1.0f };
     player_init(pos, &engine->player);
 
     // Setup root chunk
@@ -130,7 +130,10 @@ void engine_update(struct engine* engine) {
             struct chunk* chunk = {0};
             int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
             world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
-            if (chunk != NULL && chunk->dirty) {
+            if (chunk != NULL && chunk->generated_structures == 1 && chunk->dirty) {
+                // TODO: At high chunk distances, this is called hundreds of times
+                // because each tree gen is a block place which marks chunk as dirty. 
+                // So the same chunk gets unloaded/loaded even before the chunk is "ready"
                 chunk_unload(chunk);
                 chunk_load(engine->world, chunk, chunk_coord);
                 chunk->dirty = 0;
