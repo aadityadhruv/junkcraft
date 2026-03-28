@@ -106,20 +106,27 @@ float noise_terrain(float x, float y) {
     y = y / (WORLD_LENGTH * CHUNK_LENGTH);
     float angle_x =  unit_diameter * x;
     float angle_y =  unit_diameter * y;
+    // This one generates a big chunk of elevated terrain, so we have like a decently sized mountain range, but not everywhere
+    // Number of noise iterations
+    int num = 5;
     // Controls how much variation you get - we are spreading
     // points over a larger lattice when this goes up so we are influcenced by more vectors
-    float freq =  WORLD_WIDTH / 4.0f;
-    // This one generates a big chunk of elevated terrain, so we have like a decently sized mountain range, but not everywhere
-    float val1 = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
-    val1 = val1*val1;
-    freq = WORLD_WIDTH;
-    float val3 = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
-    val3 = sqrtf(sqrtf(val3));
-    freq = WORLD_WIDTH / 2.0f;
-    // This val is for the plains, we are generating flatter plains like terrarin
-    float val2 = 0.5 * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
-    float e = (val1 + val2 + val3)/ (2.5);
-    return e*e;
+    float freq =  WORLD_WIDTH * 2.0f;
+    // init amplitude
+    float amp = 1.0f;
+    // Denominator to normalize with
+    float div = 0.0f;
+    // Total h
+    float h = 0.0f;
+    for (int i = 0; i < num; i++) {
+        float noise = amp * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
+        div += amp;
+        h += noise;
+        freq /= 2;
+        amp *= 2;
+    }
+    h /= div;
+    return h*h*h*h;
 }
 
 float noise_caves(float x, float y, float z) {
