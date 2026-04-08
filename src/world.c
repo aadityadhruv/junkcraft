@@ -195,9 +195,11 @@ int world_get_chunk(struct world* world, int coord[2], struct chunk** chunk) {
     return 0;
 }
 
-void world_get_chunk_real_coord(struct world* world, vec2 coord, int out[2]) {
-    int x = (int)coord[0] % WORLD_WIDTH;
-    int y = (int)coord[1] % WORLD_LENGTH;
+void world_get_chunk_real_coord(struct world* world, int coord[2], int out[2]) {
+    int w = ((abs(coord[0]) / WORLD_WIDTH) + 1) * WORLD_WIDTH;
+    int l = ((abs(coord[1]) / WORLD_LENGTH) + 1) * WORLD_LENGTH;
+    int x = (coord[0] + w) % WORLD_WIDTH;
+    int y = (coord[1] + l) % WORLD_LENGTH;
     out[0] = x;
     out[1] = y;
 }

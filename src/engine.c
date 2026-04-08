@@ -83,6 +83,9 @@ int engine_init(struct engine *engine) {
     vec3 pos = { 1.0f, 200.0f, -1.0f };
     player_init(pos, &engine->player);
 
+    // Setup chunk_load_mask
+    memset(engine->chunk_load_mask, 0, sizeof(engine->chunk_load_mask));
+
     // Setup root chunk
     struct world* world;
     world_init(1, &world);
@@ -124,6 +127,29 @@ void engine_update(struct engine* engine) {
         }
         memcpy(engine->curr_chunk, curr_chunk, sizeof(vec2));
     }
+    // unload chunks that must be unloaded, based on the chunk_load_mask
+    for (int i = 0; i < WORLD_WIDTH; i++) {
+        for (int j = 0; j  < WORLD_LENGTH; j++) {
+            struct chunk* chunk = {0};
+            int chunk_coord[2] = { i, j };
+            world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
+            // We have a chunk
+            if (chunk != NULL) {
+                // if (engine->chunk_load_mask[i][j] == 1) {
+                //     chunk_load(engine->world, chunk, chunk_coord);
+                // }
+                if (engine->chunk_load_mask[i][j] == 0) {
+                    if (chunk->loaded == 1) {
+                        fprintf(stderr, "unloaded %d %d\n", chunk_coord[0], chunk_coord[1]);
+                        chunk_unload(chunk);
+                    }
+                }
+            }
+        }
+    }
+    // Clear chunk_load_mask after unloading relevant chunks. This will
+    // be repopulated on the next frame
+    memset(engine->chunk_load_mask, 0, sizeof(engine->chunk_load_mask));
     // Reload a chunk if it is dirty
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
@@ -134,6 +160,8 @@ void engine_update(struct engine* engine) {
                 // TODO: At high chunk distances, this is called hundreds of times
                 // because each tree gen is a block place which marks chunk as dirty. 
                 // So the same chunk gets unloaded/loaded even before the chunk is "ready"
+                // This is fine in the current state because we do not render until we are
+                // fully generated (chunk->generated_structures == 1). But it is something to keep in mind
                 chunk_unload(chunk);
                 chunk_load(engine->world, chunk, chunk_coord);
                 chunk->dirty = 0;
@@ -233,13 +261,16 @@ void engine_start(struct engine* engine) {
                 //TODO: Frustum check is bugged (?) it's causing weird artifacts when structures
                 // are also generated.... no idea whether bug is structure gen side or frustum check side
                 // but disabling this fixes it
+                int real_coord[2];
+                world_get_chunk_real_coord(engine->world, chunk_coord, real_coord);
                 if (1 || player_is_point_in_frustum(engine->player, frustum_check_chunk_coord)) {
-                    if (chunk->loaded == 0) chunk_load(engine->world, chunk, chunk_coord);
+                    if (chunk->loaded == 0) {
+                        chunk_load(engine->world, chunk, chunk_coord);
+                    }
+                    engine->chunk_load_mask[real_coord[0]][real_coord[1]] = 1;
                     chunk_draw(chunk, default_shader, engine->texture);
                 } else {
-                    if (chunk->loaded) {
-                        chunk_unload(chunk);
-                    }
+                    engine->chunk_load_mask[real_coord[0]][real_coord[1]] = 0;
                 }
             }
         }

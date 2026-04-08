@@ -11,7 +11,7 @@
 // We want a square around curr_chunk, and a side of the square will be 1
 // (center chunk) + 2 * CHUNK_DISTANCE (either side of center)
 // loaded chunks = (1 + CHUNK_DISTANCE * 2)^2
-#define CHUNK_DISTANCE 20
+#define CHUNK_DISTANCE 12
 
 struct engine {
     struct window* window;
@@ -20,6 +20,7 @@ struct engine {
     struct texture* texture;
     struct text* text;
     struct clock* clk;
+    int chunk_load_mask[WORLD_WIDTH][WORLD_LENGTH];
     int game_loop;
     int curr_chunk[2];
     struct world* world;
