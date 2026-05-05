@@ -5,3 +5,6 @@ for file in $(ls -1 ~/Sprites); do
     ~/git/tools/aseprite/build/bin/aseprite -b ~/Sprites/${file} --sheet textures/${output}.png
 done
 
+mkdir -p items/
+mv textures/*item* items/
+

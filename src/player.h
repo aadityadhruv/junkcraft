@@ -3,6 +3,7 @@
 #include "world.h"
 #include "engine.h"
 #include "camera.h"
+#include "item.h"
 #include "cglm/cglm.h"
 
 
@@ -13,7 +14,8 @@ struct aabb {
 };
 struct player_inventory {
     // First 10 are hotbar
-    enum BLOCK_ID blocks[40];
+    enum ITEM_ID blocks[40];
+    int curr;
     GLuint _vao_inventory;
     GLuint _vbo_inventory;
     GLuint _ebo_inventory;

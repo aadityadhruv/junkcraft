@@ -506,7 +506,7 @@ void player_load_ui(struct player* player) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, player->_ebo_ui);
     glBindVertexArray(0);
 
-    // === Send hotbar data
+    // === Send hotbar data ====
     player->inventory.inventory_vertex_count = ARRAY_SIZE(hotbar_item);
     glGenVertexArrays(1, &player->inventory._vao_inventory);
     glBindVertexArray(player->inventory._vao_inventory);

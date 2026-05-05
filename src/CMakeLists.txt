@@ -15,4 +15,5 @@ add_executable(junkcraft
     random.c
     text.c
     clock.c
+    item.c
 )

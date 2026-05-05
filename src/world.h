@@ -1,7 +1,7 @@
 #pragma once
 #include "chunk.h"
 #include "junk/queue.h"
-#include <bits/pthreadtypes.h>
+#include <pthread.h>
 #include <stdint.h>
 #define WORLD_LENGTH 128
 #define WORLD_WIDTH 128

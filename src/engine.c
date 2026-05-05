@@ -64,6 +64,7 @@ int engine_init(struct engine *engine) {
     texture_init(&engine->texture);
     texture_load(engine->texture);
     block_metadata_init();
+    item_metadata_init();
 
     // Load text data
     if (text_init(&engine->text) != 0) {
