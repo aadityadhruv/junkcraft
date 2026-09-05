@@ -249,6 +249,9 @@ void engine_start(struct engine* engine) {
         vec3 light_color = { light_intensity, light_intensity, light_intensity };
         set_uniform_vec3("light_color", default_shader, light_color);
         player_update(engine->player, default_shader);
+        // Set the position of the player in the default shader so the fog
+        // can be calculated in the shader itself
+        set_uniform_vec3("player_position", default_shader, engine->player->position);
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
                 struct chunk* chunk = {0};

@@ -16,6 +16,7 @@ Current features:
 - Ore generation: bad random ore generation, probably will switch to noise based
   ore distribution
 - Working day/night cycle with a sun/moon/starry skybox, and changing light levels
+- Basic fog system
 
 Planned features include:
 
