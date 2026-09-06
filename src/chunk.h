@@ -9,15 +9,16 @@
 #define CHUNK_WIDTH 16
 #define CHUNK_LENGTH 16
 #define CHUNK_HEIGHT 256
-#define MOUNTAIN_HEIGHT 100
-#define SNOW_HEIGHT 100
+#define MOUNTAIN_HEIGHT 120
+#define SNOW_HEIGHT 120
 #define BIOME_BASE 70
-#define PLAINS_HEIGHT 100
-#define DESERT_HEIGHT 100
+#define PLAINS_HEIGHT 120
+#define DESERT_HEIGHT 120
 #define CAVERN_LAYER 60
 #define CAVE_GEN_LAYER 55
 #define UNDERGROUND_LAYER 20
 #define CAVE_THRESHOLD 0.9
+#define SEA_LEVEL 80
 
 // ======= Ore spawn config ======
 

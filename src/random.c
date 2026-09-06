@@ -1,6 +1,7 @@
 #include "random.h"
 #include "chunk.h"
 #include "util.h"
+#include "world.h"
 #include <junk/vector.h>
 #include <math.h>
 #include <stdlib.h>
@@ -108,10 +109,13 @@ float noise_terrain(float x, float y) {
     float angle_y =  unit_diameter * y;
     // This one generates a big chunk of elevated terrain, so we have like a decently sized mountain range, but not everywhere
     // Number of noise iterations
-    int num = 5;
+    int num = 4;
     // Controls how much variation you get - we are spreading
     // points over a larger lattice when this goes up so we are influcenced by more vectors
-    float freq =  WORLD_WIDTH * 2.0f;
+    // It also really means how much of a freq*freq chunk falls under "one perlin block". 
+    // For example, if freq = 1, then the whole world is 1 perlin block. 1,1 is top-right of world.
+    // If freq became 4, then we have 4x4 perlin blocks.
+    float freq = 8.0f;
     // init amplitude
     float amp = 1.0f;
     // Denominator to normalize with
@@ -122,11 +126,12 @@ float noise_terrain(float x, float y) {
         float noise = amp * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
         div += amp;
         h += noise;
-        freq /= 2;
-        amp *= 2;
+        freq *= 2;
+        amp /= 2;
     }
     h /= div;
-    return h*h*h*h;
+    float ret = h*h*h;
+    return ret;
 }
 
 float noise_caves(float x, float y, float z) {
