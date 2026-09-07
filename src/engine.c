@@ -255,41 +255,57 @@ void engine_start(struct engine* engine) {
         // Allow Blending for stuff like water
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        for (int r = CHUNK_DISTANCE; r >= 0; r--) {
-            for (int i = -r; i <= r; i++) {
-                vec2 vectors[4] = {};
-                vec2 v0 = { r, i };
-                vec2 v1 = { -r, i };
-                vec2 v2 = { i, r };
-                vec2 v3 = { i, -r };
-                memcpy(vectors[0], v0, sizeof(vec2));
-                memcpy(vectors[1], v1, sizeof(vec2));
-                memcpy(vectors[2], v2, sizeof(vec2));
-                memcpy(vectors[3], v3, sizeof(vec2));
-                for (int j = 0; j < 4; j++) {
-                    struct chunk* chunk = {0};
-                    int chunk_coord[2] = { engine->curr_chunk[0] + vectors[j][0], engine->curr_chunk[1] + vectors[j][1] };
-                    fprintf(stderr, "LOADING CHUNKS %d %d\n", chunk_coord[0], chunk_coord[1]);
-                    world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
-                    // If chunk is not genarated yet, skip for now. It will be loaded in the world chunk loading
-                    // queues
-                    if (chunk == NULL) continue;
-                    vec2 frustum_check_chunk_coord = { (float)chunk_coord[0], (float)chunk_coord[1] };
-                    //TODO: Frustum check is bugged (?) it's causing weird artifacts when structures
-                    // are also generated.... no idea whether bug is structure gen side or frustum check side
-                    // but disabling this fixes it
-                    int real_coord[2];
-                    world_get_chunk_real_coord(engine->world, chunk_coord, real_coord);
-                    if (1 || player_is_point_in_frustum(engine->player, frustum_check_chunk_coord)) {
-                        if (chunk->loaded == 0) {
-                            chunk_load(engine->world, chunk, chunk_coord);
-                        }
-                        engine->chunk_load_mask[real_coord[0]][real_coord[1]] = 1;
-                        chunk_draw(chunk, default_shader, engine->texture);
-                    } else {
-                        engine->chunk_load_mask[real_coord[0]][real_coord[1]] = 0;
-                    }
+
+        const int num_chunks = (CHUNK_DISTANCE*2 + 1)*(CHUNK_DISTANCE*2 + 1);
+        vec3 sorted_chunks[num_chunks];
+        int index = 0;
+        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
+            for (int j = -CHUNK_DISTANCE; j <= CHUNK_DISTANCE; j++) {
+                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
+                vec2 chunk_center = { chunk_coord[0] * CHUNK_WIDTH + CHUNK_WIDTH/2.0f, chunk_coord[1] * CHUNK_LENGTH + CHUNK_LENGTH/2.0f };
+                vec2 player_2d_pos = { engine->player->position[0], -engine->player->position[2] };
+                float distance = glm_vec2_distance(player_2d_pos, chunk_center);
+                sorted_chunks[index][0] = chunk_coord[0];
+                sorted_chunks[index][1] = chunk_coord[1];
+                sorted_chunks[index][2] = distance;
+                index += 1;
+            }
+        }
+        sorted_chunks[num_chunks - 1][0] = engine->curr_chunk[0];
+        sorted_chunks[num_chunks - 1][1] = engine->curr_chunk[1];
+        sorted_chunks[num_chunks - 1][2] = 0.0f;
+        for (int i = 1; i < num_chunks; i++) {
+            for (int j = i; j > 0; j--) {
+                if (sorted_chunks[j - 1][2] < sorted_chunks[j][2]) {
+                    vec3 tmp;
+                    memcpy(tmp, sorted_chunks[j], sizeof(vec3));
+                    memcpy(sorted_chunks[j], sorted_chunks[j - 1], sizeof(vec3));
+                    memcpy(sorted_chunks[j - 1], tmp, sizeof(vec3));
                 }
+            }
+        }
+        for (int i = 0; i < num_chunks; i++) {
+            // fprintf(stderr, "length: %f\n", sorted_chunks[i][2]);
+            struct chunk* chunk = {0};
+            int chunk_coord[2] = { sorted_chunks[i][0], sorted_chunks[i][1] };
+            world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
+            // If chunk is not genarated yet, skip for now. It will be loaded in the world chunk loading
+            // queues
+            if (chunk == NULL) continue;
+            vec2 frustum_check_chunk_coord = { (float)chunk_coord[0], (float)chunk_coord[1] };
+            //TODO: Frustum check is bugged (?) it's causing weird artifacts when structures
+            // are also generated.... no idea whether bug is structure gen side or frustum check side
+            // but disabling this fixes it
+            int real_coord[2];
+            world_get_chunk_real_coord(engine->world, chunk_coord, real_coord);
+            if (1 || player_is_point_in_frustum(engine->player, frustum_check_chunk_coord)) {
+                if (chunk->loaded == 0) {
+                    chunk_load(engine->world, chunk, chunk_coord);
+                }
+                engine->chunk_load_mask[real_coord[0]][real_coord[1]] = 1;
+                chunk_draw(chunk, default_shader, engine->texture);
+            } else {
+                engine->chunk_load_mask[real_coord[0]][real_coord[1]] = 0;
             }
         }
         glDisable(GL_BLEND);
