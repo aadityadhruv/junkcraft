@@ -16,6 +16,7 @@ enum BLOCK_ID {
     BLOCK_GOLD_ORE,
     BLOCK_DIAMOND_ORE,
     BLOCK_GRAPHITE,
+    BLOCK_WATER,
     BLOCK_ID_COUNT,
 };
 enum block_face {
@@ -38,6 +39,8 @@ struct block_face_texture {
 
 struct block_metadata {
     struct block_face_texture texture_data[BLOCK_FACE_COUNT];
+    int solid;
+    int opaque;
 };
 
 

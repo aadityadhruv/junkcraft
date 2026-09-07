@@ -23,6 +23,7 @@ char* textures[] = {
     "textures/012_gold_ore.png",
     "textures/013_diamond_ore.png",
     "textures/014_graphite.png",
+    "textures/015_water.png",
 };
 
 void texture_init(struct texture** texture) {

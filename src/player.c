@@ -32,6 +32,7 @@
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
+extern struct block_metadata block_metadata[BLOCK_ID_COUNT];
 int player_can_move_x(struct player* player, struct engine* engine, float mov);
 int player_can_move_y(struct player* player, struct engine* engine, float mov);
 int player_can_move_z(struct player* player, struct engine* engine, float mov);
@@ -124,14 +125,25 @@ int player_can_move_x(struct player* player, struct engine* engine, float mov) {
     vec3 pc3 = { lifted_pos[0] + w, lifted_pos[1], lifted_pos[2] + l };
     vec3 pc4 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] + l };
     // Check if block on X-axis
+    struct block* blk1 = NULL;
+    struct block* blk2 = NULL;
+    struct block* blk3 = NULL;
+    struct block* blk4 = NULL;
     if (
-            world_chunk_block_get(engine->world, pc1, NULL) &&
-            world_chunk_block_get(engine->world, pc2, NULL) &&
-            world_chunk_block_get(engine->world, pc3, NULL) &&
-            world_chunk_block_get(engine->world, pc4, NULL)
+            world_chunk_block_get(engine->world, pc1, &blk1) &&
+            world_chunk_block_get(engine->world, pc2, &blk2) &&
+            world_chunk_block_get(engine->world, pc3, &blk3) &&
+            world_chunk_block_get(engine->world, pc4, &blk4)
        ) {
         return 1;
     } else {
+        // None of the blocks we are coliding with are solid
+        if ((blk1 == NULL || !block_metadata[blk1->block_id].solid) && 
+            (blk2 == NULL || !block_metadata[blk2->block_id].solid) &&
+            (blk3 == NULL || !block_metadata[blk3->block_id].solid) &&
+            (blk4 == NULL || !block_metadata[blk4->block_id].solid)) {
+            return 1;
+        }
         return 0;
     }
 }
@@ -153,14 +165,25 @@ int player_can_move_y(struct player* player, struct engine* engine, float mov) {
     vec3 pc3 = { lifted_pos[0], lifted_pos[1] + h, lifted_pos[2] + l };
     vec3 pc4 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] + l };
     // Check if block on Y-axis
+    struct block* blk1 = NULL;
+    struct block* blk2 = NULL;
+    struct block* blk3 = NULL;
+    struct block* blk4 = NULL;
     if (
-            world_chunk_block_get(engine->world, pc1, NULL) &&
-            world_chunk_block_get(engine->world, pc2, NULL) &&
-            world_chunk_block_get(engine->world, pc3, NULL) &&
-            world_chunk_block_get(engine->world, pc4, NULL)
+            world_chunk_block_get(engine->world, pc1, &blk1) &&
+            world_chunk_block_get(engine->world, pc2, &blk2) &&
+            world_chunk_block_get(engine->world, pc3, &blk3) &&
+            world_chunk_block_get(engine->world, pc4, &blk4)
        ) {
         return 1;
     } else {
+        // None of the blocks we are coliding with are solid
+        if ((blk1 == NULL || !block_metadata[blk1->block_id].solid) && 
+            (blk2 == NULL || !block_metadata[blk2->block_id].solid) &&
+            (blk3 == NULL || !block_metadata[blk3->block_id].solid) &&
+            (blk4 == NULL || !block_metadata[blk4->block_id].solid)) {
+            return 1;
+        }
         return 0;
     }
 }
@@ -181,15 +204,26 @@ int player_can_move_z(struct player* player, struct engine* engine, float mov) {
     vec3 pc2 = { lifted_pos[0] + w, lifted_pos[1], lifted_pos[2] + l };
     vec3 pc3 = { lifted_pos[0], lifted_pos[1] + h, lifted_pos[2] + l };
     vec3 pc4 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] + l };
-    // Check if block on Y-axis
+    // Check if block on Z-axis
+    struct block* blk1 = NULL;
+    struct block* blk2 = NULL;
+    struct block* blk3 = NULL;
+    struct block* blk4 = NULL;
     if (
-            world_chunk_block_get(engine->world, pc1, NULL) &&
-            world_chunk_block_get(engine->world, pc2, NULL) &&
-            world_chunk_block_get(engine->world, pc3, NULL) &&
-            world_chunk_block_get(engine->world, pc4, NULL)
+            world_chunk_block_get(engine->world, pc1, &blk1) &&
+            world_chunk_block_get(engine->world, pc2, &blk2) &&
+            world_chunk_block_get(engine->world, pc3, &blk3) &&
+            world_chunk_block_get(engine->world, pc4, &blk4)
        ) {
         return 1;
     } else {
+        // None of the blocks we are coliding with are solid
+        if ((blk1 == NULL || !block_metadata[blk1->block_id].solid) && 
+            (blk2 == NULL || !block_metadata[blk2->block_id].solid) &&
+            (blk3 == NULL || !block_metadata[blk3->block_id].solid) &&
+            (blk4 == NULL || !block_metadata[blk4->block_id].solid)) {
+            return 1;
+        }
         return 0;
     }
 }
@@ -666,7 +700,7 @@ void player_block_place(struct player* player, struct world* world) {
     int nz = floorf(block_coords[1]);
     // In World coords, not opengl coords
     vec3 world_block_coords = { nx, ny, nz };
-    world_chunk_block_place(world, world_block_coords, BLOCK_STONE);
+    world_chunk_block_place(world, world_block_coords, BLOCK_WATER);
 }
 
 // Return 1 if intersection, 0 if not

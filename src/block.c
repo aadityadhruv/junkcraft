@@ -21,6 +21,18 @@ void block_metadata_init() {
  
 
         }
+        if (i == BLOCK_WATER) {
+            block_metadata[i].solid = 0;
+            block_metadata[i].opaque = 0;
+        }
+        else if (i == BLOCK_LEAF) {
+            block_metadata[i].solid = 0;
+            block_metadata[i].opaque = 1;
+        }
+        else {
+            block_metadata[i].solid = 1;
+            block_metadata[i].opaque = 1;
+        }
     }
 
 }
