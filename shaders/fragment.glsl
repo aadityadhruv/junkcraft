@@ -27,8 +27,8 @@ void main() {
 
     float distance_to_vertex = length(player_position - frag_pos);
     float fog_scale = 0.01;
-    float fog_intensity = pow(distance_to_vertex * fog_scale, 4);
-    float fog_amount = clamp(fog_intensity, 0.0f, 1.0f);
+    float fog_intensity = pow(distance_to_vertex * fog_scale, 8);
+    float fog_amount = clamp(fog_intensity, 0.0f, 0.8f);
     vec3  fog_color = vec3(0.5,0.6,0.7);
     vec3 fog_point_color = mix(point_color.xyz, fog_color, fog_amount);
 

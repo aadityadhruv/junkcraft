@@ -921,6 +921,12 @@ int chunk_block_place(struct chunk* chunk, vec3 pos, enum BLOCK_ID block_id) {
         chunk->dirty = 1;
         return 0;
     }
+    // Not a solid block
+    if (chunk->blocks[x][y][z] != NULL && !block_metadata[chunk->blocks[x][y][z]->block_id].solid) {
+        chunk->blocks[x][y][z]->block_id = block_id;
+        chunk->dirty = 1;
+        return 0;
+    }
     return 1;
 }
 //TODO: Trigger a neighbor chunk load if on axis, otherwise 

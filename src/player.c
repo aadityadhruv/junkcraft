@@ -384,8 +384,9 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
             break;
         }
         // is_block == 0 if there is block
-        int is_block = world_chunk_block_get(world, ray_position, NULL);
-        if (is_block == 0) {
+        struct block* blk;
+        int is_block = world_chunk_block_get(world, ray_position, &blk);
+        if (is_block == 0 && block_metadata[blk->block_id].solid) {
             found = 1;
             break;
         }
@@ -602,8 +603,9 @@ void player_block_delete(struct player* player, struct world* world) {
             break;
         }
         // is_block == 0 if there is block
-        int is_block = world_chunk_block_get(world, ray_position, NULL);
-        if (is_block == 0) {
+        struct block* blk;
+        int is_block = world_chunk_block_get(world, ray_position, &blk);
+        if (is_block == 0 && block_metadata[blk->block_id].solid) {
             found = 1;
             break;
         }
@@ -638,8 +640,9 @@ void player_block_place(struct player* player, struct world* world) {
             break;
         }
         // is_block == 0 if there is block
-        int is_block = world_chunk_block_get(world, ray_position, NULL);
-        if (is_block == 0) {
+        struct block* blk;
+        int is_block = world_chunk_block_get(world, ray_position, &blk);
+        if (is_block == 0 && block_metadata[blk->block_id].solid) {
             found = 1;
             break;
         }
@@ -700,7 +703,7 @@ void player_block_place(struct player* player, struct world* world) {
     int nz = floorf(block_coords[1]);
     // In World coords, not opengl coords
     vec3 world_block_coords = { nx, ny, nz };
-    world_chunk_block_place(world, world_block_coords, BLOCK_WATER);
+    world_chunk_block_place(world, world_block_coords, BLOCK_STONE);
 }
 
 // Return 1 if intersection, 0 if not
