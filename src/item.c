@@ -1,5 +1,7 @@
 #include "item.h"
+#include "player.h"
 #include "util.h"
+#include "block.h"
 #include <string.h>
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
@@ -7,6 +9,7 @@
 
 struct item_metadata item_metadata[ITEM_ID_COUNT];
 struct item_graphics item_graphics;
+void item_block_item_use(void* data);
 void item_metadata_init() {
     float x_unit = 1.0f;
     float y_unit = 1.0f / ITEM_ID_COUNT;
@@ -21,6 +24,9 @@ void item_metadata_init() {
         memcpy(item_metadata[i].texture_data.top_right, top_right, sizeof(vec2));
         memcpy(item_metadata[i].texture_data.bottom_left, bottom_left, sizeof(vec2));
         memcpy(item_metadata[i].texture_data.bottom_right, bottom_right, sizeof(vec2));
+
+        item_metadata[i].action_use = item_block_item_use;
+
     }
 
 }
@@ -74,4 +80,35 @@ void item_draw(enum ITEM_ID id) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(item_draw_vertices), item_draw_vertices);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+}
+
+enum BLOCK_ID item_item_to_block(enum ITEM_ID id) {
+    switch (id) {
+        case ITEM_BLOCK_GRASS:
+            return BLOCK_GRASS;
+        case ITEM_BLOCK_STONE:
+            return BLOCK_STONE;
+        case ITEM_BLOCK_ROCK:
+            return BLOCK_ROCK;
+        case ITEM_BLOCK_SAND:
+            return BLOCK_SAND;
+        case ITEM_BLOCK_SNOW:
+            return BLOCK_SNOW;
+        case ITEM_BLOCK_WOOD:
+            return BLOCK_WOOD;
+        case ITEM_BLOCK_LEAF:
+            return BLOCK_LEAF;
+        case ITEM_BLOCK_WATER:
+            return BLOCK_WATER;
+        default:
+            return BLOCK_ID_COUNT;
+    }
+}
+
+void item_block_item_use(void* data) {
+    struct engine* engine = (struct engine*) data;
+    enum ITEM_ID item = engine->player->inventory.items[engine->player->inventory.curr];
+    enum BLOCK_ID blk_id = item_item_to_block(item);
+    if (blk_id == BLOCK_ID_COUNT) return;
+    player_block_place(engine->player, engine, blk_id);
 }

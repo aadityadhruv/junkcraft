@@ -28,6 +28,12 @@ char* textures[] = {
 char* items[] = {
     "items/001_grass_item.png",
     "items/002_stone_item.png",
+    "items/003_rock_item.png",
+    "items/004_sand_item.png",
+    "items/005_snow_item.png",
+    "items/006_wood_item.png",
+    "items/007_leaf_item.png",
+    "items/015_water_item.png",
 };
 
 void texture_init(struct texture** texture) {

@@ -51,7 +51,14 @@ void player_init(vec3 pos, struct player** player) {
     for (int i = 0; i < ARRAY_SIZE(p->inventory.items); i++) {
         p->inventory.items[i] = -1;
     }
+    p->inventory.items[0] = ITEM_BLOCK_GRASS;
     p->inventory.items[1] = ITEM_BLOCK_STONE;
+    p->inventory.items[2] = ITEM_BLOCK_ROCK;
+    p->inventory.items[3] = ITEM_BLOCK_SAND;
+    p->inventory.items[4] = ITEM_BLOCK_SNOW;
+    p->inventory.items[5] = ITEM_BLOCK_WOOD;
+    p->inventory.items[6] = ITEM_BLOCK_LEAF;
+    p->inventory.items[7] = ITEM_BLOCK_WATER;
     memcpy(p->position, pos, sizeof(vec3));
     struct aabb* box = malloc(sizeof(struct aabb));
     vec3 player_size = { 0.6f, 1.8f, -0.6f };
@@ -724,7 +731,14 @@ void player_block_delete(struct player* player, struct world* world) {
     world_chunk_block_delete(world, block_pos);
 }
 
-void player_block_place(struct player* player, struct world* world) {
+void player_use(struct player* player, struct engine* engine) {
+    enum ITEM_ID item = player->inventory.items[player->inventory.curr];
+    if (item == -1) return;
+    item_metadata[item].action_use(engine);
+}
+void player_block_place(struct player* player, struct engine* engine, enum BLOCK_ID blk_id) {
+    if (blk_id == -1) return;
+    struct world* world = engine->world;
     vec3 step = { 0 };
     glm_normalize_to(player->camera->direction, step);
     float scale = 0.1f;
@@ -802,7 +816,7 @@ void player_block_place(struct player* player, struct world* world) {
     int nz = floorf(block_coords[1]);
     // In World coords, not opengl coords
     vec3 world_block_coords = { nx, ny, nz };
-    world_chunk_block_place(world, world_block_coords, BLOCK_STONE);
+    world_chunk_block_place(world, world_block_coords, blk_id);
 }
 
 // Return 1 if intersection, 0 if not
@@ -948,4 +962,12 @@ int player_is_point_in_frustum(struct player* player, vec2 chunk_coord) {
     }
 
     return 1;
+}
+
+void player_move_hotbar(struct player* player, int direction) {
+    if (direction > 0) {
+        player->inventory.curr = (player->inventory.curr + HOTBAR_SIZE - 1) % HOTBAR_SIZE;
+    } else {
+        player->inventory.curr = (player->inventory.curr + HOTBAR_SIZE + 1) % HOTBAR_SIZE;
+    }
 }

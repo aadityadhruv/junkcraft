@@ -58,7 +58,8 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
 
 void player_block_delete(struct player* player, struct world* world);
 
-void player_block_place(struct player* player, struct world* world);
+void player_block_place(struct player* player, struct engine* engine, enum BLOCK_ID blk_id);
+void player_use(struct player* player, struct engine* engine);
 
 void player_load_ui(struct player* player);
 void player_draw_ui(struct player* player, struct shader* shader);
@@ -76,3 +77,4 @@ void player_draw_ui(struct player* player, struct shader* shader);
  *
  */
 int player_is_point_in_frustum(struct player* player, vec2 chunk_coord);
+void player_move_hotbar(struct player* player, int direction);

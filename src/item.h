@@ -4,6 +4,12 @@
 enum ITEM_ID {
     ITEM_BLOCK_GRASS,
     ITEM_BLOCK_STONE,
+    ITEM_BLOCK_ROCK,
+    ITEM_BLOCK_SAND,
+    ITEM_BLOCK_SNOW,
+    ITEM_BLOCK_WOOD,
+    ITEM_BLOCK_LEAF,
+    ITEM_BLOCK_WATER,
     ITEM_ID_COUNT,
 };
 
@@ -17,6 +23,8 @@ struct item_texture {
 
 struct item_metadata {
     struct item_texture texture_data;
+    void (*action_use) (void* data);
+    void (*action_hit) (void* data);
 };
 
 struct item_graphics {

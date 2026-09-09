@@ -17,6 +17,7 @@ Current features:
   ore distribution
 - Working day/night cycle with a sun/moon/starry skybox, and changing light levels
 - Basic fog system
+- Nice hotbar with certain blocktypes pre-placed
 
 Planned features include:
 

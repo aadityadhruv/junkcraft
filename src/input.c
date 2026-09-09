@@ -56,8 +56,12 @@ void input_process(struct engine* engine, double dt) {
                 player_block_delete(engine->player, engine->world);
             }
             if (b->button == SDL_BUTTON_RIGHT) {
-                player_block_place(engine->player, engine->world);
+                player_use(engine->player, engine);
             }
+        }
+        if (event.type == SDL_MOUSEWHEEL) {
+            SDL_MouseWheelEvent* b = (SDL_MouseWheelEvent*) &event;
+            player_move_hotbar(engine->player, b->y);
         }
         if (event.type == SDL_MOUSEMOTION) {
             int x;
