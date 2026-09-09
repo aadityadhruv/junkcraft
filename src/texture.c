@@ -25,12 +25,37 @@ char* textures[] = {
     "textures/014_graphite.png",
     "textures/015_water.png",
 };
+char* items[] = {
+    "items/001_grass_item.png",
+    "items/002_stone_item.png",
+};
 
 void texture_init(struct texture** texture) {
     *texture = malloc(sizeof(struct texture));
     memset(*texture, 0, sizeof(struct texture));
 }
 
+void texture_load_items(struct texture* texture) {
+    unsigned char* texture_data = NULL;
+    int atlas_width = 32;
+    int total_buffer_size = 0;
+    vec2 atlas_size = { atlas_width,  0 };
+    int textures_len = sizeof(items)/sizeof(char*);
+    for (int i = 0; i < textures_len; i++) {
+        int width, height, nr_channels;
+        unsigned char *data = stbi_load(items[i], &width, &height, &nr_channels, 0);
+        int data_size = width * height * nr_channels;
+        texture_data = realloc(texture_data, total_buffer_size + data_size);
+        memcpy(texture_data + total_buffer_size, data, data_size);
+        atlas_size[1] += height;
+        total_buffer_size += data_size;
+        stbi_image_free(data);
+    fprintf(stderr, "Item load %s\n", items[i]);
+    }
+    create_texture(&texture->_tbo, texture_data, atlas_size);
+    fprintf(stderr, "Loaded all items\n");
+    glm_vec2_print(atlas_size, stderr);
+}
 void texture_load(struct texture* texture) {
     unsigned char* texture_data = NULL;
     int atlas_width = 192;
@@ -39,25 +64,20 @@ void texture_load(struct texture* texture) {
     int textures_len = sizeof(textures)/sizeof(char*);
     for (int i = 0; i < textures_len; i++) {
         int width, height, nr_channels;
-        char tpath[200];
-        memset(tpath, 0, 200);
-        char* d = "/home/aaditya/git/junkcraft/";
-        strcat(tpath, d);
-        strcat(tpath, textures[i]);
-        unsigned char *data = stbi_load(tpath, &width, &height, &nr_channels, 0);
+        unsigned char *data = stbi_load(textures[i], &width, &height, &nr_channels, 0);
         int data_size = width * height * nr_channels;
         texture_data = realloc(texture_data, total_buffer_size + data_size);
         memcpy(texture_data + total_buffer_size, data, data_size);
         atlas_size[1] += height;
         total_buffer_size += data_size;
         stbi_image_free(data);
-    fprintf(stderr, "Texture load %s\n", tpath);
+    fprintf(stderr, "Texture load %s\n", textures[i]);
     }
     create_texture(&texture->_tbo, texture_data, atlas_size);
     fprintf(stderr, "Loaded all textures\n");
 }
 
-void texture_draw(struct texture* texture) {
+void texture_use(struct texture* texture) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture->_tbo);
 }
