@@ -14,12 +14,7 @@
  * @return buf Contents of shader file as a string
  */
 char* read_shader(char* path) {
-    char cwd[200];
-    memset(cwd, 0, 200);
-    char* d = "/home/aaditya/git/junkcraft/";
-    strcat(cwd, d);
-    strcat(cwd, path);
-    FILE* file = fopen(cwd, "r");
+    FILE* file = fopen(path, "r");
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
     rewind(file);
@@ -93,6 +88,16 @@ int set_uniform_mat4(char* var, struct shader* shader, mat4 matrix) {
     glUniformMatrix4fv(loc, 1, GL_FALSE, (void*)matrix);
     return 0;
 }
+int set_uniform_int(char* var, struct shader* shader, int i) {
+    GLint loc = glGetUniformLocation(shader->program, var);
+    if (loc == -1) {
+        fprintf(stderr, "Invalid var %s for set_uniform_int: Does not exist\n", var);
+        exit(1);
+        return -1;
+    }
+    glUniform1i(loc, i);
+    return 0;
+}
 int set_uniform_float(char* var, struct shader* shader, float f) {
     GLint loc = glGetUniformLocation(shader->program, var);
     if (loc == -1) {
@@ -111,6 +116,16 @@ int set_uniform_vec2(char* var, struct shader* shader, vec2 vec) {
         return -1;
     }
     glUniform2fv(loc, 1, (void*)vec);
+    return 0;
+}
+int set_uniform_vec4(char* var, struct shader* shader, vec4 vec) {
+    GLint loc = glGetUniformLocation(shader->program, var);
+    if (loc == -1) {
+        fprintf(stderr, "Invalid var %s for set_uniform_vec4: Does not exist\n", var);
+        exit(1);
+        return -1;
+    }
+    glUniform4fv(loc, 1, (void*)vec);
     return 0;
 }
 int set_uniform_vec3(char* var, struct shader* shader, vec3 vec) {
