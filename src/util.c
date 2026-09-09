@@ -48,5 +48,5 @@ void create_texture(GLuint* tbo, void* buf, vec2 size) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (int)size[0], (int)size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, buf);
     glGenerateMipmap(GL_TEXTURE_2D);
-    // glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
