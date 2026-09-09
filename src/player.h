@@ -14,7 +14,7 @@ struct aabb {
 };
 struct player_inventory {
     // First 10 are hotbar
-    enum ITEM_ID blocks[40];
+    enum ITEM_ID items[40];
     int curr;
     GLuint _vao_inventory;
     GLuint _vbo_inventory;
