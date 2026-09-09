@@ -517,86 +517,86 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     float front_face[] = {
         1.0f, 1.0f, 0.0f, // top-right
         0.0f, 0.0f, 1.0f, // Front normal
-        1.0f, 0.0f,
+        0.0f, 0.0f,
         0.0f, 1.0f, 0.0f, // top-left
         0.0f, 0.0f, 1.0f, // Front normal
-        0.5f, 0.0f,
+        0.0f, 0.0f,
         0.0f, 0.0f, 0.0f, // bottom-left
         0.0f, 0.0f, 1.0f, // Front normal
-        0.5f, 0.5f,
+        0.0f, 0.0f,
         1.0f, 0.0f, 0.0f, // bottom-right
         0.0f, 0.0f, 1.0f, // Front normal
-        1.0f, 0.5f,
+        1.0f, 0.0f,
     };
     float back_face[] = {
         0.0f, 1.0f, -1.0f, // top-left (back plane)
         0.0f, 0.0f, -1.0f, // Back normal
-        1.0f, 0.0f,
+        0.0f, 0.0f,
         1.0f, 1.0f, -1.0f, // top-right (back plane)
         0.0f, 0.0f, -1.0f, // Back normal
-        0.5f, 0.0f,
+        0.0f, 0.0f,
         1.0f, 0.0f, -1.0f, // bottom-right (back plane)
         0.0f, 0.0f, -1.0f, // Back normal
-        0.5f, 0.5f,
+        0.0f, 0.0f,
         0.0f, 0.0f, -1.0f, // bottom-left (back plane)
         0.0f, 0.0f, -1.0f, // Back normal
-        1.0f, 0.5f,
+        0.0f, 0.0f,
     };
     float right_face[] = {
         1.0f, 1.0f, -1.0f, // top-right (back plane)
         1.0f, 0.0f, 0.0f, // Right normal
-        1.0f, 0.0f,
+        0.0f, 0.0f,
         1.0f, 1.0f, 0.0f, // top-right
         1.0f, 0.0f, 0.0f, // Right normal
-        0.5f, 0.0f,
+        0.0f, 0.0f,
         1.0f, 0.0f, 0.0f, // bottom-right
         1.0f, 0.0f, 0.0f, // Right normal
-        0.5f, 0.5f,
+        0.0f, 0.0f,
         1.0f, 0.0f, -1.0f, // bottom-right (back plane)
         1.0f, 0.0f, 0.0f, // Right normal
-        1.0f, 0.5f,
+        0.0f, 0.0f,
     };
     float left_face[] = {
         0.0f, 1.0f, 0.0f, // top-left
         -1.0f, 0.0f, 0.0f, // Left normal
-        1.0f, 0.0f,
+        0.0f, 0.0f,
         0.0f, 1.0f, -1.0f, // top-left (back plane)
         -1.0f, 0.0f, 0.0f, // Left normal
-        0.5f, 0.0f,
+        0.0f, 0.0f,
         0.0f, 0.0f, -1.0f, // bottom-left (back plane)
         -1.0f, 0.0f, 0.0f, // Left normal
-        0.5f, 0.5f,
+        0.0f, 0.0f,
         0.0f, 0.0f, 0.0f, // bottom-left
         -1.0f, 0.0f, 0.0f, // Left normal
-        1.0f, 0.5f,
+        0.0f, 0.0f,
     };
     float top_face[] = {
         1.0f, 1.0f, -1.0f, // top-right (back plane)
         0.0f, 1.0f, 0.0f, // Top normal
-        0.5f, 0.5f,
+        0.0f, 0.0f,
         0.0f, 1.0f, -1.0f, // top-left (back plane)
         0.0f, 1.0f, 0.0f, // Top normal
-        0.0f, 0.5f,
+        0.0f, 0.0f,
         0.0f, 1.0f, 0.0f, // top-left
         0.0f, 1.0f, 0.0f, // Top normal
-        0.0f, 1.0f,
+        0.0f, 0.0f,
         1.0f, 1.0f, 0.0f, // top-right
         0.0f, 1.0f, 0.0f, // Top normal
-        0.5f, 1.0f,
+        0.0f, 0.0f,
     };
     float bottom_face[] = {
         0.0f, 0.0f, -1.0f, // bottom-left (back plane)
         0.0f, -1.0f, 0.0f, // Bottom normal
-        0.5f, 0.0f,
+        0.0f, 0.0f,
         1.0f, 0.0f, -1.0f, // bottom-right (back plane)
         0.0f, -1.0f, 0.0f, // Bottom normal
         0.0f, 0.0f,
         1.0f, 0.0f, 0.0f, // bottom-right
         0.0f, -1.0f, 0.0f, // Bottom normal
-        0.0f, 0.5f,
+        0.0f, 0.0f,
         0.0f, 0.0f, 0.0f, // bottom-left
         0.0f, -1.0f, 0.0f, // Bottom normal
-        0.5f, 0.5f,
+        0.0f, 0.0f,
     };
     int vertex_draw_order[] = {
         1, 2, 3,   3, 0, 1, // CCW 2-triangles (quad)
