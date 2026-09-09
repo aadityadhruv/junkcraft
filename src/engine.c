@@ -63,8 +63,11 @@ int engine_init(struct engine *engine) {
     // Load Textures
     texture_init(&engine->texture);
     texture_load(engine->texture);
+    texture_init(&engine->item_texture);
+    texture_load_items(engine->item_texture);
     block_metadata_init();
     item_metadata_init();
+    item_load();
 
     // Load text data
     if (text_init(&engine->text) != 0) {
@@ -246,6 +249,8 @@ void engine_start(struct engine* engine) {
         player_draw(engine->player, engine->world, debug_shader);
         // Switch to regular shader
         shader_use(default_shader);
+        // Use the regular block texture map
+        texture_use(engine->texture);
         float light_intensity = clock_get_light_intensity(engine->clk);
         vec3 light_color = { light_intensity, light_intensity, light_intensity };
         set_uniform_vec3("light_color", default_shader, light_color);
@@ -314,8 +319,12 @@ void engine_start(struct engine* engine) {
         // UI and text need to be in front
         glDisable(GL_DEPTH_TEST);
         engine_debug(engine, text_shader, fps);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         shader_use(ui_shader);
+        texture_use(engine->item_texture);
         player_draw_ui(engine->player, ui_shader);
+        glDisable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
 
         SDL_GL_SwapWindow(engine->window->window);

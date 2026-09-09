@@ -18,6 +18,7 @@ struct engine {
     struct junk_vector shaders;
     struct player* player;
     struct texture* texture;
+    struct texture* item_texture;
     struct text* text;
     struct clock* clk;
     int chunk_load_mask[WORLD_WIDTH][WORLD_LENGTH];
