@@ -57,7 +57,8 @@ make
 
 ### Screenshots
 
-![sunrise](./res/sunrise.png)
+![Sunrise over the lake](./res/sunrise_lake.png)
+![Lake with Fog](./res/lake_fog.png)
 ![moonrise](./res/moonrise.png)
 ![View of a mountain](./res/mountain.png)
 ![Atop a mountain](./res/mountain_top.png)
