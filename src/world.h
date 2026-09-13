@@ -32,7 +32,7 @@ void world_get_chunk_real_coord(struct world* world, int coord[2], int out[2]);
  * @param block value to store resultant value in. if NULL, won't store value
  * @return 0 if there is a block, 1 if there is no block
  */
-int world_chunk_block_get(struct world* world, vec3 pos, struct block** block);
+int world_chunk_block_get(struct world* world, vec3 pos, enum BLOCK_ID* block);
 
 /**
  * Delete a block in a chunk from world coordinates. This wraps chunk_block_delete 

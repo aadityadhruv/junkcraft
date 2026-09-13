@@ -204,7 +204,7 @@ void world_get_chunk_real_coord(struct world* world, int coord[2], int out[2]) {
     out[1] = y;
 }
 
-int world_chunk_block_get(struct world* world, vec3 pos, struct block** block) {
+int world_chunk_block_get(struct world* world, vec3 pos, enum BLOCK_ID* block) {
     int x = floorf(pos[0]);
     //Note: OpenGL FLIP
     int y = floorf(-pos[2]);

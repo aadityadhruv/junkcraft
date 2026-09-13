@@ -36,8 +36,3 @@ void block_metadata_init() {
     }
 
 }
-
-int block_init(struct block* blk, enum BLOCK_ID block_id) {
-    blk->block_id = block_id;
-    return 0;
-}

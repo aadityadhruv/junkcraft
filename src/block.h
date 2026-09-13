@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cglm/cglm.h"
+
 enum BLOCK_ID {
     BLOCK_GRASS,
     BLOCK_STONE,
@@ -19,6 +20,7 @@ enum BLOCK_ID {
     BLOCK_WATER,
     BLOCK_ID_COUNT,
 };
+#define BLOCK_NONE BLOCK_ID_COUNT
 enum block_face {
     BLOCK_FRONT,
     BLOCK_BACK,
@@ -44,12 +46,4 @@ struct block_metadata {
 };
 
 
-struct block {
-    enum BLOCK_ID block_id;
-};
-/**
- * A block struct defines what kind of block we will be rendering. It's the metadata of the block array in a chunk
- *
- */
-int block_init(struct block* blk, enum BLOCK_ID block_id);
 void block_metadata_init();

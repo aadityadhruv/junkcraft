@@ -49,10 +49,10 @@ struct world;
  *
  */
 struct chunk_data {
-    struct block* blocks[CHUNK_WIDTH][CHUNK_LENGTH][CHUNK_HEIGHT];
+    enum BLOCK_ID blocks[CHUNK_WIDTH][CHUNK_LENGTH][CHUNK_HEIGHT];
     enum biome biome;
     vec2 coord;
-    int generated_structures;
+    int8_t generated_structures;
 };
 
 /*
@@ -138,7 +138,7 @@ void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* text
  * @param block value to store resultant value in. if NULL, won't store value
  * @return 0 if there is a block, 1 if there is no block
  */
-int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block);
+int chunk_block_get(struct chunk* chunk, vec3 pos, enum BLOCK_ID* block);
 /**
  * Create the vertex order to draw a face for the nth vertex combination
  * @param face_order - Base face order
@@ -151,7 +151,7 @@ int* chunk_face_order_add(int* face_order, int size, int idx);
  * Set the correct texture coordinates for a block
  *
  */
-void chunk_block_face_vertex_set(float* face, enum block_face face_side, struct block* block);
+void chunk_block_face_vertex_set(float* face, enum block_face face_side, enum BLOCK_ID block);
 /**
  * Delete a block in the chunk at pos if it exists
  * @param chunk Target chunk
@@ -168,8 +168,3 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos);
  * @return 0 if a block was deleted, 1 if not
  */
 int chunk_block_place(struct chunk* chunk, vec3 pos, enum BLOCK_ID block_id);
-
-/**
- * Get the biome for a z-val
- */
-enum biome chunk_get_biome(float z, struct block** blk);

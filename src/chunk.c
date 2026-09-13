@@ -18,10 +18,10 @@
 extern struct block_metadata block_metadata[BLOCK_ID_COUNT];
 extern enum biome chunk_biomes[WORLD_WIDTH][WORLD_LENGTH];
 extern int32_t seed;
-struct block* _chunk_plains_gen(struct chunk* chunk, float x, float y, float z);
-struct block* _chunk_desert_gen(struct chunk* chunk, float x, float y, float z);
-struct block* _chunk_snow_gen(struct chunk* chunk, float x, float y, float z);
-struct block* _chunk_mountains_gen(struct chunk*, float x, float y, float z);
+enum BLOCK_ID _chunk_plains_gen(struct chunk* chunk, float x, float y, float z);
+enum BLOCK_ID _chunk_desert_gen(struct chunk* chunk, float x, float y, float z);
+enum BLOCK_ID _chunk_snow_gen(struct chunk* chunk, float x, float y, float z);
+enum BLOCK_ID _chunk_mountains_gen(struct chunk* chunk, float x, float y, float h);
 
 enum BLOCK_ID chunk_ore_gen(int h) {
     // Graphite spawns below layer 20
@@ -63,18 +63,16 @@ void chunk_tree_gen(int x, int y, struct world* world, struct chunk* chunk) {
                 int z = 0;
                 for (int i = 0; i < CHUNK_HEIGHT; i++) {
                     // Don't spawn trees underground, and only on empty blocks
-                    if ( i > CAVERN_LAYER && chunk->data.blocks[x][y][i] == NULL) break;
+                    if ( i > CAVERN_LAYER && chunk->data.blocks[x][y][i] == BLOCK_NONE) break;
                         z+=1;
                 }
                 // Terminate early, we don't want to create trees on non-grass blocks
-                if (chunk->data.blocks[x][y][z - 1]->block_id != BLOCK_GRASS) {
+                if (chunk->data.blocks[x][y][z - 1] != BLOCK_GRASS) {
                     return;
                 }
                 int max_height = MIN(CHUNK_HEIGHT, z + 4);
                 for (int h = z; h < max_height; h++) {
-                    struct block* blk = malloc(sizeof(struct block));
-                    block_init(blk, BLOCK_WOOD);
-                    chunk->data.blocks[x][y][h] = blk;
+                    chunk->data.blocks[x][y][h] = BLOCK_WOOD;
                 }
                 for (int i = -2; i <= 2; i++) {
                     for (int j = -2; j <= 2; j++) {
@@ -114,7 +112,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         b = JUNK_BIOME_MOUNTAINS;
         int z = (int) (BIOME_BASE + z_val * MOUNTAIN_HEIGHT);
         for (int h = 0; h < z; h++) {
-            struct block* blk = _chunk_mountains_gen(chunk, x, y, h);
+            enum BLOCK_ID blk = _chunk_mountains_gen(chunk, x, y, h);
             chunk->data.blocks[x][y][h] = blk;
         }
     }
@@ -122,7 +120,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         b = JUNK_BIOME_SNOW;
         int z = (int) (BIOME_BASE + z_val * SNOW_HEIGHT);
         for (int h = 0; h < z; h++) {
-            struct block* blk = _chunk_snow_gen(chunk, x, y, h);
+            enum BLOCK_ID blk = _chunk_snow_gen(chunk, x, y, h);
             chunk->data.blocks[x][y][h] = blk;
         }
     }
@@ -132,7 +130,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
             b = JUNK_BIOME_DESERT;
             int z = (int) (BIOME_BASE + z_val * DESERT_HEIGHT);
             for (int h = 0; h < z; h++) {
-                struct block* blk = _chunk_desert_gen(chunk, x, y, h);
+                enum BLOCK_ID blk = _chunk_desert_gen(chunk, x, y, h);
                 chunk->data.blocks[x][y][h] = blk;
             }
         }
@@ -140,13 +138,11 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
             b = JUNK_BIOME_PLAINS;
             int z = (int)(BIOME_BASE + z_val * PLAINS_HEIGHT);
             for (int h = 0; h < z; h++) {
-                struct block* blk = _chunk_plains_gen(chunk, x, y, h);
+                enum BLOCK_ID blk = _chunk_plains_gen(chunk, x, y, h);
                 chunk->data.blocks[x][y][h] = blk;
             }
             for (int h = z; h <= SEA_LEVEL; h++) {
-                struct block* blk = malloc(sizeof(struct block));
-                block_init(blk, BLOCK_WATER);
-                chunk->data.blocks[x][y][h] = blk;
+                chunk->data.blocks[x][y][h] = BLOCK_WATER;
             }
         }
     }
@@ -158,7 +154,13 @@ int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
     struct chunk* chunk = malloc(sizeof(struct chunk));
     memset(chunk, 0, sizeof(struct chunk));
     memcpy(chunk->data.coord,coord, sizeof(vec2));
-    memset(chunk->data.blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
+    for (int i = 0; i < CHUNK_WIDTH; i++) {
+        for (int j = 0; j < CHUNK_LENGTH; j++) {
+            for (int k = 0; k < CHUNK_HEIGHT; k++) {
+                chunk->data.blocks[i][j][k] = BLOCK_NONE;
+            }
+        }
+    }
     enum biome chunk_biome_counter[JUNK_BIOME_COUNT];
     memset(chunk_biome_counter, 0, sizeof(chunk_biome_counter));
     // fprintf(stderr, "=================== CHUNK (%f, %f) ===================\n", chunk->data.coord[0], chunk->data.coord[1]);
@@ -222,7 +224,7 @@ int chunk_structure_gen(struct world* world, struct chunk* chunk) {
  * @param block at coordinates, NULL if nothing. Can pass NULL to do nothing
  * @return 1 if there is a block at coordinates coord, 0 otherwise
  */
-int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 coord, struct block** blk) {
+int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 coord, enum BLOCK_ID *blk) {
     int x = coord[0];
     int y = coord[1];
     int z = coord[2];
@@ -243,7 +245,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         // This means that sometimes because of order of evaluation a chunk might think it's neighbor
         // isn't loaded even though it will be
         if (left_chunk == NULL) {
-            if (blk != NULL) *blk = NULL;
+            if (blk != NULL) *blk = BLOCK_NONE;
             return 0;
         }
         // Otherwise we check if the neighbor block exists
@@ -259,7 +261,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         world_get_chunk_no_gen(world, neighbor, &right_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
         if (right_chunk == NULL) {
-            if (blk != NULL) *blk = NULL;
+            if (blk != NULL) *blk = BLOCK_NONE;
             return 0;
         }
         // Otherwise we check if the neighbor block exists
@@ -275,7 +277,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         world_get_chunk_no_gen(world, neighbor, &bottom_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
         if (bottom_chunk == NULL) {
-            if (blk != NULL) *blk = NULL;
+            if (blk != NULL) *blk = BLOCK_NONE;
             return 0;
         }
         // Otherwise we check if the neighbor block exists
@@ -291,7 +293,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         world_get_chunk_no_gen(world, neighbor, &top_chunk);
         // If unloaded, we don't care, it's not being rendered, so mark as no neighbor
         if (top_chunk == NULL) {
-            if (blk != NULL) *blk = NULL;
+            if (blk != NULL) *blk = BLOCK_NONE;
             return 0;
         }
         // Otherwise we check if the neighbor block exists
@@ -299,22 +301,22 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         return _chunk_check_neighbor_block(world, top_chunk, left_neighbor_block, blk);
     }
     if (x < 0 || y < 0 || z < 0) {
-        if (blk != NULL) *blk = NULL;
+        if (blk != NULL) *blk = BLOCK_NONE;
         return 0;
     }
     if (x >= CHUNK_WIDTH  || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) { 
-        if (blk != NULL) *blk = NULL;
+        if (blk != NULL) *blk = BLOCK_NONE;
         return 0;
     }
     // Air block
-    if (chunk->data.blocks[x][y][z] == NULL) {
-        if (blk != NULL) *blk = NULL;
+    if (chunk->data.blocks[x][y][z] == BLOCK_NONE) {
+        if (blk != NULL) *blk = BLOCK_NONE;
         return 0;
     }
     if (blk != NULL) *blk = chunk->data.blocks[x][y][z];
     // See-through block TODO: Might want to rename this function or handle it differently.
     // Despite there being a leaf block we mark as no neighbor because leaves are see-through.
-    if (chunk->data.blocks[x][y][z]->block_id == BLOCK_LEAF) {
+    if (chunk->data.blocks[x][y][z] == BLOCK_LEAF) {
         return 0;
     }
     return 1;
@@ -324,140 +326,124 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
  * Basic Mountain chunk generation
  *
  */
-struct block* _chunk_mountains_gen(struct chunk* chunk, float x, float y, float h) {
-    struct block* blk = malloc(sizeof(struct block));
+enum BLOCK_ID _chunk_mountains_gen(struct chunk* chunk, float x, float y, float h) {
     float z_val = noise_caves(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
-            free(blk);
-            return NULL;
+            return BLOCK_NONE;
         }
-        block_init(blk, BLOCK_ROCK);
+        return BLOCK_ROCK;
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
-            free(blk);
-            return NULL;
+            return BLOCK_NONE;
         }
-        block_init(blk, BLOCK_STONE);
+        return BLOCK_STONE;
     } 
     else if (h <= (BIOME_BASE + MOUNTAIN_HEIGHT) * 0.6) {
         float p = (float) rand() / (float) RAND_MAX;
         if (p < 0.3) {
-            block_init(blk, BLOCK_STONE);
+            return BLOCK_STONE;
         } else {
-            block_init(blk, BLOCK_SNOW);
+            return BLOCK_SNOW;
         }
     }
     else {
-        block_init(blk, BLOCK_SNOW);
+            return BLOCK_SNOW;
     }
-    return blk;
 }
 
 /**
  * Basic Snow chunk generation
  *
  */
-struct block* _chunk_snow_gen(struct chunk* chunk, float x, float y, float h) {
-    struct block* blk = malloc(sizeof(struct block));
+enum BLOCK_ID _chunk_snow_gen(struct chunk* chunk, float x, float y, float h) {
     float z_val = noise_caves(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
-            free(blk);
-            return NULL;
+            return BLOCK_NONE;
         }
-        block_init(blk, BLOCK_ROCK);
+        return BLOCK_ROCK;
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
-            free(blk);
-            return NULL;
+            return BLOCK_NONE;
         }
-        block_init(blk, BLOCK_STONE);
+        return BLOCK_STONE;
     } else {
-        block_init(blk, BLOCK_SNOW);
+        return BLOCK_SNOW;
     }
-    return blk;
 }
 
 /**
  * Basic Desert chunk generation
  *
  */
-struct block* _chunk_desert_gen(struct chunk* chunk, float x, float y, float h) {
-    struct block* blk = malloc(sizeof(struct block));
+enum BLOCK_ID _chunk_desert_gen(struct chunk* chunk, float x, float y, float h) {
     float z_val = noise_caves(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
-            free(blk);
-            return NULL;
+            return BLOCK_NONE;
         }
-        block_init(blk, BLOCK_ROCK);
+        return BLOCK_ROCK;
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
-            free(blk);
-            return NULL;
+            return BLOCK_NONE;
         }
-        block_init(blk, BLOCK_STONE);
+        return BLOCK_STONE;
     } else {
-        block_init(blk, BLOCK_SAND);
+        return BLOCK_SAND;
     }
-    return blk;
 }
 /**
  * Basic Plains chunk generation
  *
  */
-struct block* _chunk_plains_gen(struct chunk* chunk, float x, float y, float h) {
-    struct block* blk = malloc(sizeof(struct block));
+enum BLOCK_ID _chunk_plains_gen(struct chunk* chunk, float x, float y, float h) {
     float z_val = noise_caves(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
-            free(blk);
-            return NULL;
+            return BLOCK_NONE;
         }
-        block_init(blk, chunk_ore_gen(h));
+        return chunk_ore_gen(h);
     }
     else if (h <= CAVERN_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
-            free(blk);
-            return NULL;
+            return BLOCK_NONE;
         }
-        block_init(blk, chunk_ore_gen(h));
+        return chunk_ore_gen(h);
     }
     else {
-        block_init(blk, BLOCK_GRASS);
+        return BLOCK_GRASS;
     }
-    return blk;
 }
 
-void chunk_block_face_vertex_set(float* face, enum block_face face_side, struct block *block) {
+void chunk_block_face_vertex_set(float* face, enum block_face face_side, enum BLOCK_ID block) {
     int x_start = 6;
     int y_start = 7;
     // To next vertex in face (face has 4 vertex and each is 8 floats)
     int step = 8;
-    face[x_start] = block_metadata[block->block_id].texture_data[face_side].top_right[0];
-    face[y_start] = block_metadata[block->block_id].texture_data[face_side].top_right[1];
+    face[x_start] = block_metadata[block].texture_data[face_side].top_right[0];
+    face[y_start] = block_metadata[block].texture_data[face_side].top_right[1];
 
     x_start += step;
     y_start += step;
 
-    face[x_start] = block_metadata[block->block_id].texture_data[face_side].top_left[0];
-    face[y_start] = block_metadata[block->block_id].texture_data[face_side].top_left[1];
+    face[x_start] = block_metadata[block].texture_data[face_side].top_left[0];
+    face[y_start] = block_metadata[block].texture_data[face_side].top_left[1];
 
     x_start += step;
     y_start += step;
 
-    face[x_start] = block_metadata[block->block_id].texture_data[face_side].bottom_left[0];
-    face[y_start] = block_metadata[block->block_id].texture_data[face_side].bottom_left[1];
+    face[x_start] = block_metadata[block].texture_data[face_side].bottom_left[0];
+    face[y_start] = block_metadata[block].texture_data[face_side].bottom_left[1];
 
     x_start += step;
     y_start += step;
 
-    face[x_start] = block_metadata[block->block_id].texture_data[face_side].bottom_right[0];
-    face[y_start] = block_metadata[block->block_id].texture_data[face_side].bottom_right[1];
+    face[x_start] = block_metadata[block].texture_data[face_side].bottom_right[0];
+    face[y_start] = block_metadata[block].texture_data[face_side].bottom_right[1];
 }
 
 
@@ -609,9 +595,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_LENGTH; y++) {
             for (int z = 0; z < CHUNK_HEIGHT; z++) {
-                struct block* blk = chunk->data.blocks[x][y][z];
+                enum BLOCK_ID blk = chunk->data.blocks[x][y][z];
                 // If not air block
-                if (blk != NULL && block_metadata[blk->block_id].opaque) {
+                if (blk != BLOCK_NONE && block_metadata[blk].opaque) {
                     blk_c += 1;
                     // Position of block in OpenGL coords
                     // NOTE: OpenGL FLIP
@@ -623,9 +609,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                     vec3 top = { x, y, z + 1 };
                     vec3 bottom = { x, y, z - 1 };
 
-                    struct block* neighbor = NULL;
+                    enum BLOCK_ID neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, front, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(front_face, BLOCK_FRONT, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(front_face,
                                     sizeof(front_face), pos));
@@ -636,9 +622,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[0] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, back, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(back_face, BLOCK_BACK, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(back_face,
                                     sizeof(back_face), pos));
@@ -649,9 +635,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[1] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, right, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(right_face, BLOCK_RIGHT, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(right_face,
                                     sizeof(right_face), pos));
@@ -662,9 +648,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[2] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, left, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(left_face, BLOCK_LEFT, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(left_face,
                                     sizeof(left_face), pos));
@@ -675,9 +661,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[3] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, top, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(top_face, BLOCK_TOP, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(top_face,
                                     sizeof(top_face), pos));
@@ -688,9 +674,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[4] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, bottom, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(bottom_face, BLOCK_BOTTOM, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(bottom_face,
                                     sizeof(bottom_face), pos));
@@ -708,9 +694,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_LENGTH; y++) {
             for (int z = 0; z < CHUNK_HEIGHT; z++) {
-                struct block* blk = chunk->data.blocks[x][y][z];
+                enum BLOCK_ID blk = chunk->data.blocks[x][y][z];
                 // If not air block
-                if (blk != NULL && !block_metadata[blk->block_id].opaque) {
+                if (blk != BLOCK_NONE && !block_metadata[blk].opaque) {
                     blk_c += 1;
                     // Position of block in OpenGL coords
                     // NOTE: OpenGL FLIP
@@ -722,9 +708,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                     vec3 top = { x, y, z + 1 };
                     vec3 bottom = { x, y, z - 1 };
 
-                    struct block* neighbor = NULL;
+                    enum BLOCK_ID neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, front, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(front_face, BLOCK_FRONT, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(front_face,
                                     sizeof(front_face), pos));
@@ -735,9 +721,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[0] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, back, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(back_face, BLOCK_BACK, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(back_face,
                                     sizeof(back_face), pos));
@@ -748,9 +734,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[1] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, right, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(right_face, BLOCK_RIGHT, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(right_face,
                                     sizeof(right_face), pos));
@@ -761,9 +747,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[2] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, left, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(left_face, BLOCK_LEFT, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(left_face,
                                     sizeof(left_face), pos));
@@ -774,9 +760,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[3] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, top, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(top_face, BLOCK_TOP, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(top_face,
                                     sizeof(top_face), pos));
@@ -787,9 +773,9 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
                         v_count[4] += 1;
                     }
 
-                    neighbor = NULL;
+                    neighbor = BLOCK_NONE;
                     if (_chunk_check_neighbor_block(world, chunk, bottom, &neighbor) == 0 ||
-                            (block_metadata[blk->block_id].opaque && neighbor != NULL && !block_metadata[neighbor->block_id].opaque)) {
+                            (block_metadata[blk].opaque && neighbor != BLOCK_NONE && !block_metadata[neighbor].opaque)) {
                         chunk_block_face_vertex_set(bottom_face, BLOCK_BOTTOM, blk);
                         JUNK_VECTOR_INSERT(&vertices, _chunk_face_add(bottom_face,
                                     sizeof(bottom_face), pos));
@@ -884,7 +870,7 @@ void chunk_unload(struct chunk* chunk) {
 // Regenerate chunk data
 void chunk_update(struct chunk *chunk) {
 }
-int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block) {
+int chunk_block_get(struct chunk* chunk, vec3 pos, enum BLOCK_ID* block) {
     int x = pos[0];
     int y = pos[1];
     int z = pos[2];
@@ -894,7 +880,7 @@ int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block) {
     if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
         return 1;
     }
-    if (chunk->data.blocks[x][y][z] != NULL) {
+    if (chunk->data.blocks[x][y][z] != BLOCK_NONE) {
         if (block != NULL) {
             *block = chunk->data.blocks[x][y][z];
         }
@@ -913,17 +899,15 @@ int chunk_block_place(struct chunk* chunk, vec3 pos, enum BLOCK_ID block_id) {
     if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
         return 1;
     }
-    if (chunk->data.blocks[x][y][z] == NULL) {
-        struct block* blk = malloc(sizeof(struct block));
-        block_init(blk, block_id);
-        chunk->data.blocks[x][y][z] = blk;
+    if (chunk->data.blocks[x][y][z] == BLOCK_NONE) {
+        chunk->data.blocks[x][y][z] = block_id;
         // Set dirty flag, we will unload/reload in engine loop
         chunk->graphics.dirty = 1;
         return 0;
     }
     // Not a solid block
-    if (chunk->data.blocks[x][y][z] != NULL && !block_metadata[chunk->data.blocks[x][y][z]->block_id].solid) {
-        chunk->data.blocks[x][y][z]->block_id = block_id;
+    if (chunk->data.blocks[x][y][z] != BLOCK_NONE && !block_metadata[chunk->data.blocks[x][y][z]].solid) {
+        chunk->data.blocks[x][y][z] = block_id;
         chunk->graphics.dirty = 1;
         return 0;
     }
@@ -941,9 +925,8 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos) {
     if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
         return 1;
     }
-    if (chunk->data.blocks[x][y][z] != NULL) {
-        free(chunk->data.blocks[x][y][z]);
-        chunk->data.blocks[x][y][z] = NULL;
+    if (chunk->data.blocks[x][y][z] != BLOCK_NONE) {
+        chunk->data.blocks[x][y][z] = BLOCK_NONE;
         // Set dirty flag, we will unload/reload in engine loop
         chunk->graphics.dirty = 1;
         return 0;

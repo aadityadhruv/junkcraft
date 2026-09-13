@@ -143,10 +143,10 @@ int player_can_move_x(struct player* player, struct engine* engine, float mov) {
     vec3 pc3 = { lifted_pos[0] + w, lifted_pos[1], lifted_pos[2] + l };
     vec3 pc4 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] + l };
     // Check if block on X-axis
-    struct block* blk1 = NULL;
-    struct block* blk2 = NULL;
-    struct block* blk3 = NULL;
-    struct block* blk4 = NULL;
+    enum BLOCK_ID blk1 = BLOCK_NONE;
+    enum BLOCK_ID blk2 = BLOCK_NONE;
+    enum BLOCK_ID blk3 = BLOCK_NONE;
+    enum BLOCK_ID blk4 = BLOCK_NONE;
     if (
             world_chunk_block_get(engine->world, pc1, &blk1) &&
             world_chunk_block_get(engine->world, pc2, &blk2) &&
@@ -156,10 +156,10 @@ int player_can_move_x(struct player* player, struct engine* engine, float mov) {
         return 1;
     } else {
         // None of the blocks we are coliding with are solid
-        if ((blk1 == NULL || !block_metadata[blk1->block_id].solid) && 
-            (blk2 == NULL || !block_metadata[blk2->block_id].solid) &&
-            (blk3 == NULL || !block_metadata[blk3->block_id].solid) &&
-            (blk4 == NULL || !block_metadata[blk4->block_id].solid)) {
+        if ((blk1 == BLOCK_NONE || !block_metadata[blk1].solid) && 
+            (blk2 == BLOCK_NONE || !block_metadata[blk2].solid) &&
+            (blk3 == BLOCK_NONE || !block_metadata[blk3].solid) &&
+            (blk4 == BLOCK_NONE || !block_metadata[blk4].solid)) {
             return 1;
         }
         return 0;
@@ -183,10 +183,10 @@ int player_can_move_y(struct player* player, struct engine* engine, float mov) {
     vec3 pc3 = { lifted_pos[0], lifted_pos[1] + h, lifted_pos[2] + l };
     vec3 pc4 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] + l };
     // Check if block on Y-axis
-    struct block* blk1 = NULL;
-    struct block* blk2 = NULL;
-    struct block* blk3 = NULL;
-    struct block* blk4 = NULL;
+    enum BLOCK_ID blk1 = BLOCK_NONE;
+    enum BLOCK_ID blk2 = BLOCK_NONE;
+    enum BLOCK_ID blk3 = BLOCK_NONE;
+    enum BLOCK_ID blk4 = BLOCK_NONE;
     if (
             world_chunk_block_get(engine->world, pc1, &blk1) &&
             world_chunk_block_get(engine->world, pc2, &blk2) &&
@@ -196,10 +196,10 @@ int player_can_move_y(struct player* player, struct engine* engine, float mov) {
         return 1;
     } else {
         // None of the blocks we are coliding with are solid
-        if ((blk1 == NULL || !block_metadata[blk1->block_id].solid) && 
-            (blk2 == NULL || !block_metadata[blk2->block_id].solid) &&
-            (blk3 == NULL || !block_metadata[blk3->block_id].solid) &&
-            (blk4 == NULL || !block_metadata[blk4->block_id].solid)) {
+        if ((blk1 == BLOCK_NONE || !block_metadata[blk1].solid) && 
+            (blk2 == BLOCK_NONE || !block_metadata[blk2].solid) &&
+            (blk3 == BLOCK_NONE || !block_metadata[blk3].solid) &&
+            (blk4 == BLOCK_NONE || !block_metadata[blk4].solid)) {
             return 1;
         }
         return 0;
@@ -223,10 +223,10 @@ int player_can_move_z(struct player* player, struct engine* engine, float mov) {
     vec3 pc3 = { lifted_pos[0], lifted_pos[1] + h, lifted_pos[2] + l };
     vec3 pc4 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] + l };
     // Check if block on Z-axis
-    struct block* blk1 = NULL;
-    struct block* blk2 = NULL;
-    struct block* blk3 = NULL;
-    struct block* blk4 = NULL;
+    enum BLOCK_ID blk1 = BLOCK_NONE;
+    enum BLOCK_ID blk2 = BLOCK_NONE;
+    enum BLOCK_ID blk3 = BLOCK_NONE;
+    enum BLOCK_ID blk4 = BLOCK_NONE;
     if (
             world_chunk_block_get(engine->world, pc1, &blk1) &&
             world_chunk_block_get(engine->world, pc2, &blk2) &&
@@ -236,10 +236,10 @@ int player_can_move_z(struct player* player, struct engine* engine, float mov) {
         return 1;
     } else {
         // None of the blocks we are coliding with are solid
-        if ((blk1 == NULL || !block_metadata[blk1->block_id].solid) && 
-            (blk2 == NULL || !block_metadata[blk2->block_id].solid) &&
-            (blk3 == NULL || !block_metadata[blk3->block_id].solid) &&
-            (blk4 == NULL || !block_metadata[blk4->block_id].solid)) {
+        if ((blk1 == BLOCK_NONE || !block_metadata[blk1].solid) && 
+            (blk2 == BLOCK_NONE || !block_metadata[blk2].solid) &&
+            (blk3 == BLOCK_NONE || !block_metadata[blk3].solid) &&
+            (blk4 == BLOCK_NONE || !block_metadata[blk4].solid)) {
             return 1;
         }
         return 0;
@@ -402,9 +402,9 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
             break;
         }
         // is_block == 0 if there is block
-        struct block* blk;
+        enum BLOCK_ID blk = BLOCK_NONE;
         int is_block = world_chunk_block_get(world, ray_position, &blk);
-        if (is_block == 0 && block_metadata[blk->block_id].solid) {
+        if (is_block == 0 && block_metadata[blk].solid) {
             found = 1;
             break;
         }
@@ -709,9 +709,9 @@ void player_block_delete(struct player* player, struct world* world) {
             break;
         }
         // is_block == 0 if there is block
-        struct block* blk;
+        enum BLOCK_ID blk = BLOCK_NONE;
         int is_block = world_chunk_block_get(world, ray_position, &blk);
-        if (is_block == 0 && block_metadata[blk->block_id].solid) {
+        if (is_block == 0 && block_metadata[blk].solid) {
             found = 1;
             break;
         }
@@ -753,9 +753,9 @@ void player_block_place(struct player* player, struct engine* engine, enum BLOCK
             break;
         }
         // is_block == 0 if there is block
-        struct block* blk;
+        enum BLOCK_ID blk = BLOCK_NONE;
         int is_block = world_chunk_block_get(world, ray_position, &blk);
-        if (is_block == 0 && block_metadata[blk->block_id].solid) {
+        if (is_block == 0 && block_metadata[blk].solid) {
             found = 1;
             break;
         }
