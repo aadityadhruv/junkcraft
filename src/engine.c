@@ -143,7 +143,7 @@ void engine_update(struct engine* engine) {
                 //     chunk_load(engine->world, chunk, chunk_coord);
                 // }
                 if (engine->chunk_load_mask[i][j] == 0) {
-                    if (chunk->loaded == 1) {
+                    if (chunk->graphics.loaded == 1) {
                         fprintf(stderr, "unloaded %d %d\n", chunk_coord[0], chunk_coord[1]);
                         chunk_unload(chunk);
                     }
@@ -160,7 +160,7 @@ void engine_update(struct engine* engine) {
             struct chunk* chunk = {0};
             int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
             world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
-            if (chunk != NULL && chunk->generated_structures == 1 && chunk->dirty) {
+            if (chunk != NULL && chunk->data.generated_structures == 1 && chunk->graphics.dirty) {
                 // TODO: At high chunk distances, this is called hundreds of times
                 // because each tree gen is a block place which marks chunk as dirty. 
                 // So the same chunk gets unloaded/loaded even before the chunk is "ready"
@@ -168,7 +168,7 @@ void engine_update(struct engine* engine) {
                 // fully generated (chunk->generated_structures == 1). But it is something to keep in mind
                 chunk_unload(chunk);
                 // chunk_load(engine->world, chunk, chunk_coord);
-                chunk->dirty = 0;
+                chunk->graphics.dirty = 0;
             }
         }
     }
@@ -305,7 +305,7 @@ void engine_start(struct engine* engine) {
             int real_coord[2];
             world_get_chunk_real_coord(engine->world, chunk_coord, real_coord);
             if (1 || player_is_point_in_frustum(engine->player, frustum_check_chunk_coord)) {
-                if (chunk->loaded == 0) {
+                if (chunk->graphics.loaded == 0) {
                     chunk_load(engine->world, chunk, chunk_coord);
                 }
                 engine->chunk_load_mask[real_coord[0]][real_coord[1]] = 1;

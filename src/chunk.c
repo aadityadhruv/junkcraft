@@ -58,23 +58,23 @@ enum BLOCK_ID chunk_ore_gen(int h) {
 void chunk_tree_gen(int x, int y, struct world* world, struct chunk* chunk) {
             // Generate tree at the point
             if (rand() % 100 == 0.0f) {
-                vec3 world_chunk_coords = { chunk->coord[0]*CHUNK_WIDTH, chunk->coord[1]*CHUNK_LENGTH, 0.0f };
+                vec3 world_chunk_coords = { chunk->data.coord[0]*CHUNK_WIDTH, chunk->data.coord[1]*CHUNK_LENGTH, 0.0f };
                 // Get z-value at x,y
                 int z = 0;
                 for (int i = 0; i < CHUNK_HEIGHT; i++) {
                     // Don't spawn trees underground, and only on empty blocks
-                    if ( i > CAVERN_LAYER && chunk->blocks[x][y][i] == NULL) break;
+                    if ( i > CAVERN_LAYER && chunk->data.blocks[x][y][i] == NULL) break;
                         z+=1;
                 }
                 // Terminate early, we don't want to create trees on non-grass blocks
-                if (chunk->blocks[x][y][z - 1]->block_id != BLOCK_GRASS) {
+                if (chunk->data.blocks[x][y][z - 1]->block_id != BLOCK_GRASS) {
                     return;
                 }
                 int max_height = MIN(CHUNK_HEIGHT, z + 4);
                 for (int h = z; h < max_height; h++) {
                     struct block* blk = malloc(sizeof(struct block));
                     block_init(blk, BLOCK_WOOD);
-                    chunk->blocks[x][y][h] = blk;
+                    chunk->data.blocks[x][y][h] = blk;
                 }
                 for (int i = -2; i <= 2; i++) {
                     for (int j = -2; j <= 2; j++) {
@@ -115,7 +115,7 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         int z = (int) (BIOME_BASE + z_val * MOUNTAIN_HEIGHT);
         for (int h = 0; h < z; h++) {
             struct block* blk = _chunk_mountains_gen(chunk, x, y, h);
-            chunk->blocks[x][y][h] = blk;
+            chunk->data.blocks[x][y][h] = blk;
         }
     }
     else if (z_val > 0.4f) {
@@ -123,17 +123,17 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         int z = (int) (BIOME_BASE + z_val * SNOW_HEIGHT);
         for (int h = 0; h < z; h++) {
             struct block* blk = _chunk_snow_gen(chunk, x, y, h);
-            chunk->blocks[x][y][h] = blk;
+            chunk->data.blocks[x][y][h] = blk;
         }
     }
     else   {
-        float heat = noise_heat(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH);
+        float heat = noise_heat(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH);
         if (heat > 0.6f) {
             b = JUNK_BIOME_DESERT;
             int z = (int) (BIOME_BASE + z_val * DESERT_HEIGHT);
             for (int h = 0; h < z; h++) {
                 struct block* blk = _chunk_desert_gen(chunk, x, y, h);
-                chunk->blocks[x][y][h] = blk;
+                chunk->data.blocks[x][y][h] = blk;
             }
         }
         else {
@@ -141,12 +141,12 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
             int z = (int)(BIOME_BASE + z_val * PLAINS_HEIGHT);
             for (int h = 0; h < z; h++) {
                 struct block* blk = _chunk_plains_gen(chunk, x, y, h);
-                chunk->blocks[x][y][h] = blk;
+                chunk->data.blocks[x][y][h] = blk;
             }
             for (int h = z; h <= SEA_LEVEL; h++) {
                 struct block* blk = malloc(sizeof(struct block));
                 block_init(blk, BLOCK_WATER);
-                chunk->blocks[x][y][h] = blk;
+                chunk->data.blocks[x][y][h] = blk;
             }
         }
     }
@@ -157,14 +157,14 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
 int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
     struct chunk* chunk = malloc(sizeof(struct chunk));
     memset(chunk, 0, sizeof(struct chunk));
-    memcpy(chunk->coord,coord, sizeof(vec2));
-    memset(chunk->blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
+    memcpy(chunk->data.coord,coord, sizeof(vec2));
+    memset(chunk->data.blocks, 0, CHUNK_HEIGHT * CHUNK_LENGTH * CHUNK_WIDTH * sizeof(struct block*));
     enum biome chunk_biome_counter[JUNK_BIOME_COUNT];
     memset(chunk_biome_counter, 0, sizeof(chunk_biome_counter));
-    // fprintf(stderr, "=================== CHUNK (%f, %f) ===================\n", chunk->coord[0], chunk->coord[1]);
+    // fprintf(stderr, "=================== CHUNK (%f, %f) ===================\n", chunk->data.coord[0], chunk->data.coord[1]);
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_LENGTH; y++) {
-            float z_val = noise_terrain(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH);
+            float z_val = noise_terrain(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH);
             z_val = MAX(0, z_val);
             chunk_biome_counter[chunk_block_gen(x, y, z_val, chunk)] += 1;
         }
@@ -180,17 +180,17 @@ int chunk_terrain_gen(struct world* world, vec2 coord, struct chunk **c) {
             max_biome_counter = chunk_biome_counter[i];
         }
     }
-    chunk->biome = max_biome;
+    chunk->data.biome = max_biome;
     *c = chunk;
     return 0;
 }
 
 int chunk_structure_gen(struct world* world, struct chunk* chunk) {
-    if (chunk->generated_structures == 1) return 1;
+    if (chunk->data.generated_structures == 1) return 1;
     // Ensure neighbors have at least terrain generated
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
-            int coords[2] = { chunk->coord[0] + i, chunk->coord[1] + j };
+            int coords[2] = { chunk->data.coord[0] + i, chunk->data.coord[1] + j };
             struct chunk* chunk;
             world_get_chunk_no_gen(world, coords, &chunk);
             if (chunk == NULL) {
@@ -198,7 +198,7 @@ int chunk_structure_gen(struct world* world, struct chunk* chunk) {
             }
         }
     }
-    if (chunk->biome == JUNK_BIOME_PLAINS) {
+    if (chunk->data.biome == JUNK_BIOME_PLAINS) {
         // Only gen trees for PLAINS biomes
         for (int x = 0; x < CHUNK_WIDTH; x++) {
             for (int y = 0; y < CHUNK_LENGTH; y++) {
@@ -206,8 +206,8 @@ int chunk_structure_gen(struct world* world, struct chunk* chunk) {
             }
         }
     }
-    chunk->generated_structures = 1;
-    chunk->dirty = 1;
+    chunk->data.generated_structures = 1;
+    chunk->graphics.dirty = 1;
     return 0;
 }
 
@@ -233,12 +233,12 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
     if (x == -1.0) {
         vec2 c = { 0 };
         vec2 left = { -1.0f, 0.0f };
-        glm_vec2_add(left, chunk->coord, c);
+        glm_vec2_add(left, chunk->data.coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* left_chunk = { 0 };
         world_get_chunk_no_gen(world, neighbor, &left_chunk);
         // If not created, we don't care, it's not being rendered, so mark as no neighbor
-        // TODO: Previously had chunk->loaded == 0, but this causes a problem. When we move
+        // TODO: Previously had chunk->data.loaded == 0, but this causes a problem. When we move
         // from one chunk to another, everything gets unloaded, and then we start loading everything. 
         // This means that sometimes because of order of evaluation a chunk might think it's neighbor
         // isn't loaded even though it will be
@@ -253,7 +253,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
     if (x == CHUNK_WIDTH) {
         vec2 c = { 0 };
         vec2 right = { 1.0f,  0.0f };
-        glm_vec2_add(right, chunk->coord, c);
+        glm_vec2_add(right, chunk->data.coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* right_chunk = { 0 };
         world_get_chunk_no_gen(world, neighbor, &right_chunk);
@@ -269,7 +269,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
     if (y == -1.0) {
         vec2 c = { 0 };
         vec2 bottom = { 0.0f, -1.0f };
-        glm_vec2_add(bottom, chunk->coord, c);
+        glm_vec2_add(bottom, chunk->data.coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* bottom_chunk = { 0 };
         world_get_chunk_no_gen(world, neighbor, &bottom_chunk);
@@ -285,7 +285,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
     if (y == CHUNK_LENGTH) {
         vec2 c = { 0 };
         vec2 top = { 0.0f,  1.0f };
-        glm_vec2_add(top, chunk->coord, c);
+        glm_vec2_add(top, chunk->data.coord, c);
         int neighbor[] = { c[0], c[1] };
         struct chunk* top_chunk = { 0 };
         world_get_chunk_no_gen(world, neighbor, &top_chunk);
@@ -307,14 +307,14 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
         return 0;
     }
     // Air block
-    if (chunk->blocks[x][y][z] == NULL) {
+    if (chunk->data.blocks[x][y][z] == NULL) {
         if (blk != NULL) *blk = NULL;
         return 0;
     }
-    if (blk != NULL) *blk = chunk->blocks[x][y][z];
+    if (blk != NULL) *blk = chunk->data.blocks[x][y][z];
     // See-through block TODO: Might want to rename this function or handle it differently.
     // Despite there being a leaf block we mark as no neighbor because leaves are see-through.
-    if (chunk->blocks[x][y][z]->block_id == BLOCK_LEAF) {
+    if (chunk->data.blocks[x][y][z]->block_id == BLOCK_LEAF) {
         return 0;
     }
     return 1;
@@ -326,7 +326,7 @@ int _chunk_check_neighbor_block(struct world* world, struct chunk* chunk, vec3 c
  */
 struct block* _chunk_mountains_gen(struct chunk* chunk, float x, float y, float h) {
     struct block* blk = malloc(sizeof(struct block));
-    float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
+    float z_val = noise_caves(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
             free(blk);
@@ -361,7 +361,7 @@ struct block* _chunk_mountains_gen(struct chunk* chunk, float x, float y, float 
  */
 struct block* _chunk_snow_gen(struct chunk* chunk, float x, float y, float h) {
     struct block* blk = malloc(sizeof(struct block));
-    float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
+    float z_val = noise_caves(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
             free(blk);
@@ -387,7 +387,7 @@ struct block* _chunk_snow_gen(struct chunk* chunk, float x, float y, float h) {
  */
 struct block* _chunk_desert_gen(struct chunk* chunk, float x, float y, float h) {
     struct block* blk = malloc(sizeof(struct block));
-    float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
+    float z_val = noise_caves(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
             free(blk);
@@ -412,7 +412,7 @@ struct block* _chunk_desert_gen(struct chunk* chunk, float x, float y, float h) 
  */
 struct block* _chunk_plains_gen(struct chunk* chunk, float x, float y, float h) {
     struct block* blk = malloc(sizeof(struct block));
-    float z_val = noise_caves(x + chunk->coord[0]*CHUNK_WIDTH, y + chunk->coord[1]*CHUNK_LENGTH, h);
+    float z_val = noise_caves(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH, h);
     if (h <= UNDERGROUND_LAYER) {
         if (h != 0 && z_val <= CAVE_THRESHOLD && h <= CAVE_GEN_LAYER) {
             free(blk);
@@ -496,12 +496,12 @@ float* _chunk_face_add(float* face, int size, vec3 pos) {
  */
 void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     // If we are already loaded, no need to do any GPU work at all. Just update the coordinates
-    if (chunk->loaded == 1) {
+    if (chunk->graphics.loaded == 1) {
     vec3 translation = {CHUNK_WIDTH * coord[0], 0, - (CHUNK_LENGTH * coord[1])};
     // Set the matrix for world coordinate translation
-    glm_mat4_identity(chunk->model);
-    glm_translate(chunk->model, translation);
-    chunk->loaded = 1;
+    glm_mat4_identity(chunk->graphics.model);
+    glm_translate(chunk->graphics.model, translation);
+    chunk->graphics.loaded = 1;
     return;
     }
     // fprintf(stderr, "Loaded chunk (%d, %d)\n", coord[0], coord[1]);
@@ -609,7 +609,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_LENGTH; y++) {
             for (int z = 0; z < CHUNK_HEIGHT; z++) {
-                struct block* blk = chunk->blocks[x][y][z];
+                struct block* blk = chunk->data.blocks[x][y][z];
                 // If not air block
                 if (blk != NULL && block_metadata[blk->block_id].opaque) {
                     blk_c += 1;
@@ -708,7 +708,7 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int y = 0; y < CHUNK_LENGTH; y++) {
             for (int z = 0; z < CHUNK_HEIGHT; z++) {
-                struct block* blk = chunk->blocks[x][y][z];
+                struct block* blk = chunk->data.blocks[x][y][z];
                 // If not air block
                 if (blk != NULL && !block_metadata[blk->block_id].opaque) {
                     blk_c += 1;
@@ -824,24 +824,24 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     junk_vector_free(&vertices);
     junk_vector_free(&vertex_order);
     
-    glGenVertexArrays(1, &chunk->_vao);
-    glBindVertexArray(chunk->_vao);
+    glGenVertexArrays(1, &chunk->graphics._vao);
+    glBindVertexArray(chunk->graphics._vao);
 
     // Create VBO and EBO buffer data
     // VBO EBO size is sizeof() because we want TOTAL BYTES (float * count)
-    create_vbo(&chunk->_vbo, (void*)tmp_vertex, sizeof(tmp_vertex));
-    create_ebo(&chunk->_ebo, (void*)tmp_order, sizeof(tmp_order));
+    create_vbo(&chunk->graphics._vbo, (void*)tmp_vertex, sizeof(tmp_vertex));
+    create_ebo(&chunk->graphics._ebo, (void*)tmp_order, sizeof(tmp_order));
     // Here we only want ARRAY_SIZE, not float * count
-    chunk->vertex_count = junk_vector_length(&vertex_order) * ARRAY_SIZE(vertex_draw_order);
+    chunk->graphics.vertex_count = junk_vector_length(&vertex_order) * ARRAY_SIZE(vertex_draw_order);
 
     // Enable 3 attribs - position normals texture
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     // set vao_buffer to pos buffer obj
-    glBindBuffer(GL_ARRAY_BUFFER, chunk->_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, chunk->graphics._vbo);
     // Set EBO to the vertex_order
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, chunk->_ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, chunk->graphics._ebo);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
     // set vao_buffer to normals buffer obj
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (GLvoid*)(3*sizeof(float)));
@@ -859,26 +859,26 @@ void chunk_load(struct world* world, struct chunk *chunk, int coord[2]) {
     // NOTE: OpenGL FLIP
     vec3 translation = {CHUNK_WIDTH * coord[0], 0, - (CHUNK_LENGTH * coord[1])};
     // Set the matrix for world coordinate translation
-    glm_mat4_identity(chunk->model);
-    glm_translate(chunk->model, translation);
-    chunk->loaded = 1;
+    glm_mat4_identity(chunk->graphics.model);
+    glm_translate(chunk->graphics.model, translation);
+    chunk->graphics.loaded = 1;
 }
 
 void chunk_draw(struct chunk* chunk, struct shader* shader, struct texture* texture) {
-    glBindVertexArray(chunk->_vao);
-    set_uniform_mat4("model", shader, chunk->model);
-    glDrawElements(GL_TRIANGLES, chunk->vertex_count, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(chunk->graphics._vao);
+    set_uniform_mat4("model", shader, chunk->graphics.model);
+    glDrawElements(GL_TRIANGLES, chunk->graphics.vertex_count, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
 
 void chunk_unload(struct chunk* chunk) {
     // Clear VBO data
-    glDeleteBuffers(1, &chunk->_vbo);
+    glDeleteBuffers(1, &chunk->graphics._vbo);
     // Clear EBO data
-    glDeleteBuffers(1, &chunk->_ebo);
+    glDeleteBuffers(1, &chunk->graphics._ebo);
     // Clear VAO
-    glDeleteVertexArrays(1, &chunk->_vao);
-    chunk->loaded = 0;
+    glDeleteVertexArrays(1, &chunk->graphics._vao);
+    chunk->graphics.loaded = 0;
 }
 
 // Regenerate chunk data
@@ -894,9 +894,9 @@ int chunk_block_get(struct chunk* chunk, vec3 pos, struct block** block) {
     if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
         return 1;
     }
-    if (chunk->blocks[x][y][z] != NULL) {
+    if (chunk->data.blocks[x][y][z] != NULL) {
         if (block != NULL) {
-            *block = chunk->blocks[x][y][z];
+            *block = chunk->data.blocks[x][y][z];
         }
         return 0;
     }
@@ -913,18 +913,18 @@ int chunk_block_place(struct chunk* chunk, vec3 pos, enum BLOCK_ID block_id) {
     if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
         return 1;
     }
-    if (chunk->blocks[x][y][z] == NULL) {
+    if (chunk->data.blocks[x][y][z] == NULL) {
         struct block* blk = malloc(sizeof(struct block));
         block_init(blk, block_id);
-        chunk->blocks[x][y][z] = blk;
+        chunk->data.blocks[x][y][z] = blk;
         // Set dirty flag, we will unload/reload in engine loop
-        chunk->dirty = 1;
+        chunk->graphics.dirty = 1;
         return 0;
     }
     // Not a solid block
-    if (chunk->blocks[x][y][z] != NULL && !block_metadata[chunk->blocks[x][y][z]->block_id].solid) {
-        chunk->blocks[x][y][z]->block_id = block_id;
-        chunk->dirty = 1;
+    if (chunk->data.blocks[x][y][z] != NULL && !block_metadata[chunk->data.blocks[x][y][z]->block_id].solid) {
+        chunk->data.blocks[x][y][z]->block_id = block_id;
+        chunk->graphics.dirty = 1;
         return 0;
     }
     return 1;
@@ -941,11 +941,11 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos) {
     if (x >= CHUNK_WIDTH || y >= CHUNK_LENGTH || z >= CHUNK_HEIGHT) {
         return 1;
     }
-    if (chunk->blocks[x][y][z] != NULL) {
-        free(chunk->blocks[x][y][z]);
-        chunk->blocks[x][y][z] = NULL;
+    if (chunk->data.blocks[x][y][z] != NULL) {
+        free(chunk->data.blocks[x][y][z]);
+        chunk->data.blocks[x][y][z] = NULL;
         // Set dirty flag, we will unload/reload in engine loop
-        chunk->dirty = 1;
+        chunk->graphics.dirty = 1;
         return 0;
     }
     return 1;

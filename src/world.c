@@ -95,23 +95,23 @@ void* _thread_world_chunk_structure_gen(void* world) {
                 continue;
             }
             // Hold chunk's structure lock for structure gen
-            pthread_mutex_lock(&wld->structure_locks[(int)chunk->coord[0]][(int)chunk->coord[1]]);
+            pthread_mutex_lock(&wld->structure_locks[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]);
             int ret = chunk_structure_gen(wld, chunk);
             // Structures already generated
             if (ret == 1) {
                 free(data);
-                pthread_mutex_unlock(&wld->structure_locks[(int)chunk->coord[0]][(int)chunk->coord[1]]);
+                pthread_mutex_unlock(&wld->structure_locks[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]);
                 continue;
             }
             if (ret == -1) {
                 pthread_mutex_lock(&wld->structure_gen_lock);
                 junk_queue_push(&wld->chunk_structure_queue, data);
                 pthread_mutex_unlock(&wld->structure_gen_lock);
-                pthread_mutex_unlock(&wld->structure_locks[(int)chunk->coord[0]][(int)chunk->coord[1]]);
+                pthread_mutex_unlock(&wld->structure_locks[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]);
                 continue;
             }
             free(data);
-            pthread_mutex_unlock(&wld->structure_locks[(int)chunk->coord[0]][(int)chunk->coord[1]]);
+            pthread_mutex_unlock(&wld->structure_locks[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]);
         }
     }
     return NULL;

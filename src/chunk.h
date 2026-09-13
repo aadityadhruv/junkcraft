@@ -48,19 +48,35 @@ struct world;
  * A chunk is the "basic" rendering unit used - it will allocate buffers for all blocks in a chunk, hide covered faces of blocks, generate a chunk mesh and dispatch that buffer data to the GPU
  *
  */
-struct chunk {
+struct chunk_data {
     struct block* blocks[CHUNK_WIDTH][CHUNK_LENGTH][CHUNK_HEIGHT];
+    enum biome biome;
+    vec2 coord;
+    int generated_structures;
+};
+
+/*
+ * The graphical side of things for chunks. This is only used client side. Server will only ever send chunk_data bytes to clients
+ */
+struct chunk_graphics {
     GLuint _vao;
     GLuint _vbo;
     GLuint _ebo;
     int vertex_count;
     mat4 model;
-    enum biome biome;
-    vec2 coord;
     int loaded;
-    int generated_structures;
     // Blocks placed/deleted
     int dirty;
+};
+
+/*
+ * The client side complete representation of a chunk. It includes the data obtained from the server
+ * as well as the OpenGL data
+ *
+ */
+struct chunk {
+    struct chunk_data data;
+    struct chunk_graphics graphics;
 };
 
 /**
