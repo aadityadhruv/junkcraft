@@ -17,3 +17,43 @@ add_executable(junkcraft
     clock.c
     item.c
 )
+add_executable(junkcraft-server
+    glad.c 
+    shader.c 
+    block.c 
+    util.c
+    window.c
+    engine.c
+    chunk.c
+    world.c
+    input.c
+    camera.c
+    texture.c
+    player.c
+    random.c
+    text.c
+    clock.c
+    item.c
+    server.c
+    protocol.c
+)
+add_executable(junkcraft-client
+    glad.c 
+    shader.c 
+    block.c 
+    util.c
+    window.c
+    engine.c
+    chunk.c
+    world.c
+    input.c
+    camera.c
+    texture.c
+    player.c
+    random.c
+    text.c
+    clock.c
+    item.c
+    client.c
+    protocol.c
+)

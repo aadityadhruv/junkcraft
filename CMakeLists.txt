@@ -29,3 +29,45 @@ find_library(JUNK junk)
 find_path(JUNK_INCLUDE "junk/vector.h")
 target_include_directories(junkcraft PRIVATE include ${JUNK_INCLUDE} ${FREETYPE_INCLUDE_DIRS})
 target_link_libraries(junkcraft PRIVATE SDL2 ${JUNK} m pthread freetype)
+
+target_compile_options(junkcraft-server PRIVATE
+    -Wall
+    -Wextra
+    -Wno-double-promotion
+    -Wno-conversion
+    -Wno-sign-conversion
+    -Wno-unused-parameter
+    -Wno-unused-function
+    # -fsanitize=address,undefined
+    -g3
+)
+# target_link_options(junkcraft PRIVATE
+#     -fsanitize=address,undefined
+# )
+find_package(SDL2)
+find_package(Freetype REQUIRED)
+find_library(JUNK junk)
+find_path(JUNK_INCLUDE "junk/vector.h")
+target_include_directories(junkcraft-server PRIVATE include ${JUNK_INCLUDE} ${FREETYPE_INCLUDE_DIRS})
+target_link_libraries(junkcraft-server PRIVATE SDL2 ${JUNK} m pthread freetype)
+
+target_compile_options(junkcraft-client PRIVATE
+    -Wall
+    -Wextra
+    -Wno-double-promotion
+    -Wno-conversion
+    -Wno-sign-conversion
+    -Wno-unused-parameter
+    -Wno-unused-function
+    # -fsanitize=address,undefined
+    -g3
+)
+# target_link_options(junkcraft PRIVATE
+#     -fsanitize=address,undefined
+# )
+find_package(SDL2)
+find_package(Freetype REQUIRED)
+find_library(JUNK junk)
+find_path(JUNK_INCLUDE "junk/vector.h")
+target_include_directories(junkcraft-client PRIVATE include ${JUNK_INCLUDE} ${FREETYPE_INCLUDE_DIRS})
+target_link_libraries(junkcraft-client PRIVATE SDL2 ${JUNK} m pthread freetype)
