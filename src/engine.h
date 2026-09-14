@@ -16,7 +16,7 @@
 struct engine {
     struct window* window;
     struct junk_vector shaders;
-    struct player* player;
+    struct player player;
     struct texture* texture;
     struct texture* item_texture;
     struct text* text;

@@ -31,19 +31,19 @@ void input_process(struct engine* engine, double dt) {
             engine->game_loop = 0;
        }
             if (numkeys[SDL_SCANCODE_W]) {
-                player_move(engine->player, engine, FORWARD, dt);
+                player_move(&engine->player, engine, FORWARD, dt);
             }
             if (numkeys[SDL_SCANCODE_A]) {
-                player_move(engine->player, engine, LEFT, dt);
+                player_move(&engine->player, engine, LEFT, dt);
             }
             if (numkeys[SDL_SCANCODE_S]) {
-                player_move(engine->player, engine, BACKWARD, dt);
+                player_move(&engine->player, engine, BACKWARD, dt);
             }
             if (numkeys[SDL_SCANCODE_D]) {
-                player_move(engine->player, engine, RIGHT, dt);
+                player_move(&engine->player, engine, RIGHT, dt);
             }
             if (numkeys[SDL_SCANCODE_SPACE]) {
-                player_move(engine->player, engine, JUMP, dt);
+                player_move(&engine->player, engine, JUMP, dt);
             }
             if (numkeys[SDL_SCANCODE_ESCAPE]) {
                 engine->game_loop = 0;
@@ -53,15 +53,15 @@ void input_process(struct engine* engine, double dt) {
         if (event.type == SDL_MOUSEBUTTONDOWN) {
             SDL_MouseButtonEvent* b = (SDL_MouseButtonEvent*) &event;
             if (b->button == SDL_BUTTON_LEFT) {
-                player_block_delete(engine->player, engine->world);
+                player_block_delete(&engine->player, engine->world);
             }
             if (b->button == SDL_BUTTON_RIGHT) {
-                player_use(engine->player, engine);
+                player_use(&engine->player, engine);
             }
         }
         if (event.type == SDL_MOUSEWHEEL) {
             SDL_MouseWheelEvent* b = (SDL_MouseWheelEvent*) &event;
-            player_move_hotbar(engine->player, b->y);
+            player_move_hotbar(&engine->player, b->y);
         }
         if (event.type == SDL_MOUSEMOTION) {
             int x;
@@ -69,7 +69,7 @@ void input_process(struct engine* engine, double dt) {
             SDL_GetRelativeMouseState(&x, &y);
             if (x != 0 || y != 0) {
             vec2 offset = { x, y };
-            player_rotate(engine->player, offset);
+            player_rotate(&engine->player, offset);
             }
         }
 }

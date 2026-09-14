@@ -116,7 +116,7 @@ int engine_init(struct engine *engine) {
 
 void engine_update(struct engine* engine) {
     // NOTE: OpenGL FLIP
-    int curr_chunk[2] = { (int)floorf(engine->player->position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player->position[2] / (float)CHUNK_LENGTH) };
+    int curr_chunk[2] = { (int)floorf(engine->player.position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player.position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
     // We moved a chunk - gen new chunks if needed
     if (engine->curr_chunk[0] != curr_chunk[0] || engine->curr_chunk[1] != curr_chunk[1]) {
@@ -186,9 +186,9 @@ void engine_debug(struct engine* engine, struct shader* text_shader, float fps) 
         l  = snprintf(frames, 40, "Chunk:[%d, %d]",engine->curr_chunk[0], engine->curr_chunk[1]);
         text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 8.0f/10.0f, 1.0f, l);
         l  = snprintf(frames, 40, "Position :[%.2f, %.2f, %.2f]",
-                (double)engine->player->position[0],
-                (double)engine->player->position[1],
-                (double)engine->player->position[2]);
+                (double)engine->player.position[0],
+                (double)engine->player.position[1],
+                (double)engine->player.position[2]);
         text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 7.0f/10.0f, 1.0f, l);
         glDisable(GL_BLEND);
 }
@@ -233,20 +233,20 @@ void engine_start(struct engine* engine) {
         // Update engine managed objects
         input_process(engine, dt);
         engine_update(engine);
-        player_physics(engine->player, engine, dt);
+        player_physics(&engine->player, engine, dt);
 
         // =============== DRAW ======================
         // Draw sky objects
         glDisable(GL_DEPTH_TEST);
         shader_use(sky_shader);
-        player_update(engine->player, sky_shader);
-        clock_draw(engine->clk, engine->player, sky_shader);
+        player_update(&engine->player, sky_shader);
+        clock_draw(engine->clk, &engine->player, sky_shader);
         glEnable(GL_DEPTH_TEST);
         // Draw player related data using debug_shader
         shader_use(debug_shader);
         // Set perspective and view matrix
-        player_update(engine->player, debug_shader);
-        player_draw(engine->player, engine->world, debug_shader);
+        player_update(&engine->player, debug_shader);
+        player_draw(&engine->player, engine->world, debug_shader);
         // Switch to regular shader
         shader_use(default_shader);
         // Use the regular block texture map
@@ -254,10 +254,10 @@ void engine_start(struct engine* engine) {
         float light_intensity = clock_get_light_intensity(engine->clk);
         vec3 light_color = { light_intensity, light_intensity, light_intensity };
         set_uniform_vec3("light_color", default_shader, light_color);
-        player_update(engine->player, default_shader);
+        player_update(&engine->player, default_shader);
         // Set the position of the player in the default shader so the fog
         // can be calculated in the shader itself
-        set_uniform_vec3("player_position", default_shader, engine->player->position);
+        set_uniform_vec3("player_position", default_shader, engine->player.position);
         // Allow Blending for stuff like water
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -269,7 +269,7 @@ void engine_start(struct engine* engine) {
             for (int j = -CHUNK_DISTANCE; j <= CHUNK_DISTANCE; j++) {
                 int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
                 vec2 chunk_center = { chunk_coord[0] * CHUNK_WIDTH + CHUNK_WIDTH/2.0f, chunk_coord[1] * CHUNK_LENGTH + CHUNK_LENGTH/2.0f };
-                vec2 player_2d_pos = { engine->player->position[0], -engine->player->position[2] };
+                vec2 player_2d_pos = { engine->player.position[0], -engine->player.position[2] };
                 float distance = glm_vec2_distance(player_2d_pos, chunk_center);
                 sorted_chunks[index][0] = chunk_coord[0];
                 sorted_chunks[index][1] = chunk_coord[1];
@@ -304,7 +304,7 @@ void engine_start(struct engine* engine) {
             // but disabling this fixes it
             int real_coord[2];
             world_get_chunk_real_coord(engine->world, chunk_coord, real_coord);
-            if (1 || player_is_point_in_frustum(engine->player, frustum_check_chunk_coord)) {
+            if (1 || player_is_point_in_frustum(&engine->player, frustum_check_chunk_coord)) {
                 if (chunk->graphics.loaded == 0) {
                     chunk_load(engine->world, chunk, chunk_coord);
                 }
@@ -323,7 +323,7 @@ void engine_start(struct engine* engine) {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         shader_use(ui_shader);
         texture_use(engine->item_texture);
-        player_draw_ui(engine->player, ui_shader);
+        player_draw_ui(&engine->player, ui_shader);
         glDisable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
 

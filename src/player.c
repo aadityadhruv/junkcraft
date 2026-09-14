@@ -1,4 +1,5 @@
 #include "player.h"
+#include "engine.h"
 #include "camera.h"
 #include "cglm/affine.h"
 #include "config.h"
@@ -44,10 +45,9 @@ int player_can_move_z(struct player* player, struct engine* engine, float mov);
 void player_load_debug(struct player* player);
 
 
-void player_init(vec3 pos, struct player** player) {
-    struct player* p = malloc(sizeof(struct player));
+void player_init(vec3 pos, struct player* player) {
+    struct player* p = player;
     // TODO: Prevents some form of memory corruption? Why...???
-    memset(p, 0, sizeof(struct player));
     for (int i = 0; i < ARRAY_SIZE(p->inventory.items); i++) {
         p->inventory.items[i] = -1;
     }
@@ -77,7 +77,6 @@ void player_init(vec3 pos, struct player** player) {
     player_load_debug(p);
     // Load UI data
     player_load_ui(p);
-    *player = p;
 }
 
 void player_camera_set_position(struct player* player) {

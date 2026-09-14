@@ -1,3 +1,4 @@
+#include "engine.h"
 #include "item.h"
 #include "player.h"
 #include "util.h"
@@ -107,8 +108,8 @@ enum BLOCK_ID item_item_to_block(enum ITEM_ID id) {
 
 void item_block_item_use(void* data) {
     struct engine* engine = (struct engine*) data;
-    enum ITEM_ID item = engine->player->inventory.items[engine->player->inventory.curr];
+    enum ITEM_ID item = engine->player.inventory.items[engine->player.inventory.curr];
     enum BLOCK_ID blk_id = item_item_to_block(item);
     if (blk_id == BLOCK_ID_COUNT) return;
-    player_block_place(engine->player, engine, blk_id);
+    player_block_place(&engine->player, engine, blk_id);
 }

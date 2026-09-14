@@ -1,7 +1,6 @@
 #pragma once
 #include "block.h"
 #include "world.h"
-#include "engine.h"
 #include "camera.h"
 #include "item.h"
 #include "cglm/cglm.h"
@@ -42,7 +41,7 @@ struct player {
     mat4 ui_model;
 };
 
-void player_init(vec3 pos, struct player** player);
+void player_init(vec3 pos, struct player* player);
 
 void player_camera_set_position(struct player* player);
 
