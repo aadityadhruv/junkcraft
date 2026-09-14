@@ -86,6 +86,7 @@ int engine_init(struct engine *engine) {
     // Setup player
     vec3 pos = { 1.0f, 200.0f, -1.0f };
     player_init(pos, &engine->player);
+    player_load(&engine->player);
 
     // Setup chunk_load_mask
     memset(engine->chunk_load_mask, 0, sizeof(engine->chunk_load_mask));

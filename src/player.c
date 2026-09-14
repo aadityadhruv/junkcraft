@@ -72,11 +72,14 @@ void player_init(vec3 pos, struct player* player) {
     glm_vec3_add(cam_pos, pos, cam_pos);
     camera_init(&p->camera);
     camera_set_position(p->camera, cam_pos);
+}
+
+void player_load(struct player* player) {
 
     // Load debug stuff
-    player_load_debug(p);
+    player_load_debug(player);
     // Load UI data
-    player_load_ui(p);
+    player_load_ui(player);
 }
 
 void player_camera_set_position(struct player* player) {

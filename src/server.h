@@ -6,18 +6,25 @@
  */
 
 #include "engine.h"
+#include <bits/pthreadtypes.h>
 #include <stdint.h>
 #include <sys/poll.h>
 #include "poll.h"
+
+#define POLL_THREADS 1
+
 struct client {
     int64_t uuid;
     int client_fd;
     struct pollfd poll_fd;
+    struct player player;
+    int locked;
 };
 struct server {
     struct world* world;
     struct client clients[8];
     int server_fd;
+    pthread_t poll_threads[POLL_THREADS];
 };
 
 /*
@@ -42,3 +49,4 @@ int server_stop(struct server* server);
  * @return 0 on success, -1 on error
  */
 int server_client_sync(struct server* server);
+void* server_client_ssp(void* buf);

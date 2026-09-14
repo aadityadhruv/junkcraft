@@ -53,8 +53,8 @@ struct ESP {
 
 
 
-void ssp_recv(struct SSP* packet, int fd);
-void ssp_send(struct SSP* packet, int fd);
+int ssp_recv(struct SSP* packet, int fd);
+int ssp_send(struct SSP* packet, int fd);
 
-void chunk_data_recv(struct chunk_data* data, int fd);
-void chunk_data_send(struct chunk_data* data, int fd);
+int chunk_data_recv(struct chunk_data* data, int fd);
+int chunk_data_send(struct chunk_data* data, int fd);

@@ -5,7 +5,7 @@
 #include <string.h>
 
 
-void ssp_send(struct SSP* packet, int fd) {
+int ssp_send(struct SSP* packet, int fd) {
     char buf[sizeof(struct SSP)];
     memset(buf, 0, sizeof(struct SSP));
     int offset = 0;
@@ -15,11 +15,12 @@ void ssp_send(struct SSP* packet, int fd) {
     offset += sizeof(packet->data_size);
     memcpy(buf + offset, &(packet->id), sizeof(packet->id));
     offset += sizeof(packet->id);
-    junk_tcp_ipv4_send(fd, (char*)buf, offset);
+    return junk_tcp_ipv4_send(fd, (char*)buf, offset);
 }
-void ssp_recv(struct SSP* packet, int fd) {
+int ssp_recv(struct SSP* packet, int fd) {
     char buf[sizeof(struct SSP)];
-    junk_tcp_ipv4_recv(fd, (char*)buf, sizeof(struct SSP));
+    int ret = junk_tcp_ipv4_recv(fd, (char*)buf, sizeof(struct SSP));
+    if (ret != 0) return ret;
     int offset = 0;
     memcpy(&(packet->client_uuid), buf + offset, sizeof(packet->client_uuid));
     offset += sizeof(packet->client_uuid);
@@ -29,7 +30,7 @@ void ssp_recv(struct SSP* packet, int fd) {
     offset += sizeof(packet->id);
 }
 
-void chunk_data_send(struct chunk_data *data, int fd) {
+int chunk_data_send(struct chunk_data *data, int fd) {
     char buf[sizeof(struct chunk_data)];
     memset(buf, 0, sizeof(struct chunk_data));
     int offset = 0;
@@ -41,9 +42,42 @@ void chunk_data_send(struct chunk_data *data, int fd) {
     offset += sizeof(data->biome);
     memcpy(buf + offset, &(data->generated_structures), sizeof(data->generated_structures));
     offset += sizeof(data->generated_structures);
-    junk_tcp_ipv4_send(fd, buf, sizeof(struct chunk_data));
+    return junk_tcp_ipv4_send(fd, buf, sizeof(struct chunk_data));
 }
-void chunk_data_recv(struct chunk_data *data, int fd) {
+int chunk_data_recv(struct chunk_data *data, int fd) {
+    char buf[sizeof(struct chunk_data)];
+    fprintf(stderr, "ack got\n");
+    memset(buf, 0, sizeof(struct chunk_data));
+    int r = junk_tcp_ipv4_recv(fd, buf, sizeof(struct chunk_data));
+    if (r != 0) return r;
+    fprintf(stderr, "ack got\n");
+    int offset = 0;
+    memcpy(&(data->coord), buf + offset, sizeof(data->coord));
+    offset += sizeof(data->coord);
+    memcpy(&(data->blocks), buf + offset, sizeof(data->blocks));
+    offset += sizeof(data->blocks);
+    memcpy(&(data->biome), buf + offset, sizeof(data->biome));
+    offset += sizeof(data->biome);
+    memcpy(&(data->generated_structures), buf + offset, sizeof(data->generated_structures));
+    offset += sizeof(data->generated_structures);
+}
+void player_data_send(struct chunk_data *data, int fd) {
+    char buf[sizeof(struct chunk_data)];
+    fprintf(stderr, "ack got\n");
+    memset(buf, 0, sizeof(struct chunk_data));
+    junk_tcp_ipv4_recv(fd, buf, sizeof(struct chunk_data));
+    fprintf(stderr, "ack got\n");
+    int offset = 0;
+    memcpy(&(data->coord), buf + offset, sizeof(data->coord));
+    offset += sizeof(data->coord);
+    memcpy(&(data->blocks), buf + offset, sizeof(data->blocks));
+    offset += sizeof(data->blocks);
+    memcpy(&(data->biome), buf + offset, sizeof(data->biome));
+    offset += sizeof(data->biome);
+    memcpy(&(data->generated_structures), buf + offset, sizeof(data->generated_structures));
+    offset += sizeof(data->generated_structures);
+}
+void player_data_recv(struct chunk_data *data, int fd) {
     char buf[sizeof(struct chunk_data)];
     fprintf(stderr, "ack got\n");
     memset(buf, 0, sizeof(struct chunk_data));
