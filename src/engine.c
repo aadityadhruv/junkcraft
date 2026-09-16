@@ -1,6 +1,9 @@
 #include "engine.h"
+#include "protocol.h"
+#include "junk/network.h"
 #include "block.h"
 #include "cglm/cglm.h"
+#include "poll.h"
 #include "clock.h"
 #include "config.h"
 #include "chunk.h"
@@ -16,6 +19,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/poll.h>
 #include <time.h>
 
 
@@ -92,21 +96,30 @@ int engine_init(struct engine *engine) {
     memset(engine->chunk_load_mask, 0, sizeof(engine->chunk_load_mask));
 
     // Setup root chunk
-    struct world* world;
-    world_init(1, &world);
+    struct world* world = malloc(sizeof(struct world));
+    memset(world, 0, sizeof(struct world));
+    // world_init(1, &world);
     engine->world = world;
-    //TODO: Move this loop to a function and flip chunk_coord sign correctly ONCE
+    int sock = junk_tcp_ipv4_connect("127.0.0.1", "8000");
+    if (sock == -1) {
+        fprintf(stderr, "Failed to connect\n");
+        return -1;
+    }
+    engine->server_socket = sock;
+    // Get the init_pkt and store the UUID. This will be re-used if disconnects
+    // happen
+    struct SSP init_pkt;
+    ssp_recv(&init_pkt, sock);
+    fprintf(stderr, "Got init packet: %ld\n", init_pkt.client_uuid);
+    fprintf(stderr, "got back: size: %d\n", init_pkt.data_size);
+    // Equivalent of world_init. Client only really uses the chunks of a world for rendering. 
+    // All the other members are server side, and generate terrain. They will NEVER be called client
+    // side. TODO: Maybe split out a world_client vs world_server? 
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-            // Pass 1 - generate terrain
-            int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
-            world_submit_chunk_terrain_gen(engine->world, chunk_coord);
-            // Pass 2 - generate structures
-            world_submit_chunk_structure_gen(engine->world, chunk_coord);
+            engine_client_update_world(engine);
         }
     }
-
-
 
     // Final step - Start the game
     engine->game_loop = 1;
@@ -114,24 +127,41 @@ int engine_init(struct engine *engine) {
     engine->numkeys = numkeys;
     return 0;
 }
+void engine_client_update_world(struct engine* engine) {
+    struct chunk_data chunk = {};
+    struct SSP recv = { };
+    ssp_recv(&recv, engine->server_socket);
+    chunk_data_recv(&chunk, engine->server_socket);
+    glm_vec2_print(chunk.coord, stderr);
+    struct chunk* c = engine->world->chunks[(int)chunk.coord[0]][(int)chunk.coord[1]];
+    // Chunk not created, malloc memory for it
+    if (c == NULL) {
+        c = malloc(sizeof(struct chunk));
+        memset(c, 0, sizeof(struct chunk));
+    }
+    memcpy(&c->data, &chunk, sizeof(struct chunk_data));
+    engine->world->chunks[(int)chunk.coord[0]][(int)chunk.coord[1]] = c;
+}
 
 void engine_update(struct engine* engine) {
-    // NOTE: OpenGL FLIP
-    int curr_chunk[2] = { (int)floorf(engine->player.position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player.position[2] / (float)CHUNK_LENGTH) };
-    // Chunk update
-    // We moved a chunk - gen new chunks if needed
-    if (engine->curr_chunk[0] != curr_chunk[0] || engine->curr_chunk[1] != curr_chunk[1]) {
-        // Stage relevant chunks for loading
-        for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
-            for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-                int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j };
-                world_submit_chunk_terrain_gen(engine->world, chunk_coord);
-                // Pass 2 - generate structures
-                world_submit_chunk_structure_gen(engine->world, chunk_coord);
-            }
-        }
-        memcpy(engine->curr_chunk, curr_chunk, sizeof(vec2));
+    return;
+    //TODO: Poll server side for updates
+    // If we get chunk syncs, clear current chunk memory, update, reload
+    // If we get player data, update. Should be much simpler than this since
+    // all of this will run server-side
+    // you will ALWAYS get a SSP "header" + data packet. This way, you don't 
+    // have to keep spinning here. Poll for any data, process, move on
+    // This could be run in a separate thread
+    
+    struct pollfd pfd = {
+        .events = POLLIN,
+        .fd = engine->server_socket
+    };
+    while (poll(&pfd, 1, -1) > 0) {
+        engine_client_update_world(engine);
     }
+    int curr_chunk[2] = { (int)floorf(engine->player.data.position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player.data.position[2] / (float)CHUNK_LENGTH) };
+    memcpy(engine->player.data.chunk_coords, curr_chunk, sizeof(curr_chunk));
     // unload chunks that must be unloaded, based on the chunk_load_mask
     for (int i = 0; i < WORLD_WIDTH; i++) {
         for (int j = 0; j  < WORLD_LENGTH; j++) {
@@ -149,6 +179,8 @@ void engine_update(struct engine* engine) {
                         chunk_unload(chunk);
                     }
                 }
+                // Client no longer needs to render this, let's remove it
+                free(chunk);
             }
         }
     }
@@ -159,7 +191,7 @@ void engine_update(struct engine* engine) {
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
             struct chunk* chunk = {0};
-            int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j  };
+            int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j  };
             world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
             if (chunk != NULL && chunk->data.generated_structures == 1 && chunk->graphics.dirty) {
                 // TODO: At high chunk distances, this is called hundreds of times
@@ -184,12 +216,12 @@ void engine_debug(struct engine* engine, struct shader* text_shader, float fps) 
         memset(frames, 0, 20);
         int l  = snprintf(frames, 40, "FPS: %d", (int)fps);
         text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 9.0f/10.0f, 1.0f, l);
-        l  = snprintf(frames, 40, "Chunk:[%d, %d]",engine->curr_chunk[0], engine->curr_chunk[1]);
+        l  = snprintf(frames, 40, "Chunk:[%d, %d]",engine->player.data.chunk_coords[0], engine->player.data.chunk_coords[1]);
         text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 8.0f/10.0f, 1.0f, l);
         l  = snprintf(frames, 40, "Position :[%.2f, %.2f, %.2f]",
-                (double)engine->player.position[0],
-                (double)engine->player.position[1],
-                (double)engine->player.position[2]);
+                (double)engine->player.data.position[0],
+                (double)engine->player.data.position[1],
+                (double)engine->player.data.position[2]);
         text_draw(engine->text, text_shader, frames, 0.0f, SCREEN_HEIGHT * 7.0f/10.0f, 1.0f, l);
         glDisable(GL_BLEND);
 }
@@ -232,8 +264,10 @@ void engine_start(struct engine* engine) {
         struct shader* sky_shader = junk_vector_get(&engine->shaders, 4);
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
+        //TODO: update to send move data to server
         input_process(engine, dt);
         engine_update(engine);
+        // TODO: move server side
         player_physics(&engine->player, engine, dt);
 
         // =============== DRAW ======================
@@ -258,7 +292,7 @@ void engine_start(struct engine* engine) {
         player_update(&engine->player, default_shader);
         // Set the position of the player in the default shader so the fog
         // can be calculated in the shader itself
-        set_uniform_vec3("player_position", default_shader, engine->player.position);
+        set_uniform_vec3("player_position", default_shader, engine->player.data.position);
         // Allow Blending for stuff like water
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -268,9 +302,9 @@ void engine_start(struct engine* engine) {
         int index = 0;
         for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
             for (int j = -CHUNK_DISTANCE; j <= CHUNK_DISTANCE; j++) {
-                int chunk_coord[2] = { engine->curr_chunk[0] + i, engine->curr_chunk[1] + j };
+                int chunk_coord[2] = { engine->player.data.chunk_coords[0] + i, engine->player.data.chunk_coords[1] + j };
                 vec2 chunk_center = { chunk_coord[0] * CHUNK_WIDTH + CHUNK_WIDTH/2.0f, chunk_coord[1] * CHUNK_LENGTH + CHUNK_LENGTH/2.0f };
-                vec2 player_2d_pos = { engine->player.position[0], -engine->player.position[2] };
+                vec2 player_2d_pos = { engine->player.data.position[0], -engine->player.data.position[2] };
                 float distance = glm_vec2_distance(player_2d_pos, chunk_center);
                 sorted_chunks[index][0] = chunk_coord[0];
                 sorted_chunks[index][1] = chunk_coord[1];
@@ -278,8 +312,8 @@ void engine_start(struct engine* engine) {
                 index += 1;
             }
         }
-        sorted_chunks[num_chunks - 1][0] = engine->curr_chunk[0];
-        sorted_chunks[num_chunks - 1][1] = engine->curr_chunk[1];
+        sorted_chunks[num_chunks - 1][0] = engine->player.data.chunk_coords[0];
+        sorted_chunks[num_chunks - 1][1] = engine->player.data.chunk_coords[1];
         sorted_chunks[num_chunks - 1][2] = 0.0f;
         for (int i = 1; i < num_chunks; i++) {
             for (int j = i; j > 0; j--) {

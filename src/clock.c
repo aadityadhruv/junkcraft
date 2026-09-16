@@ -76,11 +76,11 @@ void clock_draw(struct clock* clock, struct player* player, struct shader* shade
     glBindTexture(GL_TEXTURE_2D, clock->_tbo[0]);
     mat4 translate;
     glm_mat4_identity(translate);
-    vec3 t = { player->position[0], player->position[1], player->position[2] - 10.0f};
+    vec3 t = { player->data.position[0], player->data.position[1], player->data.position[2] - 10.0f};
     vec3 x_axis = { 1.0f, 0.0f, 0.0f };
     vec3 y_axis = { 0.0f, 1.0f, 0.0f };
     float angle = 2 * M_PI * (clock->curr_time / clock->cycle);
-    glm_rotate_at(translate, player->position, angle, x_axis);
+    glm_rotate_at(translate, player->data.position, angle, x_axis);
     glm_translate(translate, t);
     set_uniform_mat4("model", shader, translate);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -89,7 +89,7 @@ void clock_draw(struct clock* clock, struct player* player, struct shader* shade
     glBindTexture(GL_TEXTURE_2D, clock->_tbo[1]);
     glm_mat4_identity(translate);
     angle = 2 * M_PI * (clock->curr_time / clock->cycle) -  M_PI;
-    glm_rotate_at(translate, player->position, angle, x_axis);
+    glm_rotate_at(translate, player->data.position, angle, x_axis);
     glm_translate(translate, t);
     glm_scale_uni(translate, 0.5f);
     set_uniform_mat4("model", shader, translate);
@@ -107,9 +107,9 @@ void clock_draw(struct clock* clock, struct player* player, struct shader* shade
     double curr_t = (double)clock->curr_time / (double)clock->cycle;
     for (int i = 0; i < 4; i++) {
         glm_mat4_identity(translate);
-        t[2] = player->position[2] - 100.0f;
-        glm_rotate_at(translate, player->position, 2 * M_PI * curr_t * star_spin_speed, y_axis);
-        glm_rotate_at(translate, player->position, angle, y_axis);
+        t[2] = player->data.position[2] - 100.0f;
+        glm_rotate_at(translate, player->data.position, 2 * M_PI * curr_t * star_spin_speed, y_axis);
+        glm_rotate_at(translate, player->data.position, angle, y_axis);
         glm_translate(translate, t);
         glm_scale_uni(translate, 100.0f);
         set_uniform_mat4("model", shader, translate);
@@ -119,9 +119,9 @@ void clock_draw(struct clock* clock, struct player* player, struct shader* shade
     angle = M_PI / 2;
     // Top 
     glm_mat4_identity(translate);
-    t[2] = player->position[2] - 100.0f;
-    glm_rotate_at(translate, player->position, 2 * M_PI * curr_t * star_spin_speed, y_axis);
-    glm_rotate_at(translate, player->position, angle, x_axis);
+    t[2] = player->data.position[2] - 100.0f;
+    glm_rotate_at(translate, player->data.position, 2 * M_PI * curr_t * star_spin_speed, y_axis);
+    glm_rotate_at(translate, player->data.position, angle, x_axis);
     glm_translate(translate, t);
     glm_scale_uni(translate, 100.0f);
     set_uniform_mat4("model", shader, translate);

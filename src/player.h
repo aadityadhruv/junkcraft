@@ -11,24 +11,19 @@ struct aabb {
     vec3 dimension;
     vec3 start;
 };
-struct player_inventory {
-    // First 10 are hotbar
-    enum ITEM_ID items[40];
-    int curr;
-    GLuint _vao_inventory;
-    GLuint _vbo_inventory;
-    GLuint _ebo_inventory;
-    int inventory_vertex_count;
-};
-struct player {
+struct player_data {
     vec3 position;
+    int chunk_coords[2];
     struct camera* camera;
     struct aabb* hitbox;
-    struct player_inventory inventory;
+    enum ITEM_ID items[40];
+    int curr;
     float weight;
     vec3 velocity;
     vec3 accel;
     int grounded;
+};
+struct player_graphics {
     GLuint _vao_debug;
     GLuint _vbo_debug;
     GLuint _ebo_debug;
@@ -39,6 +34,14 @@ struct player {
     GLuint _ebo_ui;
     int ui_vertex_count;
     mat4 ui_model;
+    GLuint _vao_inventory;
+    GLuint _vbo_inventory;
+    GLuint _ebo_inventory;
+    int inventory_vertex_count;
+};
+struct player {
+    struct player_data data;
+    struct player_graphics graphics;
 };
 
 void player_init(vec3 pos, struct player* player);
@@ -47,7 +50,7 @@ void player_camera_set_position(struct player* player);
 
 void player_rotate(struct player* player, vec2 offset);
 
-void player_move(struct player* player, struct engine* engine, enum DIRECTION move, double dt);
+void player_move(struct player* player, enum DIRECTION move, double dt);
 
 void player_update(struct player* player, struct shader* shader);
 

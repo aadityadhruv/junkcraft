@@ -8,7 +8,7 @@
 // CHUNK_DISTANCE is essentially render distance, it shows you how many chunks
 // around the user you can see
 // The number of loaded chunks can be determined as follows:
-// We want a square around curr_chunk, and a side of the square will be 1
+// We want a square around player->curr_chunk, and a side of the square will be 1
 // (center chunk) + 2 * CHUNK_DISTANCE (either side of center)
 // loaded chunks = (1 + CHUNK_DISTANCE * 2)^2
 #define CHUNK_DISTANCE 6
@@ -23,8 +23,8 @@ struct engine {
     struct clock* clk;
     int chunk_load_mask[WORLD_WIDTH][WORLD_LENGTH];
     int game_loop;
-    int curr_chunk[2];
     struct world* world;
+    int server_socket;
     const Uint8* numkeys;
 };
 
@@ -43,3 +43,5 @@ int engine_init(struct engine* engine);
  * @param engine The target engine
  */
 void engine_start(struct engine* engine);
+
+void engine_client_update_world(struct engine* engine);
