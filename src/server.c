@@ -63,7 +63,7 @@ int server_init(struct server *server) {
         pthread_create(&threads[i], 0,server_client_loop, server);
     }
 
-    int input_sock = junk_udp_ipv4_socket("127.0.0.1", "8000");
+    int input_sock = junk_udp_ipv4_bind("127.0.0.1", "8000");
     if (input_sock == -1) {
         fprintf(stderr, "Couldn't create input socket\n");
         return -1;
@@ -116,6 +116,7 @@ int server_start(struct server *server) {
                 };
                 ssp_send(&init_pkt, client_sock);
                 vec3 pos = { 1.0f, 200.0f, -1.0f };
+                pthread_mutex_init(&server->clients[j].pkt_lock, 0);
                 player_data_init(pos, &server->clients[j].player);
                 server->clients[j].uuid = 10;
                 break;
@@ -126,7 +127,7 @@ int server_start(struct server *server) {
     return 0;
 }
 
-int server_client_chunk_sync(struct server* server, int fd) {
+int server_client_chunk_sync(struct server* server, struct client* client) {
     fprintf(stderr, "CLIENT SERVER CHUNK SYNC\n");
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
@@ -140,8 +141,10 @@ int server_client_chunk_sync(struct server* server, int fd) {
                 .data_size = sizeof(struct chunk_data),
                 .id = SSP_CHUNK_SYNC,
             };
-            ssp_send(&send, fd);
-            int ret = chunk_data_send(&chunk->data, fd);
+            pthread_mutex_lock(&client->pkt_lock);
+            ssp_send(&send, client->client_fd);
+            int ret = chunk_data_send(&chunk->data, client->client_fd);
+            pthread_mutex_unlock(&client->pkt_lock);
             if (ret != 0) return ret;
             glm_vec2_print(chunk->data.coord, stderr);
             fprintf(stderr, "sent data for chunk %d %d\n", chunk_coord[0], chunk_coord[1]);
@@ -186,7 +189,6 @@ void* server_client_input(void* buf) {
     fprintf(stderr, "Started server client input\n");
     while (1) {
         if (poll(&pfd, 1, 0) > 0) {
-            fprintf(stderr, "POLLED\n");
             struct ESP recv = { };
             int ret = esp_recv(&recv, server->input_fd);
             if (ret != 0) {
@@ -196,7 +198,15 @@ void* server_client_input(void* buf) {
             for (size_t i = 0; i < ARRAY_SIZE(server->clients); i++) {
                 if (recv.client_uuid == server->clients[i].uuid) {
                     input_server_process(&server->clients[i].player, server->world, &recv);
-                    // player_data_send(&server->clients[i].player, server->input_fd);
+                    struct SSP send = {
+                        .client_uuid = 10,
+                        .data_size = 0,
+                        .id = SSP_PLAYER_DATA,
+                    };
+                    pthread_mutex_lock(&server->clients[i].pkt_lock);
+                    ssp_send(&send, server->clients[i].client_fd);
+                    player_data_send(&server->clients[i].player, server->clients[i].client_fd);
+                    pthread_mutex_unlock(&server->clients[i].pkt_lock);
                 }
             }
         }
@@ -210,7 +220,7 @@ void* server_client_loop(void* buf) {
             if (server->clients[i].uuid != -1) {
                 int need_update = server_client_chunk_update(server, &server->clients[i]);
                 if (need_update) {
-                    int ret = server_client_chunk_sync(server, server->clients[i].client_fd);
+                    int ret = server_client_chunk_sync(server, &server->clients[i]);
                     if (ret != 0) {
                         server->clients[i].uuid = -1;
                         close(server->clients[i].client_fd);

@@ -60,13 +60,14 @@ void input_send_mask(struct engine* engine, double dt) {
             }
         }
         if (mask != 0) {
-        struct ESP esp = {
-            .client_uuid = 10,
-            .mask = mask,
-            .dt = dt,
-        };
-            esp_send(&esp, engine->server_input_socket);
+            struct ESP esp = {
+                .client_uuid = 10,
+                .mask = mask,
+                .dt = dt,
+            };
+            int ret = esp_send(&esp, engine->server_input_socket);
         }
+
 }
 void input_server_process(struct player_data* player, struct world* world, struct ESP* esp) {
     double dt = esp->dt;

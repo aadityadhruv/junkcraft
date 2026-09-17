@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <sys/poll.h>
 #include "poll.h"
+#include "pthread.h"
 
 #define POLL_THREADS 1
 
@@ -18,7 +19,7 @@ struct client {
     int client_fd;
     struct pollfd poll_fd;
     struct player_data player;
-    int locked;
+    pthread_mutex_t pkt_lock;
 };
 struct server {
     struct world* world;

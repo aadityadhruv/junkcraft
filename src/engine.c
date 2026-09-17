@@ -107,7 +107,7 @@ int engine_init(struct engine *engine) {
     }
     engine->server_socket = sock;
 
-    int input_sock = junk_udp_ipv4_socket("127.0.0.1", "8000");
+    int input_sock = junk_udp_ipv4_socket();
     if (input_sock == -1) {
         fprintf(stderr, "Couldn't connect UDP\n");
         return -1;
@@ -124,6 +124,8 @@ int engine_init(struct engine *engine) {
     // side. TODO: Maybe split out a world_client vs world_server? 
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
+            struct SSP recv = { };
+            ssp_recv(&recv, engine->server_socket);
             engine_client_update_world(engine);
         }
     }
@@ -134,10 +136,14 @@ int engine_init(struct engine *engine) {
     engine->numkeys = numkeys;
     return 0;
 }
+void engine_client_update_player(struct engine* engine) {
+    fprintf(stderr, "update_player\n");
+    player_data_recv(&engine->player.data, engine->server_socket);
+    glm_vec2_print(engine->player.data.position, stderr);
+}
 void engine_client_update_world(struct engine* engine) {
+    fprintf(stderr, "update_world\n");
     struct chunk_data chunk = {};
-    struct SSP recv = { };
-    ssp_recv(&recv, engine->server_socket);
     chunk_data_recv(&chunk, engine->server_socket);
     glm_vec2_print(chunk.coord, stderr);
     struct chunk* c = engine->world->chunks[(int)chunk.coord[0]][(int)chunk.coord[1]];
@@ -151,7 +157,6 @@ void engine_client_update_world(struct engine* engine) {
 }
 
 void engine_update(struct engine* engine) {
-    return;
     //TODO: Poll server side for updates
     // If we get chunk syncs, clear current chunk memory, update, reload
     // If we get player data, update. Should be much simpler than this since
@@ -165,7 +170,20 @@ void engine_update(struct engine* engine) {
         .fd = engine->server_socket
     };
     while (poll(&pfd, 1, 0) > 0) {
-        engine_client_update_world(engine);
+        struct SSP recv = { };
+        ssp_recv(&recv, engine->server_socket);
+        switch (recv.id) {
+            case SSP_CHUNK_SYNC:
+                engine_client_update_world(engine);
+                break;
+            case SSP_PLAYER_DATA:
+                engine_client_update_player(engine);
+                break;
+            default:
+                fprintf(stderr, "nothing\n");
+                break;
+
+        }
     }
     int curr_chunk[2] = { (int)floorf(engine->player.data.position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player.data.position[2] / (float)CHUNK_LENGTH) };
     memcpy(engine->player.data.chunk_coords, curr_chunk, sizeof(curr_chunk));
@@ -185,9 +203,10 @@ void engine_update(struct engine* engine) {
                         fprintf(stderr, "unloaded %d %d\n", chunk_coord[0], chunk_coord[1]);
                         chunk_unload(chunk);
                     }
+                    // Client no longer needs to render this, let's remove it
+                    // TODO: bad free apparently, need to fix this
+                    // free(chunk);
                 }
-                // Client no longer needs to render this, let's remove it
-                free(chunk);
             }
         }
     }
@@ -271,7 +290,6 @@ void engine_start(struct engine* engine) {
         struct shader* sky_shader = junk_vector_get(&engine->shaders, 4);
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
-        //TODO: update to send move data to server
         // input_process(engine, dt);
         input_send_mask(engine, dt);
         engine_update(engine);

@@ -19,7 +19,7 @@ enum SSP_ID {
     SSP_NONE,
     SSP_INIT,
     SSP_CHUNK_SYNC,
-    SSP_CHUNK_EVENT,
+    SSP_PLAYER_DATA,
 };
 
 struct ssp_chunk_sync {
