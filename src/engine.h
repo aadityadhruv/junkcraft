@@ -25,6 +25,7 @@ struct engine {
     int game_loop;
     struct world* world;
     int server_socket;
+    int server_input_socket;
     const Uint8* numkeys;
 };
 

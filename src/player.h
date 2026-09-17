@@ -14,16 +14,18 @@ struct aabb {
 struct player_data {
     vec3 position;
     int chunk_coords[2];
-    struct camera* camera;
-    struct aabb* hitbox;
+    struct aabb hitbox;
     enum ITEM_ID items[40];
     int curr;
     float weight;
+    vec3 direction;
+    vec3 up;
     vec3 velocity;
     vec3 accel;
     int grounded;
 };
 struct player_graphics {
+    struct camera camera;
     GLuint _vao_debug;
     GLuint _vbo_debug;
     GLuint _ebo_debug;
@@ -44,13 +46,13 @@ struct player {
     struct player_graphics graphics;
 };
 
-void player_init(vec3 pos, struct player* player);
+void player_data_init(vec3 pos, struct player_data* player);
 
 void player_camera_set_position(struct player* player);
 
 void player_rotate(struct player* player, vec2 offset);
 
-void player_move(struct player* player, enum DIRECTION move, double dt);
+void player_move(struct player_data* player, enum DIRECTION move, double dt);
 
 void player_update(struct player* player, struct shader* shader);
 
@@ -58,7 +60,7 @@ void player_physics(struct player* player, struct engine* engine, double dt);
 
 void player_draw(struct player* player, struct world* world, struct shader* shader);
 
-void player_block_delete(struct player* player, struct world* world);
+void player_block_delete(struct player_data* player, struct world* world);
 
 void player_block_place(struct player* player, struct engine* engine, enum BLOCK_ID blk_id);
 void player_use(struct player* player, struct engine* engine);

@@ -19,7 +19,7 @@ struct camera {
     float fov;
 };
 
-void camera_init(struct camera** camera);
+void camera_init(struct camera* camera);
 void camera_update(struct camera* camera, struct shader* shader);
 void camera_set_position(struct camera* camera, vec3 pos);
 void camera_move(struct camera* camera, enum DIRECTION move);

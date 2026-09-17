@@ -28,6 +28,7 @@ int ssp_recv(struct SSP* packet, int fd) {
     offset += sizeof(packet->data_size);
     memcpy(&(packet->id), buf + offset, sizeof(packet->id));
     offset += sizeof(packet->id);
+    return 0;
 }
 
 int chunk_data_send(struct chunk_data *data, int fd) {
@@ -60,36 +61,69 @@ int chunk_data_recv(struct chunk_data *data, int fd) {
     offset += sizeof(data->biome);
     memcpy(&(data->generated_structures), buf + offset, sizeof(data->generated_structures));
     offset += sizeof(data->generated_structures);
+    return 0;
 }
-void player_data_send(struct chunk_data *data, int fd) {
-    char buf[sizeof(struct chunk_data)];
-    fprintf(stderr, "ack got\n");
-    memset(buf, 0, sizeof(struct chunk_data));
-    junk_tcp_ipv4_recv(fd, buf, sizeof(struct chunk_data));
-    fprintf(stderr, "ack got\n");
+int player_data_send(struct player_data *data, int fd) {
+    char buf[sizeof(struct player_data)];
+    memset(buf, 0, sizeof(struct player_data));
     int offset = 0;
-    memcpy(&(data->coord), buf + offset, sizeof(data->coord));
-    offset += sizeof(data->coord);
-    memcpy(&(data->blocks), buf + offset, sizeof(data->blocks));
-    offset += sizeof(data->blocks);
-    memcpy(&(data->biome), buf + offset, sizeof(data->biome));
-    offset += sizeof(data->biome);
-    memcpy(&(data->generated_structures), buf + offset, sizeof(data->generated_structures));
-    offset += sizeof(data->generated_structures);
+    memcpy(buf + offset, &(data->position), sizeof(data->position));
+    offset += sizeof(data->position);
+    memcpy(buf + offset, (data->velocity), sizeof(data->velocity));
+    offset += sizeof(data->velocity);
+    memcpy(buf + offset, (data->accel), sizeof(data->accel));
+    offset += sizeof(data->accel);
+    memcpy(buf + offset, (data->direction), sizeof(data->direction));
+    offset += sizeof(data->direction);
+    memcpy(buf + offset, data->items, sizeof(data->items));
+    offset += sizeof(data->items);
+    memcpy(buf + offset, &(data->curr), sizeof(data->curr));
+    offset += sizeof(data->curr);
+    return junk_tcp_ipv4_send(fd, buf, offset);
 }
-void player_data_recv(struct chunk_data *data, int fd) {
-    char buf[sizeof(struct chunk_data)];
-    fprintf(stderr, "ack got\n");
-    memset(buf, 0, sizeof(struct chunk_data));
-    junk_tcp_ipv4_recv(fd, buf, sizeof(struct chunk_data));
-    fprintf(stderr, "ack got\n");
+int player_data_recv(struct player_data *data, int fd) {
+    char buf[sizeof(struct player_data)];
+    memset(buf, 0, sizeof(struct player_data));
     int offset = 0;
-    memcpy(&(data->coord), buf + offset, sizeof(data->coord));
-    offset += sizeof(data->coord);
-    memcpy(&(data->blocks), buf + offset, sizeof(data->blocks));
-    offset += sizeof(data->blocks);
-    memcpy(&(data->biome), buf + offset, sizeof(data->biome));
-    offset += sizeof(data->biome);
-    memcpy(&(data->generated_structures), buf + offset, sizeof(data->generated_structures));
-    offset += sizeof(data->generated_structures);
+    int size = sizeof(data->position) + sizeof(data->velocity) + sizeof(data->accel) + sizeof(data->direction) + sizeof(data->items) + sizeof(data->curr);
+    int ret = junk_tcp_ipv4_recv(fd, (char*)buf, size);
+    if (ret != 0) return ret;
+    memcpy(&(data->position), buf + offset, sizeof(data->position));
+    offset += sizeof(data->position);
+    memcpy((data->velocity), buf + offset, sizeof(data->velocity));
+    offset += sizeof(data->velocity);
+    memcpy((data->accel), buf + offset, sizeof(data->accel));
+    offset += sizeof(data->accel);
+    memcpy((data->direction), buf + offset, sizeof(data->direction));
+    offset += sizeof(data->direction);
+    memcpy(data->items, buf + offset, sizeof(data->items));
+    offset += sizeof(data->items);
+    memcpy(&(data->curr), buf + offset, sizeof(data->curr));
+    offset += sizeof(data->curr);
+    return 0;
+}
+int esp_send(struct ESP* packet, int fd) {
+    char buf[sizeof(struct ESP)];
+    memset(buf, 0, sizeof(struct ESP));
+    int offset = 0;
+    memcpy(buf + offset, &(packet->client_uuid), sizeof(packet->client_uuid));
+    offset += sizeof(packet->client_uuid);
+    memcpy(buf + offset, &(packet->mask), sizeof(packet->mask));
+    offset += sizeof(packet->mask);
+    memcpy(buf + offset, &(packet->dt), sizeof(packet->dt));
+    offset += sizeof(packet->dt);
+    return junk_udp_ipv4_send(fd, "127.0.0.1", "8000", (char*)buf, offset);
+}
+int esp_recv(struct ESP* packet, int fd) {
+    char buf[sizeof(struct ESP)];
+    int ret = junk_udp_ipv4_recv(fd, (char*)buf, sizeof(struct ESP));
+    if (ret != 0) return ret;
+    int offset = 0;
+    memcpy(&(packet->client_uuid), buf + offset, sizeof(packet->client_uuid));
+    offset += sizeof(packet->client_uuid);
+    memcpy(&(packet->mask), buf + offset, sizeof(packet->mask));
+    offset += sizeof(packet->mask);
+    memcpy(&(packet->dt), buf + offset, sizeof(packet->dt));
+    offset += sizeof(packet->dt);
+    return 0;
 }

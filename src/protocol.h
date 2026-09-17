@@ -1,4 +1,5 @@
 #pragma once
+#include "player.h"
 #include "cglm/types.h"
 #include "chunk.h"
 #include "stdint.h"
@@ -35,20 +36,23 @@ struct SSP {
  * The Junkcraft Epehemeral State Protocol
  * UDP protocol to send data such as player positions, player actions etc
  */
-enum ESP_ID {
-    ESP_PLAYER_XYZ,
-    ESP_PLAYER_PLACE,
-    ESP_PLACE_HIT,
+enum ESP_INPUT_BIT {
+    ESP_FORWARD = 1 << 0,
+    ESP_LEFT = 1 << 1,
+    ESP_BACK = 1 << 2,
+    ESP_RIGHT = 1 << 3,
+    ESP_JUMP = 1 << 4,
+    ESP_PLAYER_PLACE = 1 << 5,
+    ESP_PLACE_HIT = 1 << 6,
 };
-struct esp_player_xyz {
-    float x;
-    float y;
-    float z;
+enum ESP_ID {
+    ESP_INPUT,
+    ESP_POS
 };
 struct ESP {
     int64_t client_uuid;
-    char data[32];
-    enum ESP_ID id;
+    int32_t mask;
+    double dt;
 };
 
 
@@ -58,3 +62,10 @@ int ssp_send(struct SSP* packet, int fd);
 
 int chunk_data_recv(struct chunk_data* data, int fd);
 int chunk_data_send(struct chunk_data* data, int fd);
+
+int esp_send(struct ESP* packet, int fd);
+int esp_recv(struct ESP* packet, int fd);
+
+
+int player_data_send(struct player_data *data, int fd);
+int player_data_recv(struct player_data *data, int fd);

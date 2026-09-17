@@ -89,7 +89,7 @@ int engine_init(struct engine *engine) {
 
     // Setup player
     vec3 pos = { 1.0f, 200.0f, -1.0f };
-    player_init(pos, &engine->player);
+    player_data_init(pos, &engine->player.data);
     player_load(&engine->player);
 
     // Setup chunk_load_mask
@@ -106,6 +106,13 @@ int engine_init(struct engine *engine) {
         return -1;
     }
     engine->server_socket = sock;
+
+    int input_sock = junk_udp_ipv4_socket("127.0.0.1", "8000");
+    if (input_sock == -1) {
+        fprintf(stderr, "Couldn't connect UDP\n");
+        return -1;
+    }
+    engine->server_input_socket = input_sock;
     // Get the init_pkt and store the UUID. This will be re-used if disconnects
     // happen
     struct SSP init_pkt;
@@ -157,7 +164,7 @@ void engine_update(struct engine* engine) {
         .events = POLLIN,
         .fd = engine->server_socket
     };
-    while (poll(&pfd, 1, -1) > 0) {
+    while (poll(&pfd, 1, 0) > 0) {
         engine_client_update_world(engine);
     }
     int curr_chunk[2] = { (int)floorf(engine->player.data.position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player.data.position[2] / (float)CHUNK_LENGTH) };
@@ -265,7 +272,8 @@ void engine_start(struct engine* engine) {
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
         //TODO: update to send move data to server
-        input_process(engine, dt);
+        // input_process(engine, dt);
+        input_send_mask(engine, dt);
         engine_update(engine);
         // TODO: move server side
         player_physics(&engine->player, engine, dt);

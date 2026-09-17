@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-void camera_init(struct camera** camera) {
-    struct camera* cam = malloc(sizeof(struct camera));
+void camera_init(struct camera* camera) {
+    struct camera* cam = camera;
     memset(cam, 0, sizeof(struct camera));
     vec3 camera_direction = { 0.0f, -0.0f, -1.0f };
     vec3 camera_up = { 0.0f, 1.0f, 0.0f };
@@ -22,7 +22,6 @@ void camera_init(struct camera** camera) {
     // Projection (perspective) matrix
     float dist = (CHUNK_LENGTH + CHUNK_WIDTH) * CHUNK_DISTANCE;
     glm_perspective(cam->fov, SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, dist, cam->perspective);
-    *camera = cam;
 }
 void camera_set_position(struct camera* camera, vec3 pos) {
     memcpy(camera->position, pos, sizeof(vec3));

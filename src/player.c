@@ -45,36 +45,41 @@ int player_can_move_z(struct player* player, struct engine* engine, float mov);
 void player_load_debug(struct player* player);
 
 
-void player_init(vec3 pos, struct player* player) {
+void player_data_init(vec3 pos, struct player_data* player) {
     // TODO: Prevents some form of memory corruption? Why...???
-    for (int i = 0; i < ARRAY_SIZE(player->data.items); i++) {
-        player->data.items[i] = -1;
+    for (int i = 0; i < ARRAY_SIZE(player->items); i++) {
+        player->items[i] = -1;
     }
-    player->data.items[0] = ITEM_BLOCK_GRASS;
-    player->data.items[1] = ITEM_BLOCK_STONE;
-    player->data.items[2] = ITEM_BLOCK_ROCK;
-    player->data.items[3] = ITEM_BLOCK_SAND;
-    player->data.items[4] = ITEM_BLOCK_SNOW;
-    player->data.items[5] = ITEM_BLOCK_WOOD;
-    player->data.items[6] = ITEM_BLOCK_LEAF;
-    player->data.items[7] = ITEM_BLOCK_WATER;
-    memcpy(player->data.position, pos, sizeof(vec3));
-    struct aabb* box = malloc(sizeof(struct aabb));
+    player->items[0] = ITEM_BLOCK_GRASS;
+    player->items[1] = ITEM_BLOCK_STONE;
+    player->items[2] = ITEM_BLOCK_ROCK;
+    player->items[3] = ITEM_BLOCK_SAND;
+    player->items[4] = ITEM_BLOCK_SNOW;
+    player->items[5] = ITEM_BLOCK_WOOD;
+    player->items[6] = ITEM_BLOCK_LEAF;
+    player->items[7] = ITEM_BLOCK_WATER;
+    memcpy(player->position, pos, sizeof(vec3));
+    struct aabb box = {};
     vec3 player_size = { 0.6f, 1.8f, -0.6f };
     // Little offset to use when calculating movement
     vec3 box_start = { 0.2f, 0.1f, -0.2f };
-    memcpy(box->dimension, player_size, sizeof(vec3));
-    memcpy(box->start, box_start, sizeof(vec3));
-    player->data.hitbox = box;
-    // Set camera to height of player
-    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
-    glm_vec3_add(cam_pos, pos, cam_pos);
-    camera_init(&player->data.camera);
-    camera_set_position(player->data.camera, cam_pos);
+    memcpy(box.dimension, player_size, sizeof(vec3));
+    memcpy(box.start, box_start, sizeof(vec3));
+    player->hitbox = box;
+    vec3 player_direction = { 0.0f, -0.0f, -1.0f };
+    vec3 player_up = { 0.0f, 1.0f, 0.0f };
+    memcpy(player->up, player_up, sizeof(vec3));
+    memcpy(player->direction, player_direction, sizeof(vec3));
 }
 
 void player_load(struct player* player) {
 
+    // Set camera to height of player
+    vec3 player_size = { 0.6f, 1.8f, -0.6f };
+    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
+    glm_vec3_add(cam_pos, player->data.position, cam_pos);
+    camera_init(&player->graphics.camera);
+    camera_set_position(&player->graphics.camera, cam_pos);
     // Load debug stuff
     player_load_debug(player);
     // Load UI data
@@ -84,16 +89,17 @@ void player_load(struct player* player) {
 void player_camera_set_position(struct player* player) {
     vec3 cam_pos = { 0.5, 1.8f, -0.5 };
     glm_vec3_add(cam_pos, player->data.position, cam_pos);
-    camera_set_position(player->data.camera, cam_pos);
+    camera_set_position(&player->graphics.camera, cam_pos);
 }
 
 void player_rotate(struct player* player, vec2 offset) {
-    camera_rotate(player->data.camera, offset);
+    camera_rotate(&player->graphics.camera, offset);
+    memcpy(player->data.direction, player->graphics.camera.direction, sizeof(vec3));
 }
 
-void player_move(struct player* player, enum DIRECTION move, double dt) {
+void player_move(struct player_data* player, enum DIRECTION move, double dt) {
     vec3 unit_direction = { 0 };
-    glm_normalize_to(player->data.camera->direction, unit_direction);
+    glm_normalize_to(player->direction, unit_direction);
     // Remove any "up" axis part
     unit_direction[1] = 0.0f;
     glm_vec3_normalize(unit_direction);
@@ -105,16 +111,16 @@ void player_move(struct player* player, enum DIRECTION move, double dt) {
         glm_vec3_mul(neg, unit_direction, unit_direction);
     } else if (move == LEFT) {
         // Right hand rule - this will be on the left (negative)
-        glm_vec3_crossn(player->data.camera->up, unit_direction, unit_direction);
+        glm_vec3_crossn(player->up, unit_direction, unit_direction);
     } else if (move == RIGHT) {
         // Right hand rule - this will be on the righ (positive)
-        glm_vec3_crossn(unit_direction, player->data.camera->up, unit_direction);
+        glm_vec3_crossn(unit_direction, player->up, unit_direction);
         // Jump only if grounded and player is going downwards or still
-    } else if (move == JUMP && player->data.grounded && player->data.velocity[1] <= 0.0f) {
+    } else if (move == JUMP && player->grounded && player->velocity[1] <= 0.0f) {
         unit_direction[0] = 0.0f;
         unit_direction[1] = 1.0f * JUMP_SCALE;
         unit_direction[2] = 0.0f;
-        player->data.grounded = 0;
+        player->grounded = 0;
     } else {
         glm_vec3_zero(unit_direction);
     }
@@ -123,22 +129,22 @@ void player_move(struct player* player, enum DIRECTION move, double dt) {
         unit_direction[1] = 0.0f;
     }
     glm_vec3_scale(unit_direction, MOVE_SCALE, unit_direction);
-    glm_vec3_add(player->data.accel, unit_direction, player->data.accel);
+    glm_vec3_add(player->accel, unit_direction, player->accel);
 }
 
 /**
  * Check if player can move on the x-axis. Returns 1 if yes, 0 otherwise.
  */
 int player_can_move_x(struct player* player, struct engine* engine, float mov) {
-    float w = player->data.hitbox->dimension[0];
-    float h = player->data.hitbox->dimension[1];
-    float l = player->data.hitbox->dimension[2];
+    float w = player->data.hitbox.dimension[0];
+    float h = player->data.hitbox.dimension[1];
+    float l = player->data.hitbox.dimension[2];
     // Check left plane
     if (mov < 0) w = 0;
     w += mov;
     // This ensures hitbox is slightly above ground
     vec3 lifted_pos = { 0 };
-    glm_vec3_add(player->data.position, player->data.hitbox->start, lifted_pos);
+    glm_vec3_add(player->data.position, player->data.hitbox.start, lifted_pos);
     vec3 pc1 = { lifted_pos[0] + w, lifted_pos[1], lifted_pos[2] };
     vec3 pc2 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] };
     vec3 pc3 = { lifted_pos[0] + w, lifted_pos[1], lifted_pos[2] + l };
@@ -170,15 +176,15 @@ int player_can_move_x(struct player* player, struct engine* engine, float mov) {
  * Check if player can move on the y-axis. Returns 1 if yes, 0 otherwise.
  */
 int player_can_move_y(struct player* player, struct engine* engine, float mov) {
-    float w = player->data.hitbox->dimension[0];
-    float h = player->data.hitbox->dimension[1];
-    float l = player->data.hitbox->dimension[2];
+    float w = player->data.hitbox.dimension[0];
+    float h = player->data.hitbox.dimension[1];
+    float l = player->data.hitbox.dimension[2];
     // Check bottom plane
     if (mov <= 0) h = 0;
     h += mov;
     // This ensures hitbox is slightly above ground
     vec3 lifted_pos = { 0 };
-    glm_vec3_add(player->data.position, player->data.hitbox->start, lifted_pos);
+    glm_vec3_add(player->data.position, player->data.hitbox.start, lifted_pos);
     vec3 pc1 = { lifted_pos[0], lifted_pos[1] + h, lifted_pos[2] };
     vec3 pc2 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] };
     vec3 pc3 = { lifted_pos[0], lifted_pos[1] + h, lifted_pos[2] + l };
@@ -210,12 +216,12 @@ int player_can_move_y(struct player* player, struct engine* engine, float mov) {
  * Check if player can move on the z-axis. Returns 1 if yes, 0 otherwise.
  */
 int player_can_move_z(struct player* player, struct engine* engine, float mov) {
-    float w = player->data.hitbox->dimension[0];
-    float h = player->data.hitbox->dimension[1];
-    float l = player->data.hitbox->dimension[2];
+    float w = player->data.hitbox.dimension[0];
+    float h = player->data.hitbox.dimension[1];
+    float l = player->data.hitbox.dimension[2];
     // This ensures hitbox is slightly above ground
     vec3 lifted_pos = { 0 };
-    glm_vec3_add(player->data.position, player->data.hitbox->start, lifted_pos);
+    glm_vec3_add(player->data.position, player->data.hitbox.start, lifted_pos);
     // Check back plane
     if (mov > 0) l = 0;
     l += mov;
@@ -248,14 +254,14 @@ int player_can_move_z(struct player* player, struct engine* engine, float mov) {
 }
 
 void player_update(struct player* player, struct shader* shader) {
-    camera_update(player->data.camera, shader);
+    camera_update(&player->graphics.camera, shader);
 }
 // int player_physics_check_collision() {
 //     // Calculate aabb location in world space
 //     // Get surface normals 
 //     // For each face, take dot product with other box's point
 //     // If >= 0, collision
-//     struct aabb* box = pb->hitbox;
+//     struct aabb* box = pb.hitbox;
 //     vec3 min = { 0 };
 //     memcpy(min, pb->pos, sizeof(vec3));
 //     vec3 max = { 0 };
@@ -263,7 +269,7 @@ void player_update(struct player* player, struct shader* shader) {
 //
 //     // Each point the static_object bb
 //     vec3 points[8] = { 0 };
-//     struct aabb* r_box = rb->hitbox;
+//     struct aabb* r_box = rb.hitbox;
 //     vec3 rp1 = { 0, 0, 0 };
 //     vec3 rp2 = { r_box->dimension[0], 0, 0 };
 //     vec3 rp3 = { 0, r_box->dimension[1], 0 };
@@ -370,13 +376,13 @@ void player_physics(struct player* player, struct engine* engine, double dt) {
 // See: https://en.wikipedia.org/wiki/Slab_method
 float player_ray_block_intersect(struct player* player, struct world* world, vec3 coords) {
     vec3 step = { 0 };
-    glm_vec3_normalize_to(player->data.camera->direction, step);
+    glm_vec3_normalize_to(player->graphics.camera.direction, step);
     float t_close = -INFINITY;
     for (int i = 0; i < 3; i++) {
-        if (player->data.camera->direction[i] != 0) {
+        if (player->graphics.camera.direction[i] != 0) {
             float high = (i != 2) ? 1.0 : -1.0f;
-            float t_i_low = (coords[i] - player->data.camera->position[i]) / step[i];
-            float t_i_high = ((coords[i] + high) - player->data.camera->position[i] ) / step[i];
+            float t_i_low = (coords[i] - player->graphics.camera.position[i]) / step[i];
+            float t_i_high = ((coords[i] + high) - player->graphics.camera.position[i] ) / step[i];
             float t_i_close = MIN(t_i_low, t_i_high);
             t_close = MAX(t_i_close, t_close);
         }
@@ -390,12 +396,12 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
     // Allow highlighting "range" blocks around player
     // Get "step" vector for raycasting
     vec3 step = { 0 };
-    glm_normalize_to(player->data.camera->direction, step);
+    glm_normalize_to(player->graphics.camera.direction, step);
     float scale = 0.1f;
     glm_vec3_scale(step,scale, step);
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
-    glm_vec3_add(ray_position, player->data.camera->position, ray_position);
+    glm_vec3_add(ray_position, player->graphics.camera.position, ray_position);
     //Found a target block
     int found = 0;
     while (1) {
@@ -694,14 +700,20 @@ void player_load_debug(struct player* player) {
     glBindVertexArray(0);
 }
 
-void player_block_delete(struct player* player, struct world* world) {
+void player_block_delete(struct player_data* player, struct world* world) {
     vec3 step = { 0 };
-    glm_normalize_to(player->data.camera->direction, step);
+    glm_normalize_to(player->direction, step);
     float scale = 0.1f;
     glm_vec3_scale(step,scale, step);
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
-    glm_vec3_add(ray_position, player->data.camera->position, ray_position);
+    //TODO This is so bad. camera and player have become so intertwined that I have to do this shit
+    // to make delete work. This really needs a refactor
+    vec3 player_size = { 0.6f, 1.8f, -0.6f };
+    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
+    glm_vec3_add(cam_pos, player->position, cam_pos);
+    glm_vec3_add(ray_position, cam_pos, ray_position);
+    
     //Found a target block
     int found = 0;
     while (1) {
@@ -741,12 +753,12 @@ void player_block_place(struct player* player, struct engine* engine, enum BLOCK
     if (blk_id == -1) return;
     struct world* world = engine->world;
     vec3 step = { 0 };
-    glm_normalize_to(player->data.camera->direction, step);
+    glm_normalize_to(player->graphics.camera.direction, step);
     float scale = 0.1f;
     glm_vec3_scale(step,scale, step);
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
-    glm_vec3_add(ray_position, player->data.camera->position, ray_position);
+    glm_vec3_add(ray_position, player->graphics.camera.position, ray_position);
     //Found a target block
     int found = 0;
     while (1) {
@@ -777,12 +789,13 @@ void player_block_place(struct player* player, struct engine* engine, enum BLOCK
     fprintf(stderr, "BLOCK");
     glm_vec3_print(block_coords, stderr);
 
+    //TODO: Remove graphics dependency/camera from here
     float t = player_ray_block_intersect(player, world, block_coords);
     vec3 point_of_contact = { 0 };
-    glm_vec3_add(point_of_contact, player->data.camera->position, point_of_contact);
+    glm_vec3_add(point_of_contact, player->graphics.camera.position, point_of_contact);
     // Reset step value to camera direction normal
-    // glm_normalize_to(player->data.camera->direction, step);
-    glm_normalize_to(player->data.camera->direction, step);
+    // glm_normalize_to(player->graphics.camera.direction, step);
+    glm_normalize_to(player->graphics.camera.direction, step);
     // glm_vec3_scale(step,scale, step);
     // p(t) = t * step + origin
     glm_vec3_scale(step, t, step);
@@ -843,7 +856,7 @@ int _aabb_edge_projection_check(vec3* aabb, int aabb_v_count, vec3 point, vec3 n
 
 int player_is_point_in_frustum(struct player* player, vec2 chunk_coord) {
     mat4 clip_space;
-    glm_mat4_mul(player->data.camera->perspective, player->data.camera->view, clip_space);
+    glm_mat4_mul(player->graphics.camera.perspective, player->graphics.camera.view, clip_space);
 
     // Switch to row-major to extract planes from the view-perspective matrix
     glm_mat4_transpose(clip_space);
@@ -893,8 +906,8 @@ int player_is_point_in_frustum(struct player* player, vec2 chunk_coord) {
     mat4 vp_inv;
     mat4 p_inv;
     mat4 v_inv;
-    glm_mat4_inv_fast(player->data.camera->perspective, p_inv);
-    glm_mat4_inv_fast(player->data.camera->view, v_inv);
+    glm_mat4_inv_fast(player->graphics.camera.perspective, p_inv);
+    glm_mat4_inv_fast(player->graphics.camera.view, v_inv);
     glm_mat4_mul(v_inv, p_inv, vp_inv);
     // Normalized clip space frustum coords, we'll translate them to world-space
     vec4 nf1 = { -1.0f, -1.0f, -1.0f, 1.0f };

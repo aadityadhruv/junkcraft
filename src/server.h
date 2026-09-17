@@ -17,13 +17,14 @@ struct client {
     int64_t uuid;
     int client_fd;
     struct pollfd poll_fd;
-    struct player player;
+    struct player_data player;
     int locked;
 };
 struct server {
     struct world* world;
     struct client clients[8];
     int server_fd;
+    int input_fd;
     pthread_t poll_threads[POLL_THREADS];
 };
 
@@ -49,4 +50,16 @@ int server_stop(struct server* server);
  * @return 0 on success, -1 on error
  */
 int server_client_sync(struct server* server);
-void* server_client_ssp(void* buf);
+void* server_client_loop(void* buf);
+/*
+ * Ported from engine_update. Really simple logic - for a client, check the chunks
+ * that need to be generated. If anything needs to be generated, submit for gen - only
+ * calculated on chunk change, same as old engine_update
+ * @param server target server
+ * @param client target client
+ * @return 1 if there is a chunk update, 0 if not
+ */
+int server_client_chunk_update(struct server* server, struct client* client);
+
+
+void* server_client_input(void* buf);
