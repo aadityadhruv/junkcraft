@@ -1,4 +1,5 @@
 #include "player.h"
+#include "item.h"
 #include "engine.h"
 #include "camera.h"
 #include "cglm/affine.h"
@@ -92,9 +93,14 @@ void player_camera_set_position(struct player* player) {
     camera_set_position(&player->graphics.camera, cam_pos);
 }
 
-void player_rotate(struct player* player, vec2 offset) {
-    camera_rotate(&player->graphics.camera, offset);
-    memcpy(player->data.direction, player->graphics.camera.direction, sizeof(vec3));
+void player_rotate(struct player_data* player, vec2 offset) {
+    vec3 axis = { 0 };
+    float rot_angle = glm_rad(1);
+    glm_vec3_crossn(player->direction, player->up, axis);
+    // Up and down rotation (pitch)
+    glm_vec3_rotate(player->direction, -rot_angle * offset[1], axis);
+    // Left and right rotation (yaw)
+    glm_vec3_rotate(player->direction, -rot_angle * offset[0], player->up);
 }
 
 void player_move(struct player_data* player, enum DIRECTION move, double dt) {
@@ -373,15 +379,19 @@ void player_physics(struct player_data* player, struct world* world, double dt) 
 }
 
 // See: https://en.wikipedia.org/wiki/Slab_method
-float player_ray_block_intersect(struct player* player, struct world* world, vec3 coords) {
+float player_ray_block_intersect(struct player_data* player, struct world* world, vec3 coords) {
     vec3 step = { 0 };
-    glm_vec3_normalize_to(player->graphics.camera.direction, step);
+    //TODO: FIX THIS EVEN IN DELETE IT'S TERRIBLE
+    vec3 player_size = { 0.6f, 1.8f, -0.6f };
+    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
+    glm_vec3_add(cam_pos, player->position, cam_pos);
+    glm_vec3_normalize_to(player->direction, step);
     float t_close = -INFINITY;
     for (int i = 0; i < 3; i++) {
-        if (player->graphics.camera.direction[i] != 0) {
+        if (player->direction[i] != 0) {
             float high = (i != 2) ? 1.0 : -1.0f;
-            float t_i_low = (coords[i] - player->graphics.camera.position[i]) / step[i];
-            float t_i_high = ((coords[i] + high) - player->graphics.camera.position[i] ) / step[i];
+            float t_i_low = (coords[i] - cam_pos[i]) / step[i];
+            float t_i_high = ((coords[i] + high) - cam_pos[i] ) / step[i];
             float t_i_close = MIN(t_i_low, t_i_high);
             t_close = MAX(t_i_close, t_close);
         }
@@ -743,21 +753,26 @@ void player_block_delete(struct player_data* player, struct world* world) {
     world_chunk_block_delete(world, block_pos);
 }
 
-void player_use(struct player* player, struct engine* engine) {
-    enum ITEM_ID item = player->data.items[player->data.curr];
-    if (item == -1) return;
-    item_metadata[item].action_use(engine);
+void player_use(struct player_data* player, struct world* world) {
+    enum ITEM_ID item = player->items[player->curr];
+    enum BLOCK_ID blk_id = item_item_to_block(item);
+    fprintf(stderr, "using %d\n", blk_id);
+    if (blk_id == BLOCK_ID_COUNT) return;
+    player_block_place(player, world, blk_id);
 }
-void player_block_place(struct player* player, struct engine* engine, enum BLOCK_ID blk_id) {
+void player_block_place(struct player_data* player, struct world* world, enum BLOCK_ID blk_id) {
     if (blk_id == -1) return;
-    struct world* world = engine->world;
     vec3 step = { 0 };
-    glm_normalize_to(player->graphics.camera.direction, step);
+    glm_normalize_to(player->direction, step);
     float scale = 0.1f;
     glm_vec3_scale(step,scale, step);
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
-    glm_vec3_add(ray_position, player->graphics.camera.position, ray_position);
+    //TODO: FIX THIS EVEN IN DELETE IT'S TERRIBLE
+    vec3 player_size = { 0.6f, 1.8f, -0.6f };
+    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
+    glm_vec3_add(cam_pos, player->position, cam_pos);
+    glm_vec3_add(ray_position, cam_pos, ray_position);
     //Found a target block
     int found = 0;
     while (1) {
@@ -788,13 +803,12 @@ void player_block_place(struct player* player, struct engine* engine, enum BLOCK
     fprintf(stderr, "BLOCK");
     glm_vec3_print(block_coords, stderr);
 
-    //TODO: Remove graphics dependency/camera from here
     float t = player_ray_block_intersect(player, world, block_coords);
     vec3 point_of_contact = { 0 };
-    glm_vec3_add(point_of_contact, player->graphics.camera.position, point_of_contact);
+    glm_vec3_add(point_of_contact, cam_pos, point_of_contact);
     // Reset step value to camera direction normal
     // glm_normalize_to(player->graphics.camera.direction, step);
-    glm_normalize_to(player->graphics.camera.direction, step);
+    glm_normalize_to(player->direction, step);
     // glm_vec3_scale(step,scale, step);
     // p(t) = t * step + origin
     glm_vec3_scale(step, t, step);
@@ -829,6 +843,8 @@ void player_block_place(struct player* player, struct engine* engine, enum BLOCK
     int nz = floorf(block_coords[1]);
     // In World coords, not opengl coords
     vec3 world_block_coords = { nx, ny, nz };
+    fprintf(stderr, "Placing block at ");
+    glm_vec3_print(world_block_coords, stderr);
     world_chunk_block_place(world, world_block_coords, blk_id);
 }
 

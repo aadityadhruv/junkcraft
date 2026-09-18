@@ -14,7 +14,7 @@
 #include "pthread.h"
 
 #define NUM_CLIENTS 1
-#define MAX_QUEUE_EVENTS 20
+#define MAX_QUEUE_EVENTS 10
 
 struct client {
     int64_t uuid;

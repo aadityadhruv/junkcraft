@@ -10,7 +10,6 @@
 
 struct item_metadata item_metadata[ITEM_ID_COUNT];
 struct item_graphics item_graphics;
-void item_block_item_use(void* data);
 void item_metadata_init() {
     float x_unit = 1.0f;
     float y_unit = 1.0f / ITEM_ID_COUNT;
@@ -25,9 +24,6 @@ void item_metadata_init() {
         memcpy(item_metadata[i].texture_data.top_right, top_right, sizeof(vec2));
         memcpy(item_metadata[i].texture_data.bottom_left, bottom_left, sizeof(vec2));
         memcpy(item_metadata[i].texture_data.bottom_right, bottom_right, sizeof(vec2));
-
-        item_metadata[i].action_use = item_block_item_use;
-
     }
 
 }
@@ -104,12 +100,4 @@ enum BLOCK_ID item_item_to_block(enum ITEM_ID id) {
         default:
             return BLOCK_ID_COUNT;
     }
-}
-
-void item_block_item_use(void* data) {
-    struct engine* engine = (struct engine*) data;
-    enum ITEM_ID item = engine->player.data.items[engine->player.data.curr];
-    enum BLOCK_ID blk_id = item_item_to_block(item);
-    if (blk_id == BLOCK_ID_COUNT) return;
-    player_block_place(&engine->player, engine, blk_id);
 }

@@ -29,6 +29,8 @@ void input_send_mask(struct engine* engine, double dt) {
         SDL_Event event;
         SDL_PollEvent(&event);
         int32_t mask = 0;
+        int rot_x;
+        int rot_y;
         // SDL_PumpEvents();
         if (event.type == SDL_QUIT) {
             engine->game_loop = 0;
@@ -60,11 +62,18 @@ void input_send_mask(struct engine* engine, double dt) {
                 mask += ESP_PLAYER_PLACE;
             }
         }
+        if (event.type == SDL_MOUSEMOTION) {
+            SDL_GetRelativeMouseState(&rot_x, &rot_y);
+            if (rot_x != 0 || rot_y != 0) {
+                mask += ESP_ROTATE;
+            }
+        }
         if (mask != 0) {
             struct ESP esp = {
                 .client_uuid = 10,
                 .mask = mask,
-                .dt = dt,
+                .rot_x = rot_x,
+                .rot_y = rot_y,
             };
             struct pollfd pfd = {
                 .events = POLLOUT,
@@ -78,8 +87,7 @@ void input_send_mask(struct engine* engine, double dt) {
         }
 
 }
-void input_server_process(struct player_data* player, struct world* world, struct ESP* esp) {
-    double dt = esp->dt;
+void input_server_process(struct player_data* player, struct world* world, struct ESP* esp, double dt) {
     int32_t mask = esp->mask;
     if (mask & ESP_FORWARD) {
         player_move(player, FORWARD, dt);
@@ -99,8 +107,12 @@ void input_server_process(struct player_data* player, struct world* world, struc
     if (mask & ESP_PLACE_HIT) {
         player_block_delete(player, world);
     }
+    if (mask & ESP_ROTATE) {
+        vec2 offset = { esp->rot_x, esp->rot_y };
+        player_rotate(player, offset);
+    }
     if (mask & ESP_PLAYER_PLACE) {
-        // player_use(player, world);
+        player_use(player, world);
     }
 }
 void input_process(struct engine* engine, double dt) {
@@ -139,7 +151,7 @@ void input_process(struct engine* engine, double dt) {
                 player_block_delete(&engine->player.data, engine->world);
             }
             if (b->button == SDL_BUTTON_RIGHT) {
-                player_use(&engine->player, engine);
+                // player_use(&engine->player, engine);
             }
         }
         if (event.type == SDL_MOUSEWHEEL) {
@@ -152,7 +164,7 @@ void input_process(struct engine* engine, double dt) {
             SDL_GetRelativeMouseState(&x, &y);
             if (x != 0 || y != 0) {
             vec2 offset = { x, y };
-            player_rotate(&engine->player, offset);
+            // player_rotate(&engine->player, offset);
             }
         }
 }

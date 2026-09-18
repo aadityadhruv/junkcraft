@@ -50,7 +50,7 @@ void player_data_init(vec3 pos, struct player_data* player);
 
 void player_camera_set_position(struct player* player);
 
-void player_rotate(struct player* player, vec2 offset);
+void player_rotate(struct player_data* player, vec2 offset);
 
 void player_move(struct player_data* player, enum DIRECTION move, double dt);
 
@@ -62,8 +62,8 @@ void player_draw(struct player* player, struct world* world, struct shader* shad
 
 void player_block_delete(struct player_data* player, struct world* world);
 
-void player_block_place(struct player* player, struct engine* engine, enum BLOCK_ID blk_id);
-void player_use(struct player* player, struct engine* engine);
+void player_block_place(struct player_data* player, struct world* world, enum BLOCK_ID blk_id);
+void player_use(struct player_data* player, struct world* world);
 
 void player_load_ui(struct player* player);
 void player_draw_ui(struct player* player, struct shader* shader);

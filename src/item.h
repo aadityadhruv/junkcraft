@@ -45,3 +45,5 @@ void item_metadata_init();
 int item_init(struct item* item, enum ITEM_ID item_id);
 void item_draw(enum ITEM_ID id);
 void item_load();
+void item_block_item_use(enum ITEM_ID id, void* data);
+enum BLOCK_ID item_item_to_block(enum ITEM_ID id);

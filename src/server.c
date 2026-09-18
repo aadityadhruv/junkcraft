@@ -209,7 +209,7 @@ void* server_client_input(void* buf) {
     float frames = 0;
     time_t frame_last_time = time(NULL);
     float fps = 0.0;
-    float ticks_per_second = 20;
+    float ticks_per_second = 60;
     struct timespec last_update;
     clock_gettime(CLOCK_MONOTONIC, &last_update);
     while (1) {
@@ -254,8 +254,7 @@ void* server_client_input(void* buf) {
                     };
                     while (junk_queue_length(&client->input_queue) > 0) {
                         struct ESP* esp = junk_queue_pop(&client->input_queue);
-                        // esp->dt = dt;
-                        input_server_process(&client->player, server->world, esp);
+                        input_server_process(&client->player, server->world, esp, dt);
                         free(esp);
                     }
                     player_physics(&client->player, server->world, dt);
