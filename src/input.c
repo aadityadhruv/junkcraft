@@ -9,6 +9,7 @@
 #include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_video.h>
+#include <sys/poll.h>
 
 pthread_t input_init(struct engine* engine) {
     SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -65,7 +66,15 @@ void input_send_mask(struct engine* engine, double dt) {
                 .mask = mask,
                 .dt = dt,
             };
-            int ret = esp_send(&esp, engine->server_input_socket);
+            struct pollfd pfd = {
+                .events = POLLOUT,
+                .fd = engine->server_input_socket
+            };
+            if (poll(&pfd, 1, 0) > 0) {
+                // fprintf(stderr, "MASK: %0b\n", mask);
+                // fprintf(stderr, "sendin!!!\n");
+                int ret = esp_send(&esp, engine->server_input_socket);
+            }
         }
 
 }

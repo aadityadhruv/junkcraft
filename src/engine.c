@@ -119,17 +119,9 @@ int engine_init(struct engine *engine) {
     ssp_recv(&init_pkt, sock);
     fprintf(stderr, "Got init packet: %ld\n", init_pkt.client_uuid);
     fprintf(stderr, "got back: size: %d\n", init_pkt.data_size);
-    // Equivalent of world_init. Client only really uses the chunks of a world for rendering. 
-    // All the other members are server side, and generate terrain. They will NEVER be called client
-    // side. TODO: Maybe split out a world_client vs world_server? 
-    for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
-        for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-            struct SSP recv = { };
-            ssp_recv(&recv, engine->server_socket);
-            engine_client_update_world(engine);
-        }
-    }
 
+
+    pthread_create(&engine->engine_sync_thread, NULL, engine_sync, (void*)engine);
     // Final step - Start the game
     engine->game_loop = 1;
     const Uint8* numkeys = SDL_GetKeyboardState(NULL);
@@ -137,12 +129,11 @@ int engine_init(struct engine *engine) {
     return 0;
 }
 void engine_client_update_player(struct engine* engine) {
-    fprintf(stderr, "update_player\n");
     player_data_recv(&engine->player.data, engine->server_socket);
-    glm_vec2_print(engine->player.data.position, stderr);
+    player_camera_set_position(&engine->player);
+    memcpy(engine->player.graphics.camera.direction, engine->player.data.direction, sizeof(vec3));
 }
 void engine_client_update_world(struct engine* engine) {
-    fprintf(stderr, "update_world\n");
     struct chunk_data chunk = {};
     chunk_data_recv(&chunk, engine->server_socket);
     glm_vec2_print(chunk.coord, stderr);
@@ -156,7 +147,7 @@ void engine_client_update_world(struct engine* engine) {
     engine->world->chunks[(int)chunk.coord[0]][(int)chunk.coord[1]] = c;
 }
 
-void engine_update(struct engine* engine) {
+void* engine_sync(void* buf) {
     //TODO: Poll server side for updates
     // If we get chunk syncs, clear current chunk memory, update, reload
     // If we get player data, update. Should be much simpler than this since
@@ -164,27 +155,34 @@ void engine_update(struct engine* engine) {
     // you will ALWAYS get a SSP "header" + data packet. This way, you don't 
     // have to keep spinning here. Poll for any data, process, move on
     // This could be run in a separate thread
+    //
+    struct engine* engine = (struct engine*) buf;
     
     struct pollfd pfd = {
         .events = POLLIN,
         .fd = engine->server_socket
     };
-    while (poll(&pfd, 1, 0) > 0) {
-        struct SSP recv = { };
-        ssp_recv(&recv, engine->server_socket);
-        switch (recv.id) {
-            case SSP_CHUNK_SYNC:
-                engine_client_update_world(engine);
-                break;
-            case SSP_PLAYER_DATA:
-                engine_client_update_player(engine);
-                break;
-            default:
-                fprintf(stderr, "nothing\n");
-                break;
-
+    while (1) {
+        if (poll(&pfd, 1, 0) > 0) {
+            struct SSP recv = { };
+            ssp_recv(&recv, engine->server_socket);
+            switch (recv.id) {
+                case SSP_CHUNK_SYNC:
+                    engine_client_update_world(engine);
+                    break;
+                case SSP_PLAYER_DATA:
+                    engine_client_update_player(engine);
+                    break;
+                default:
+                    fprintf(stderr, "nothing\n");
+                    break;
+            }
         }
     }
+    return NULL;
+}
+
+void engine_update(struct engine* engine) {
     int curr_chunk[2] = { (int)floorf(engine->player.data.position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player.data.position[2] / (float)CHUNK_LENGTH) };
     memcpy(engine->player.data.chunk_coords, curr_chunk, sizeof(curr_chunk));
     // unload chunks that must be unloaded, based on the chunk_load_mask
@@ -293,8 +291,6 @@ void engine_start(struct engine* engine) {
         // input_process(engine, dt);
         input_send_mask(engine, dt);
         engine_update(engine);
-        // TODO: move server side
-        player_physics(&engine->player, engine, dt);
 
         // =============== DRAW ======================
         // Draw sky objects

@@ -56,7 +56,7 @@ void player_move(struct player_data* player, enum DIRECTION move, double dt);
 
 void player_update(struct player* player, struct shader* shader);
 
-void player_physics(struct player* player, struct engine* engine, double dt);
+void player_physics(struct player_data* player, struct world* world, double dt);
 
 void player_draw(struct player* player, struct world* world, struct shader* shader);
 

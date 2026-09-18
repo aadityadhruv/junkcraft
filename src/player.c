@@ -39,9 +39,9 @@
 
 extern struct block_metadata block_metadata[BLOCK_ID_COUNT];
 extern struct item_metadata item_metadata[ITEM_ID_COUNT];
-int player_can_move_x(struct player* player, struct engine* engine, float mov);
-int player_can_move_y(struct player* player, struct engine* engine, float mov);
-int player_can_move_z(struct player* player, struct engine* engine, float mov);
+int player_can_move_x(struct player_data* player, struct world* world, float mov);
+int player_can_move_y(struct player_data* player, struct world* world, float mov);
+int player_can_move_z(struct player_data* player, struct world* world, float mov);
 void player_load_debug(struct player* player);
 
 
@@ -59,13 +59,11 @@ void player_data_init(vec3 pos, struct player_data* player) {
     player->items[6] = ITEM_BLOCK_LEAF;
     player->items[7] = ITEM_BLOCK_WATER;
     memcpy(player->position, pos, sizeof(vec3));
-    struct aabb box = {};
     vec3 player_size = { 0.6f, 1.8f, -0.6f };
     // Little offset to use when calculating movement
     vec3 box_start = { 0.2f, 0.1f, -0.2f };
-    memcpy(box.dimension, player_size, sizeof(vec3));
-    memcpy(box.start, box_start, sizeof(vec3));
-    player->hitbox = box;
+    memcpy(player->hitbox.dimension, player_size, sizeof(vec3));
+    memcpy(player->hitbox.start, box_start, sizeof(vec3));
     vec3 player_direction = { 0.0f, -0.0f, -1.0f };
     vec3 player_up = { 0.0f, 1.0f, 0.0f };
     memcpy(player->up, player_up, sizeof(vec3));
@@ -79,6 +77,8 @@ void player_load(struct player* player) {
     vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
     glm_vec3_add(cam_pos, player->data.position, cam_pos);
     camera_init(&player->graphics.camera);
+    //Set direction to face player front
+    memcpy(player->graphics.camera.direction, player->data.direction, sizeof(vec3));
     camera_set_position(&player->graphics.camera, cam_pos);
     // Load debug stuff
     player_load_debug(player);
@@ -135,16 +135,16 @@ void player_move(struct player_data* player, enum DIRECTION move, double dt) {
 /**
  * Check if player can move on the x-axis. Returns 1 if yes, 0 otherwise.
  */
-int player_can_move_x(struct player* player, struct engine* engine, float mov) {
-    float w = player->data.hitbox.dimension[0];
-    float h = player->data.hitbox.dimension[1];
-    float l = player->data.hitbox.dimension[2];
+int player_can_move_x(struct player_data* player, struct world* world, float mov) {
+    float w = player->hitbox.dimension[0];
+    float h = player->hitbox.dimension[1];
+    float l = player->hitbox.dimension[2];
     // Check left plane
     if (mov < 0) w = 0;
     w += mov;
     // This ensures hitbox is slightly above ground
     vec3 lifted_pos = { 0 };
-    glm_vec3_add(player->data.position, player->data.hitbox.start, lifted_pos);
+    glm_vec3_add(player->position, player->hitbox.start, lifted_pos);
     vec3 pc1 = { lifted_pos[0] + w, lifted_pos[1], lifted_pos[2] };
     vec3 pc2 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] };
     vec3 pc3 = { lifted_pos[0] + w, lifted_pos[1], lifted_pos[2] + l };
@@ -155,10 +155,10 @@ int player_can_move_x(struct player* player, struct engine* engine, float mov) {
     enum BLOCK_ID blk3 = BLOCK_NONE;
     enum BLOCK_ID blk4 = BLOCK_NONE;
     if (
-            world_chunk_block_get(engine->world, pc1, &blk1) &&
-            world_chunk_block_get(engine->world, pc2, &blk2) &&
-            world_chunk_block_get(engine->world, pc3, &blk3) &&
-            world_chunk_block_get(engine->world, pc4, &blk4)
+            world_chunk_block_get(world, pc1, &blk1) &&
+            world_chunk_block_get(world, pc2, &blk2) &&
+            world_chunk_block_get(world, pc3, &blk3) &&
+            world_chunk_block_get(world, pc4, &blk4)
        ) {
         return 1;
     } else {
@@ -175,16 +175,16 @@ int player_can_move_x(struct player* player, struct engine* engine, float mov) {
 /**
  * Check if player can move on the y-axis. Returns 1 if yes, 0 otherwise.
  */
-int player_can_move_y(struct player* player, struct engine* engine, float mov) {
-    float w = player->data.hitbox.dimension[0];
-    float h = player->data.hitbox.dimension[1];
-    float l = player->data.hitbox.dimension[2];
+int player_can_move_y(struct player_data* player, struct world* world, float mov) {
+    float w = player->hitbox.dimension[0];
+    float h = player->hitbox.dimension[1];
+    float l = player->hitbox.dimension[2];
     // Check bottom plane
     if (mov <= 0) h = 0;
     h += mov;
     // This ensures hitbox is slightly above ground
     vec3 lifted_pos = { 0 };
-    glm_vec3_add(player->data.position, player->data.hitbox.start, lifted_pos);
+    glm_vec3_add(player->position, player->hitbox.start, lifted_pos);
     vec3 pc1 = { lifted_pos[0], lifted_pos[1] + h, lifted_pos[2] };
     vec3 pc2 = { lifted_pos[0] + w, lifted_pos[1] + h, lifted_pos[2] };
     vec3 pc3 = { lifted_pos[0], lifted_pos[1] + h, lifted_pos[2] + l };
@@ -195,10 +195,10 @@ int player_can_move_y(struct player* player, struct engine* engine, float mov) {
     enum BLOCK_ID blk3 = BLOCK_NONE;
     enum BLOCK_ID blk4 = BLOCK_NONE;
     if (
-            world_chunk_block_get(engine->world, pc1, &blk1) &&
-            world_chunk_block_get(engine->world, pc2, &blk2) &&
-            world_chunk_block_get(engine->world, pc3, &blk3) &&
-            world_chunk_block_get(engine->world, pc4, &blk4)
+            world_chunk_block_get(world, pc1, &blk1) &&
+            world_chunk_block_get(world, pc2, &blk2) &&
+            world_chunk_block_get(world, pc3, &blk3) &&
+            world_chunk_block_get(world, pc4, &blk4)
        ) {
         return 1;
     } else {
@@ -215,13 +215,13 @@ int player_can_move_y(struct player* player, struct engine* engine, float mov) {
 /**
  * Check if player can move on the z-axis. Returns 1 if yes, 0 otherwise.
  */
-int player_can_move_z(struct player* player, struct engine* engine, float mov) {
-    float w = player->data.hitbox.dimension[0];
-    float h = player->data.hitbox.dimension[1];
-    float l = player->data.hitbox.dimension[2];
+int player_can_move_z(struct player_data* player, struct world* world, float mov) {
+    float w = player->hitbox.dimension[0];
+    float h = player->hitbox.dimension[1];
+    float l = player->hitbox.dimension[2];
     // This ensures hitbox is slightly above ground
     vec3 lifted_pos = { 0 };
-    glm_vec3_add(player->data.position, player->data.hitbox.start, lifted_pos);
+    glm_vec3_add(player->position, player->hitbox.start, lifted_pos);
     // Check back plane
     if (mov > 0) l = 0;
     l += mov;
@@ -235,10 +235,10 @@ int player_can_move_z(struct player* player, struct engine* engine, float mov) {
     enum BLOCK_ID blk3 = BLOCK_NONE;
     enum BLOCK_ID blk4 = BLOCK_NONE;
     if (
-            world_chunk_block_get(engine->world, pc1, &blk1) &&
-            world_chunk_block_get(engine->world, pc2, &blk2) &&
-            world_chunk_block_get(engine->world, pc3, &blk3) &&
-            world_chunk_block_get(engine->world, pc4, &blk4)
+            world_chunk_block_get(world, pc1, &blk1) &&
+            world_chunk_block_get(world, pc2, &blk2) &&
+            world_chunk_block_get(world, pc3, &blk3) &&
+            world_chunk_block_get(world, pc4, &blk4)
        ) {
         return 1;
     } else {
@@ -301,76 +301,75 @@ void player_update(struct player* player, struct shader* shader) {
 //     return 0;
 // }
 
-void player_physics(struct player* player, struct engine* engine, double dt) {
+void player_physics(struct player_data* player, struct world* world, double dt) {
     // Friction calculation 
     // Get the direction of normalized motion (-velocity/speed) and then scale that by the friction constant.
-    float speed = glm_vec3_norm(player->data.velocity) + 0.01f;
+    float speed = glm_vec3_norm(player->velocity) + 0.01f;
     float friction = FRICTION;
-    vec3 f2 = { -player->data.velocity[0] * friction / speed, 0.0f, -player->data.velocity[2] * friction / speed };
+    vec3 f2 = { -player->velocity[0] * friction / speed, 0.0f, -player->velocity[2] * friction / speed };
     // Apply the friction to acceleration (F = ma), so force/accel applied here
-    glm_vec3_add(player->data.accel, f2, player->data.accel);
+    glm_vec3_add(player->accel, f2, player->accel);
 
 
     // Velocity = a * dt
     vec3 velocity = { 0.0f };
-    glm_vec3_scale(player->data.accel, dt, velocity);
+    glm_vec3_scale(player->accel, dt, velocity);
     // Add dv/dt (vec3 velocity) caused by the acceleration
-    glm_vec3_add(player->data.velocity, velocity, player->data.velocity);
+    glm_vec3_add(player->velocity, velocity, player->velocity);
     // fprintf(stderr, "Accel");
-    // glm_vec3_print(player->data.accel, stderr);
+    // glm_vec3_print(player->accel, stderr);
     // fprintf(stderr, "Vel");
-    // glm_vec3_print(player->data.velocity, stderr);
+    // glm_vec3_print(player->velocity, stderr);
     
     // Reset accel to zeros - this is because there are no more forces on the player. If there are, they will 
     // change acceleration next update, so we don't have to "store" acceleration - that would imply a constantly applying
     // force which is incorrect. 
-    player->data.accel[0] = 0;
+    player->accel[0] = 0;
     // Set y-axis to gravity
-    player->data.accel[1] = GRAVITY;
-    player->data.accel[2] = 0;
+    player->accel[1] = GRAVITY;
+    player->accel[2] = 0;
 
     vec3 displacement = { 0 };
     vec3 dt_velocity = { 0 };
-    glm_vec3_scale(player->data.velocity, dt, dt_velocity);
+    glm_vec3_scale(player->velocity, dt, dt_velocity);
     // Check if can move
-    if (!player_can_move_x(player, engine, dt_velocity[0])) {
-        player->data.velocity[0] = 0.0f;
+    if (!player_can_move_x(player, world, dt_velocity[0])) {
+        player->velocity[0] = 0.0f;
     }
-    if (!player_can_move_y(player, engine, dt_velocity[1])) {
-        player->data.velocity[1] = 0.0f;
+    if (!player_can_move_y(player, world, dt_velocity[1])) {
+        player->velocity[1] = 0.0f;
         if (dt_velocity[1] <= 0.0f) {
-            player->data.grounded = 1;
+            player->grounded = 1;
         }
     } else {
         if (dt_velocity[1] <= 0.0f) {
-            player->data.grounded = 0;
+            player->grounded = 0;
         } 
     }
-    if (!player_can_move_z(player, engine, dt_velocity[2]) ) {
-        player->data.velocity[2] = 0.0f;
+    if (!player_can_move_z(player, world, dt_velocity[2]) ) {
+        player->velocity[2] = 0.0f;
     }
-    if (fabsf(player->data.velocity[0]) > MAX_WALK_VELOCITY) {
-        if (player->data.velocity[0] > 0) {
-            player->data.velocity[0] =  MAX_WALK_VELOCITY;
+    if (fabsf(player->velocity[0]) > MAX_WALK_VELOCITY) {
+        if (player->velocity[0] > 0) {
+            player->velocity[0] =  MAX_WALK_VELOCITY;
         } else {
-            player->data.velocity[0] =  -MAX_WALK_VELOCITY;
+            player->velocity[0] =  -MAX_WALK_VELOCITY;
         }
     }
-    if (fabsf(player->data.velocity[1]) > MAX_JUMP_VELOCIY) {
-        if (player->data.velocity[1] > 0) {
-            player->data.velocity[1] =  MAX_JUMP_VELOCIY;
+    if (fabsf(player->velocity[1]) > MAX_JUMP_VELOCIY) {
+        if (player->velocity[1] > 0) {
+            player->velocity[1] =  MAX_JUMP_VELOCIY;
         } 
     }
-    if (fabsf(player->data.velocity[2]) > MAX_WALK_VELOCITY) {
-        if (player->data.velocity[2] > 0) {
-            player->data.velocity[2] =  MAX_WALK_VELOCITY;
+    if (fabsf(player->velocity[2]) > MAX_WALK_VELOCITY) {
+        if (player->velocity[2] > 0) {
+            player->velocity[2] =  MAX_WALK_VELOCITY;
         } else {
-            player->data.velocity[2] =  -MAX_WALK_VELOCITY;
+            player->velocity[2] =  -MAX_WALK_VELOCITY;
         }
     }
-    glm_vec3_scale(player->data.velocity, dt, displacement);
-    glm_vec3_add(player->data.position, displacement, player->data.position);
-    player_camera_set_position(player);
+    glm_vec3_scale(player->velocity, dt, displacement);
+    glm_vec3_add(player->position, displacement, player->position);
 }
 
 // See: https://en.wikipedia.org/wiki/Slab_method

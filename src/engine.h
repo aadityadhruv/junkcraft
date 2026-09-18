@@ -26,6 +26,7 @@ struct engine {
     struct world* world;
     int server_socket;
     int server_input_socket;
+    pthread_t engine_sync_thread;
     const Uint8* numkeys;
 };
 
@@ -46,3 +47,4 @@ int engine_init(struct engine* engine);
 void engine_start(struct engine* engine);
 
 void engine_client_update_world(struct engine* engine);
+void* engine_sync(void* buf);

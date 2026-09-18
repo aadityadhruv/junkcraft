@@ -41,7 +41,7 @@ target_compile_options(junkcraft-server PRIVATE
     # -fsanitize=address,undefined
     -g3
 )
-# target_link_options(junkcraft PRIVATE
+# target_link_options(junkcraft-server PRIVATE
 #     -fsanitize=address,undefined
 # )
 find_package(SDL2)

@@ -1,4 +1,5 @@
 #include "server.h"
+#include "block.h"
 #include "cglm/io.h"
 #include "cglm/types.h"
 #include "engine.h"
@@ -6,6 +7,7 @@
 #include "junk/network.h"
 #include "player.h"
 #include "sys/socket.h"
+#include <junk/queue.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "fcntl.h"
@@ -21,9 +23,13 @@
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
-pthread_t threads[POLL_THREADS];
 pthread_t input_thread;
 
+
+struct thread_data {
+    struct server* server;
+    struct client* client;
+};
 
 pthread_mutex_t lock;
 
@@ -44,6 +50,8 @@ int server_stop(struct server *server) {
 
 
 int server_init(struct server *server) {
+    block_metadata_init();
+    item_metadata_init();
     world_init(0, &server->world);
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
@@ -59,10 +67,6 @@ int server_init(struct server *server) {
     for (size_t i = 0; i < ARRAY_SIZE(server->clients); i++) {
         server->clients[i].uuid = -1;
     }
-    for (int i = 0; i < POLL_THREADS; i++) {
-        pthread_create(&threads[i], 0,server_client_loop, server);
-    }
-
     int input_sock = junk_udp_ipv4_bind("127.0.0.1", "8000");
     if (input_sock == -1) {
         fprintf(stderr, "Couldn't create input socket\n");
@@ -91,7 +95,7 @@ int server_init(struct server *server) {
 int server_start(struct server *server) {
     int i = 0;
     while (1) {
-        if (i > 8) {
+        if (i > NUM_CLIENTS) {
             continue;
         }
         struct sockaddr_in addrinfo;
@@ -101,7 +105,7 @@ int server_start(struct server *server) {
             // fprintf(stderr, "Could not accept connection.\n");
             continue;
         }
-        for (size_t j = 0; j < ARRAY_SIZE(server->clients); j++) {
+        for (size_t j = 0; j < NUM_CLIENTS; j++) {
             // Found a free slot
             if (server->clients[j].uuid == -1) {
                 char ip[32];
@@ -109,6 +113,7 @@ int server_start(struct server *server) {
                 fprintf(stderr, "Accepted conn from %s\n", ip);
 
                 server->clients[j].client_fd = client_sock;
+                junk_queue_init(&server->clients[j].input_queue);
                 struct SSP init_pkt = { 
                     .client_uuid = 10,
                     .id = SSP_INIT,
@@ -119,6 +124,10 @@ int server_start(struct server *server) {
                 pthread_mutex_init(&server->clients[j].pkt_lock, 0);
                 player_data_init(pos, &server->clients[j].player);
                 server->clients[j].uuid = 10;
+                struct thread_data* data = malloc(sizeof(struct thread_data));
+                data->server = server;
+                data->client = &server->clients[i];
+                pthread_create(&server->clients[i].sync_thread, 0,server_client_loop, data);
                 break;
             }
         }
@@ -142,12 +151,22 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
                 .id = SSP_CHUNK_SYNC,
             };
             pthread_mutex_lock(&client->pkt_lock);
-            ssp_send(&send, client->client_fd);
-            int ret = chunk_data_send(&chunk->data, client->client_fd);
+            int ret = ssp_send(&send, client->client_fd);
+            if (ret != 0) {
+                fprintf(stderr, "client disconnect %ld\n", client->uuid);
+                pthread_mutex_unlock(&client->pkt_lock);
+                return ret;
+            }
+            ret = chunk_data_send(&chunk->data, client->client_fd);
+            if (ret != 0) {
+                fprintf(stderr, "client disconnect %ld\n", client->uuid);
+                pthread_mutex_unlock(&client->pkt_lock);
+                return ret;
+            }
             pthread_mutex_unlock(&client->pkt_lock);
             if (ret != 0) return ret;
-            glm_vec2_print(chunk->data.coord, stderr);
-            fprintf(stderr, "sent data for chunk %d %d\n", chunk_coord[0], chunk_coord[1]);
+            // glm_vec2_print(chunk->data.coord, stderr);
+            // fprintf(stderr, "sent data for chunk %d %d\n", chunk_coord[0], chunk_coord[1]);
         }
     }
     return 0;
@@ -182,57 +201,111 @@ int server_client_chunk_update(struct server* server, struct client* client) {
 
 void* server_client_input(void* buf) {
     struct server* server = (struct server*) buf;
-    struct pollfd pfd = {
+    struct pollfd in_pfd = {
         .fd = server->input_fd,
         .events = POLLIN,
     };
     fprintf(stderr, "Started server client input\n");
+    float frames = 0;
+    time_t frame_last_time = time(NULL);
+    float fps = 0.0;
+    float ticks_per_second = 20;
+    struct timespec last_update;
+    clock_gettime(CLOCK_MONOTONIC, &last_update);
     while (1) {
-        if (poll(&pfd, 1, 0) > 0) {
-            struct ESP recv = { };
-            int ret = esp_recv(&recv, server->input_fd);
+        time_t now = time(NULL);
+        time_t diff = now - frame_last_time;
+        struct timespec curr;
+        clock_gettime(CLOCK_MONOTONIC, &curr);
+        double dt = (double)(curr.tv_sec - last_update.tv_sec) + ((double)(curr.tv_nsec - last_update.tv_nsec) / ((double) 1000000000));
+        // 1 game tick has passed, update physics/input
+        if (poll(&in_pfd, 1, 0) > 0) {
+            struct ESP* recv = malloc(sizeof(struct ESP));
+            memset(recv, 0, sizeof(struct ESP));
+            int ret = esp_recv(recv, server->input_fd);
             if (ret != 0) {
                 fprintf(stderr, "Couldn't recv input\n");
-                continue;
             }
-            for (size_t i = 0; i < ARRAY_SIZE(server->clients); i++) {
-                if (recv.client_uuid == server->clients[i].uuid) {
-                    input_server_process(&server->clients[i].player, server->world, &recv);
+           for (size_t i = 0; i < NUM_CLIENTS; i++) {
+                if (recv->client_uuid == server->clients[i].uuid) {
+                    if (junk_queue_length(&server->clients[i].input_queue) == MAX_QUEUE_EVENTS) {
+                        void* item = junk_queue_pop(&server->clients[i].input_queue);
+                        free(item);
+                    }
+                    junk_queue_push(&server->clients[i].input_queue, recv);
+                }
+            }
+        }
+        if (dt > (1 / ticks_per_second)) {
+            // dt = (1 / ticks_per_second);
+            clock_gettime(CLOCK_MONOTONIC, &last_update);
+            // fprintf(stderr, "Server tick\n");
+            for (size_t i = 0; i < NUM_CLIENTS; i++) {
+                struct client* client = &server->clients[i];
+                if (client->uuid != -1) {
                     struct SSP send = {
-                        .client_uuid = 10,
+                        .client_uuid = client->uuid,
                         .data_size = 0,
                         .id = SSP_PLAYER_DATA,
                     };
-                    pthread_mutex_lock(&server->clients[i].pkt_lock);
-                    ssp_send(&send, server->clients[i].client_fd);
-                    player_data_send(&server->clients[i].player, server->clients[i].client_fd);
-                    pthread_mutex_unlock(&server->clients[i].pkt_lock);
+                    struct pollfd out_pfd = {
+                        .fd = client->client_fd,
+                        .events = POLLOUT,
+                    };
+                    while (junk_queue_length(&client->input_queue) > 0) {
+                        struct ESP* esp = junk_queue_pop(&client->input_queue);
+                        // esp->dt = dt;
+                        input_server_process(&client->player, server->world, esp);
+                        free(esp);
+                    }
+                    player_physics(&client->player, server->world, dt);
+                    pthread_mutex_lock(&client->pkt_lock);
+                    if (poll(&out_pfd, 1, 0) > 0) {
+                        int ret = ssp_send(&send, client->client_fd);
+                        if (ret != 0) {
+                            fprintf(stderr, "client disconnect %ld\n", client->uuid);
+                            pthread_mutex_unlock(&client->pkt_lock);
+                            break;
+                        }
+                        ret = player_data_send(&client->player, client->client_fd);
+                        if (ret != 0) {
+                            fprintf(stderr, "client disconnect %ld\n", client->uuid);
+                            pthread_mutex_unlock(&client->pkt_lock);
+                            break;
+                        }
+                    }
+                    pthread_mutex_unlock(&client->pkt_lock);
                 }
             }
         }
     }
 }
 void* server_client_loop(void* buf) {
-    struct server* server = (struct server*) buf;
-    while (1) {
-        for (size_t i = 0; i < ARRAY_SIZE(server->clients); i++) {
+    struct thread_data* data = (struct thread_data*) buf;
+    struct server* server = data->server;
+    struct client* client = data->client;
+    if (client->uuid != -1) {
+        while (1) {
             // Active client, poll for data
-            if (server->clients[i].uuid != -1) {
-                int need_update = server_client_chunk_update(server, &server->clients[i]);
-                if (need_update) {
-                    int ret = server_client_chunk_sync(server, &server->clients[i]);
-                    if (ret != 0) {
-                        server->clients[i].uuid = -1;
-                        close(server->clients[i].client_fd);
-                        fprintf(stderr, "disconnected, closed\n");
-                    } else {
-                        fprintf(stderr, "sent, sleeping\n");
-                    }
+            int need_update = server_client_chunk_update(server, client);
+            if (need_update) {
+                int ret = server_client_chunk_sync(server, client);
+                if (ret != 0) {
+                    client->uuid = -1;
+                    pthread_mutex_lock(&client->pkt_lock);
+                    close(client->client_fd);
+                    fprintf(stderr, "disconnected, closed\n");
+                    free(data);
+                    pthread_mutex_unlock(&client->pkt_lock);
+                    return NULL;
+                } else {
+                    fprintf(stderr, "sent, sleeping\n");
                 }
             }
         }
     }
-    return 0;
+    free(data);
+    return NULL;
 }
 
 int main() {

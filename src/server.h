@@ -7,12 +7,14 @@
 
 #include "engine.h"
 #include <bits/pthreadtypes.h>
+#include <junk/queue.h>
 #include <stdint.h>
 #include <sys/poll.h>
 #include "poll.h"
 #include "pthread.h"
 
-#define POLL_THREADS 1
+#define NUM_CLIENTS 1
+#define MAX_QUEUE_EVENTS 20
 
 struct client {
     int64_t uuid;
@@ -20,13 +22,14 @@ struct client {
     struct pollfd poll_fd;
     struct player_data player;
     pthread_mutex_t pkt_lock;
+    pthread_t sync_thread;
+    struct junk_queue input_queue;
 };
 struct server {
     struct world* world;
-    struct client clients[8];
+    struct client clients[NUM_CLIENTS];
     int server_fd;
     int input_fd;
-    pthread_t poll_threads[POLL_THREADS];
 };
 
 /*
