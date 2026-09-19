@@ -1,7 +1,5 @@
 #include "server.h"
 #include "block.h"
-#include "cglm/io.h"
-#include "cglm/types.h"
 #include "engine.h"
 #include "input.h"
 #include "junk/network.h"
@@ -10,7 +8,6 @@
 #include <junk/queue.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "fcntl.h"
 #include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -73,7 +70,7 @@ int server_init(struct server *server) {
         return -1;
     }
     server->input_fd = input_sock;
-    pthread_create(&input_thread, 0,server_client_input, server);
+    pthread_create(&input_thread, 0,server_client_loop, server);
     char* ip = "127.0.0.1";
     char* port = "8000";
     int sockfd = junk_tcp_ipv4_bind(ip, port);
@@ -128,7 +125,7 @@ int server_start(struct server *server) {
                 data->server = server;
                 data->client = &server->clients[i];
                 server_client_chunk_sync(server, &server->clients[j]);
-                pthread_create(&server->clients[i].sync_thread, 0,server_client_loop, data);
+                pthread_create(&server->clients[i].sync_thread, 0,server_client_chunk_gen, data);
                 break;
             }
         }
@@ -138,14 +135,35 @@ int server_start(struct server *server) {
 }
 
 int server_client_chunk_sync(struct server* server, struct client* client) {
-    fprintf(stderr, "CLIENT SERVER CHUNK SYNC\n");
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
-            // Pass 1 - generate terrain
             int chunk_coord[2] = { i + client->player.chunk_coords[0],  j + client->player.chunk_coords[1] };
             struct chunk* chunk = NULL;
-            //TODO: RACE CONDITION WITH thread gens
-            world_get_chunk(server->world, chunk_coord, &chunk);
+            world_get_chunk_no_gen(server->world, chunk_coord, &chunk);
+            if (chunk == NULL) continue;
+            // If the chunk has already been sent, the structures have already generated,
+            // and if it is not dirty, skip sending the chunk
+            if (
+                    client->chunk_mask[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]
+                    && !chunk->data.dirty
+                    && chunk->data.generated_structures
+                ) {
+                continue;
+            }
+            // If the chunk has already been sent, but the chunk hasn't generated all structures
+            // yet, don't send it. This is to prevent spam every time structure gen marks the 
+            // chunk as dirty TODO revise this soon?
+            if (
+                    client->chunk_mask[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]
+                    && !chunk->data.generated_structures
+                ) {
+                continue;
+            }
+
+            fprintf(stderr, "sending chunk: ");
+            glm_vec2_print(chunk->data.coord, stderr);
+            fprintf(stderr, "Dirty: %d | Structures %d | Mask %d\n", chunk->data.dirty, chunk->data.generated_structures, client->chunk_mask[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]);
+            client->chunk_mask[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]] = 1;
             struct SSP send = {
                 .client_uuid = 10,
                 .data_size = sizeof(struct chunk_data),
@@ -164,6 +182,7 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
                 pthread_mutex_unlock(&client->pkt_lock);
                 return ret;
             }
+            // Set chunk_mask as 1 to signify that the chunk has been sent
             pthread_mutex_unlock(&client->pkt_lock);
             if (ret != 0) return ret;
             // glm_vec2_print(chunk->data.coord, stderr);
@@ -176,7 +195,7 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
  * Generate new chunks around player if need be. Should be done better TODO
  *
  */
-int server_client_chunk_update(struct server* server, struct client* client) {
+int server_client_chunk_generate(struct server* server, struct client* client) {
     // NOTE: OpenGL FLIP
     int curr_chunk[2] = { (int)floorf(client->player.position[0] / (float)CHUNK_WIDTH), (int)floorf(-client->player.position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
@@ -200,22 +219,22 @@ int server_client_chunk_update(struct server* server, struct client* client) {
     return 0;
 }
 
-void* server_client_input(void* buf) {
+void* server_client_loop(void* buf) {
     struct server* server = (struct server*) buf;
     struct pollfd in_pfd = {
         .fd = server->input_fd,
         .events = POLLIN,
     };
     fprintf(stderr, "Started server client input\n");
-    float frames = 0;
-    time_t frame_last_time = time(NULL);
-    float fps = 0.0;
+    // float frames = 0;
+    // time_t frame_last_time = time(NULL);
+    // float fps = 0.0;
     float ticks_per_second = 60;
     struct timespec last_update;
     clock_gettime(CLOCK_MONOTONIC, &last_update);
     while (1) {
-        time_t now = time(NULL);
-        time_t diff = now - frame_last_time;
+        // time_t now = time(NULL);
+        // time_t diff = now - frame_last_time;
         struct timespec curr;
         clock_gettime(CLOCK_MONOTONIC, &curr);
         double dt = (double)(curr.tv_sec - last_update.tv_sec) + ((double)(curr.tv_nsec - last_update.tv_nsec) / ((double) 1000000000));
@@ -277,31 +296,32 @@ void* server_client_input(void* buf) {
                     pthread_mutex_unlock(&client->pkt_lock);
                 }
             }
+            for (size_t i = 0; i < NUM_CLIENTS; i++) {
+                struct client* client = &server->clients[i];
+                if (client->uuid != -1) {
+                    server_client_chunk_sync(server, &server->clients[i]);
+                }
+            }
+            // Reset chunk dirty-ness. If it has to be dirty, it will
+            // be recreated in the next tick
+            for (int i = 0; i < WORLD_WIDTH; i++) {
+                for (int j = 0; j < WORLD_LENGTH; j++) {
+                    struct chunk* c = server->world->chunks[i][j];
+                    if (c == NULL) continue;
+                    c->data.dirty = 0;
+                }
+            }
         }
     }
 }
-void* server_client_loop(void* buf) {
+void* server_client_chunk_gen(void* buf) {
     struct thread_data* data = (struct thread_data*) buf;
     struct server* server = data->server;
     struct client* client = data->client;
     if (client->uuid != -1) {
         while (1) {
             // Active client, poll for data
-            int need_update = server_client_chunk_update(server, client);
-            if (need_update) {
-                int ret = server_client_chunk_sync(server, client);
-                if (ret != 0) {
-                    client->uuid = -1;
-                    pthread_mutex_lock(&client->pkt_lock);
-                    close(client->client_fd);
-                    fprintf(stderr, "disconnected, closed\n");
-                    free(data);
-                    pthread_mutex_unlock(&client->pkt_lock);
-                    return NULL;
-                } else {
-                    fprintf(stderr, "sent, sleeping\n");
-                }
-            }
+            server_client_chunk_generate(server, client);
         }
     }
     free(data);

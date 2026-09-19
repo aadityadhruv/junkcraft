@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <sys/poll.h>
 #include "poll.h"
+#include "cglm/cglm.h"
 #include "pthread.h"
 
 #define NUM_CLIENTS 1
@@ -24,6 +25,7 @@ struct client {
     pthread_mutex_t pkt_lock;
     pthread_t sync_thread;
     struct junk_queue input_queue;
+    int chunk_mask[WORLD_LENGTH][WORLD_WIDTH];
 };
 struct server {
     struct world* world;
@@ -49,12 +51,7 @@ int server_start(struct server* server);
  * @return 0 on success, -1 on error
  */
 int server_stop(struct server* server);
-/*
- * Fast, lightweight sync for the engine state
- * @return 0 on success, -1 on error
- */
-int server_client_sync(struct server* server);
-void* server_client_loop(void* buf);
+void* server_client_chunk_gen(void* buf);
 /*
  * Ported from engine_update. Really simple logic - for a client, check the chunks
  * that need to be generated. If anything needs to be generated, submit for gen - only
@@ -63,8 +60,31 @@ void* server_client_loop(void* buf);
  * @param client target client
  * @return 1 if there is a chunk update, 0 if not
  */
-int server_client_chunk_update(struct server* server, struct client* client);
+int server_client_chunk_generate(struct server* server, struct client* client);
 
 
-void* server_client_input(void* buf);
+/*
+ * The main server client loop.
+ * Separate thread that reads UDP ESP inputs, processes them, and sends the correct
+ * output to the player via ESP. Maybe it should use ESP for sending as well, but I think
+ * stuff like physics and inventory seem pretty important. Maybe physics can be split
+ * The general flow of this function is:
+ * - Poll for any events, if there are queue them up
+ *   Every tick:
+ *   - Process input queue, apply actions
+ *   - Send player data to clients
+ *   - Look at any dirty chunks, if there are, sync them with client
+ *   using server_client_chunk_sync
+ *
+ */
+void* server_client_loop(void* buf);
+
+/*
+ * All this does is look around the player, and send a chunk that needs to be
+ * sent based on the chunk_mask of the client. It runs in a tight loop and will
+ * only send chunks that have to be sent
+ * It also looks at things like chunk dirty-ness and whether the structures have
+ * been generated yet or not, this is all used to limit how many updates we send
+ *
+ */
 int server_client_chunk_sync(struct server* server, struct client* client);
