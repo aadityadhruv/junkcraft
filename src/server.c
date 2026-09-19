@@ -141,7 +141,7 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
     for (int i = -CHUNK_DISTANCE; i <= CHUNK_DISTANCE; i++) {
         for (int j = -CHUNK_DISTANCE; j  <= CHUNK_DISTANCE; j++) {
             // Pass 1 - generate terrain
-            int chunk_coord[2] = { i,  j };
+            int chunk_coord[2] = { i + client->player.chunk_coords[0],  j + client->player.chunk_coords[1] };
             struct chunk* chunk = NULL;
             //TODO: RACE CONDITION WITH thread gens
             world_get_chunk(server->world, chunk_coord, &chunk);
@@ -158,6 +158,8 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
                 return ret;
             }
             ret = chunk_data_send(&chunk->data, client->client_fd);
+            fprintf(stderr, "SENT COORDS: ");
+            glm_vec2_print(chunk->data.coord, stderr);
             if (ret != 0) {
                 fprintf(stderr, "client disconnect %ld\n", client->uuid);
                 pthread_mutex_unlock(&client->pkt_lock);
@@ -177,7 +179,7 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
  */
 int server_client_chunk_update(struct server* server, struct client* client) {
     // NOTE: OpenGL FLIP
-    int curr_chunk[2] = { (int)floorf(client->player.position[0] / (float)CHUNK_WIDTH), (int)floorf(client->player.position[2] / (float)CHUNK_LENGTH) };
+    int curr_chunk[2] = { (int)floorf(client->player.position[0] / (float)CHUNK_WIDTH), (int)floorf(-client->player.position[2] / (float)CHUNK_LENGTH) };
     // Chunk update
     // We moved a chunk - gen new chunks if needed
     if (client->player.chunk_coords[0] != curr_chunk[0] || client->player.chunk_coords[1] != curr_chunk[1]) {
