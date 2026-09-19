@@ -136,7 +136,6 @@ void engine_client_update_player(struct engine* engine) {
 void engine_client_update_world(struct engine* engine) {
     struct chunk_data chunk = {};
     chunk_data_recv(&chunk, engine->server_socket);
-    glm_vec2_print(chunk.coord, stderr);
     struct chunk* c = engine->world->chunks[(int)chunk.coord[0]][(int)chunk.coord[1]];
     // Chunk not created, malloc memory for it
     if (c == NULL) {
@@ -144,6 +143,7 @@ void engine_client_update_world(struct engine* engine) {
         memset(c, 0, sizeof(struct chunk));
     }
     memcpy(&c->data, &chunk, sizeof(struct chunk_data));
+    c->graphics.dirty = 1;
     engine->world->chunks[(int)chunk.coord[0]][(int)chunk.coord[1]] = c;
 }
 
@@ -185,6 +185,7 @@ void* engine_sync(void* buf) {
 void engine_update(struct engine* engine) {
     int curr_chunk[2] = { (int)floorf(engine->player.data.position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player.data.position[2] / (float)CHUNK_LENGTH) };
     memcpy(engine->player.data.chunk_coords, curr_chunk, sizeof(curr_chunk));
+    return;
     // unload chunks that must be unloaded, based on the chunk_load_mask
     for (int i = 0; i < WORLD_WIDTH; i++) {
         for (int j = 0; j  < WORLD_LENGTH; j++) {

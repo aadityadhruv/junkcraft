@@ -127,6 +127,7 @@ int server_start(struct server *server) {
                 struct thread_data* data = malloc(sizeof(struct thread_data));
                 data->server = server;
                 data->client = &server->clients[i];
+                server_client_chunk_sync(server, &server->clients[j]);
                 pthread_create(&server->clients[i].sync_thread, 0,server_client_loop, data);
                 break;
             }
@@ -158,8 +159,6 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
                 return ret;
             }
             ret = chunk_data_send(&chunk->data, client->client_fd);
-            fprintf(stderr, "SENT COORDS: ");
-            glm_vec2_print(chunk->data.coord, stderr);
             if (ret != 0) {
                 fprintf(stderr, "client disconnect %ld\n", client->uuid);
                 pthread_mutex_unlock(&client->pkt_lock);

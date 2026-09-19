@@ -22,7 +22,7 @@
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
 #define SQUARE(x) x*x
-#define MAX_WALK_VELOCITY 5
+#define MAX_WALK_VELOCITY 10
 #define MAX_JUMP_VELOCIY 10
 #define HOTBAR_SIZE 10
 // Note: Difference between friction and move scale will essentially give
@@ -74,8 +74,7 @@ void player_data_init(vec3 pos, struct player_data* player) {
 void player_load(struct player* player) {
 
     // Set camera to height of player
-    vec3 player_size = { 0.6f, 1.8f, -0.6f };
-    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
+    vec3 cam_pos = { 0.5, 1.8f, -0.5 };
     glm_vec3_add(cam_pos, player->data.position, cam_pos);
     camera_init(&player->graphics.camera);
     //Set direction to face player front
@@ -374,9 +373,13 @@ void player_physics(struct player_data* player, struct world* world, double dt) 
     }
     if (fabsf(player->velocity[0]) > MAX_WALK_VELOCITY) {
         if (player->velocity[0] > 0) {
-            player->velocity[0] =  MAX_WALK_VELOCITY;
+            float t = player->velocity[0];
+            player->velocity[0] *= MAX_WALK_VELOCITY / t;
+            player->velocity[2] *= MAX_WALK_VELOCITY / t;
         } else {
-            player->velocity[0] =  -MAX_WALK_VELOCITY;
+            float t = player->velocity[0];
+            player->velocity[0] *= -MAX_WALK_VELOCITY / t;
+            player->velocity[2] *= -MAX_WALK_VELOCITY / t;
         }
     }
     if (fabsf(player->velocity[1]) > MAX_JUMP_VELOCIY) {
@@ -386,9 +389,13 @@ void player_physics(struct player_data* player, struct world* world, double dt) 
     }
     if (fabsf(player->velocity[2]) > MAX_WALK_VELOCITY) {
         if (player->velocity[2] > 0) {
-            player->velocity[2] =  MAX_WALK_VELOCITY;
+            float t = player->velocity[2];
+            player->velocity[0] *= MAX_WALK_VELOCITY / t;
+            player->velocity[2] *= MAX_WALK_VELOCITY / t;
         } else {
-            player->velocity[2] =  -MAX_WALK_VELOCITY;
+            float t = player->velocity[2];
+            player->velocity[0] *= -MAX_WALK_VELOCITY / t;
+            player->velocity[2] *= -MAX_WALK_VELOCITY / t;
         }
     }
     glm_vec3_scale(player->velocity, dt, displacement);
@@ -399,8 +406,7 @@ void player_physics(struct player_data* player, struct world* world, double dt) 
 float player_ray_block_intersect(struct player_data* player, struct world* world, vec3 coords) {
     vec3 step = { 0 };
     //TODO: FIX THIS EVEN IN DELETE IT'S TERRIBLE
-    vec3 player_size = { 0.6f, 1.8f, -0.6f };
-    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
+    vec3 cam_pos = { 0.5, 1.8f, -0.5 };
     glm_vec3_add(cam_pos, player->position, cam_pos);
     glm_vec3_normalize_to(player->direction, step);
     float t_close = -INFINITY;
@@ -735,8 +741,7 @@ void player_block_delete(struct player_data* player, struct world* world) {
     vec3 ray_position = { 0 };
     //TODO This is so bad. camera and player have become so intertwined that I have to do this shit
     // to make delete work. This really needs a refactor
-    vec3 player_size = { 0.6f, 1.8f, -0.6f };
-    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
+    vec3 cam_pos = { 0.5, 1.8f, -0.5 };
     glm_vec3_add(cam_pos, player->position, cam_pos);
     glm_vec3_add(ray_position, cam_pos, ray_position);
     
@@ -786,8 +791,7 @@ void player_block_place(struct player_data* player, struct world* world, enum BL
     float magnitude = glm_vec3_norm(step);
     vec3 ray_position = { 0 };
     //TODO: FIX THIS EVEN IN DELETE IT'S TERRIBLE
-    vec3 player_size = { 0.6f, 1.8f, -0.6f };
-    vec3 cam_pos = { player_size[0] / 2.0f, 1.8f, player_size[2] / 2.0f };
+    vec3 cam_pos = { 0.5, 1.8f, -0.5 };
     glm_vec3_add(cam_pos, player->position, cam_pos);
     glm_vec3_add(ray_position, cam_pos, ray_position);
     //Found a target block

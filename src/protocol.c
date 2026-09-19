@@ -47,11 +47,9 @@ int chunk_data_send(struct chunk_data *data, int fd) {
 }
 int chunk_data_recv(struct chunk_data *data, int fd) {
     char buf[sizeof(struct chunk_data)];
-    fprintf(stderr, "ack got\n");
     memset(buf, 0, sizeof(struct chunk_data));
     int r = junk_tcp_ipv4_recv(fd, buf, sizeof(struct chunk_data));
     if (r != 0) return r;
-    fprintf(stderr, "ack got\n");
     int offset = 0;
     memcpy(&(data->coord), buf + offset, sizeof(data->coord));
     offset += sizeof(data->coord);

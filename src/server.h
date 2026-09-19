@@ -67,3 +67,4 @@ int server_client_chunk_update(struct server* server, struct client* client);
 
 
 void* server_client_input(void* buf);
+int server_client_chunk_sync(struct server* server, struct client* client);
