@@ -18,6 +18,7 @@ Current features:
 - Working day/night cycle with a sun/moon/starry skybox, and changing light levels
 - Basic fog system
 - Nice hotbar with certain blocktypes pre-placed
+- Working multiplayer! (needs a bit more polishing - time sync, player models,  but base is done!)
 
 Planned features include:
 
@@ -35,7 +36,6 @@ Planned features include:
     - Cave generation: Really really basic
     - ~~Day/night cycle~~
     - Entities 
-    - Local play
 
 #### Dependencies
 
@@ -57,6 +57,7 @@ make
 
 ### Screenshots
 
+![Multiplayer](./res/multiplayer.png)
 ![Sunrise over the lake](./res/sunrise_lake.png)
 ![Lake with Fog](./res/lake_fog.png)
 ![moonrise](./res/moonrise.png)
