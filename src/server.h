@@ -14,13 +14,13 @@
 #include "cglm/cglm.h"
 #include "pthread.h"
 
-#define NUM_CLIENTS 1
+#define NUM_CLIENTS 4
 #define MAX_QUEUE_EVENTS 30
 
 struct client {
+    int active;
     int64_t uuid;
     int client_fd;
-    struct pollfd poll_fd;
     struct player_data player;
     pthread_mutex_t pkt_lock;
     pthread_t sync_thread;
@@ -32,6 +32,7 @@ struct server {
     struct client clients[NUM_CLIENTS];
     int server_fd;
     int input_fd;
+    int connected_clients;
 };
 
 /*
@@ -88,3 +89,5 @@ void* server_client_loop(void* buf);
  *
  */
 int server_client_chunk_sync(struct server* server, struct client* client);
+
+void client_disconnect(struct server* server, struct client* client);

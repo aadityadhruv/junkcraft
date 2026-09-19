@@ -90,9 +90,8 @@ int server_init(struct server *server) {
 }
 
 int server_start(struct server *server) {
-    int i = 0;
     while (1) {
-        if (i > NUM_CLIENTS) {
+        if (server->connected_clients >= NUM_CLIENTS) {
             continue;
         }
         struct sockaddr_in addrinfo;
@@ -102,30 +101,32 @@ int server_start(struct server *server) {
             // fprintf(stderr, "Could not accept connection.\n");
             continue;
         }
-        for (size_t j = 0; j < NUM_CLIENTS; j++) {
+        for (size_t i = 0; i < NUM_CLIENTS; i++) {
             // Found a free slot
-            if (server->clients[j].uuid == -1) {
+            if (server->clients[i].uuid == -1) {
                 char ip[32];
                 inet_ntop(AF_INET, (void*) &addrinfo.sin_addr, ip, 32);
                 fprintf(stderr, "Accepted conn from %s\n", ip);
 
-                server->clients[j].client_fd = client_sock;
-                junk_queue_init(&server->clients[j].input_queue);
+                server->clients[i].client_fd = client_sock;
+                junk_queue_init(&server->clients[i].input_queue);
                 struct SSP init_pkt = { 
-                    .client_uuid = 10,
+                    .client_uuid = 10 + i,
                     .id = SSP_INIT,
                     .data_size = 0,
                 };
                 ssp_send(&init_pkt, client_sock);
                 vec3 pos = { 1.0f, 200.0f, -1.0f };
-                pthread_mutex_init(&server->clients[j].pkt_lock, 0);
-                player_data_init(pos, &server->clients[j].player);
-                server->clients[j].uuid = 10;
+                pthread_mutex_init(&server->clients[i].pkt_lock, 0);
+                player_data_init(pos, &server->clients[i].player);
+                server->clients[i].uuid = init_pkt.client_uuid;
+                server->clients[i].active = 1;
                 struct thread_data* data = malloc(sizeof(struct thread_data));
                 data->server = server;
                 data->client = &server->clients[i];
-                server_client_chunk_sync(server, &server->clients[j]);
+                server_client_chunk_sync(server, &server->clients[i]);
                 pthread_create(&server->clients[i].sync_thread, 0,server_client_chunk_gen, data);
+                server->connected_clients++;
                 break;
             }
         }
@@ -160,12 +161,12 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
                 continue;
             }
 
-            fprintf(stderr, "sending chunk: ");
-            glm_vec2_print(chunk->data.coord, stderr);
-            fprintf(stderr, "Dirty: %d | Structures %d | Mask %d\n", chunk->data.dirty, chunk->data.generated_structures, client->chunk_mask[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]);
+            // fprintf(stderr, "sending chunk: ");
+            // glm_vec2_print(chunk->data.coord, stderr);
+            // fprintf(stderr, "Dirty: %d | Structures %d | Mask %d\n", chunk->data.dirty, chunk->data.generated_structures, client->chunk_mask[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]]);
             client->chunk_mask[(int)chunk->data.coord[0]][(int)chunk->data.coord[1]] = 1;
             struct SSP send = {
-                .client_uuid = 10,
+                .client_uuid = client->uuid,
                 .data_size = sizeof(struct chunk_data),
                 .id = SSP_CHUNK_SYNC,
             };
@@ -173,13 +174,13 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
             int ret = ssp_send(&send, client->client_fd);
             if (ret != 0) {
                 fprintf(stderr, "client disconnect %ld\n", client->uuid);
-                pthread_mutex_unlock(&client->pkt_lock);
+                client_disconnect(server, client);
                 return ret;
             }
             ret = chunk_data_send(&chunk->data, client->client_fd);
             if (ret != 0) {
                 fprintf(stderr, "client disconnect %ld\n", client->uuid);
-                pthread_mutex_unlock(&client->pkt_lock);
+                client_disconnect(server, client);
                 return ret;
             }
             // Set chunk_mask as 1 to signify that the chunk has been sent
@@ -283,13 +284,13 @@ void* server_client_loop(void* buf) {
                         int ret = ssp_send(&send, client->client_fd);
                         if (ret != 0) {
                             fprintf(stderr, "client disconnect %ld\n", client->uuid);
-                            pthread_mutex_unlock(&client->pkt_lock);
+                            client_disconnect(server, client);
                             break;
                         }
                         ret = player_data_send(&client->player, client->client_fd);
                         if (ret != 0) {
                             fprintf(stderr, "client disconnect %ld\n", client->uuid);
-                            pthread_mutex_unlock(&client->pkt_lock);
+                            client_disconnect(server, client);
                             break;
                         }
                     }
@@ -319,13 +320,33 @@ void* server_client_chunk_gen(void* buf) {
     struct server* server = data->server;
     struct client* client = data->client;
     if (client->uuid != -1) {
-        while (1) {
+        while (client->active) {
             // Active client, poll for data
             server_client_chunk_generate(server, client);
         }
     }
     free(data);
     return NULL;
+}
+void client_disconnect(struct server* server, struct client* client) {
+    close(client->client_fd);
+    while (junk_queue_length(&client->input_queue) > 0) {
+        free(junk_queue_pop(&client->input_queue));
+    }
+    pthread_mutex_unlock(&client->pkt_lock);
+    pthread_mutex_destroy(&client->pkt_lock);
+    client->active = 0;
+    pthread_join(client->sync_thread, NULL);
+    memset(&client->player, 0, sizeof(struct player_data));
+    memset(&client->chunk_mask, 0, sizeof(client->chunk_mask));
+    for (int i = 0; i < NUM_CLIENTS; i++) {
+        if (server->clients[i].uuid == client->uuid) {
+            server->clients[i].uuid = -1;
+            server->connected_clients--;
+            return;
+        }
+    }
+
 }
 
 int main() {

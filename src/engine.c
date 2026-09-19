@@ -117,6 +117,7 @@ int engine_init(struct engine *engine) {
     // happen
     struct SSP init_pkt;
     ssp_recv(&init_pkt, sock);
+    engine->uuid = init_pkt.client_uuid;
     fprintf(stderr, "Got init packet: %ld\n", init_pkt.client_uuid);
     fprintf(stderr, "got back: size: %d\n", init_pkt.data_size);
 

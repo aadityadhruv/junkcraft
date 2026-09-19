@@ -27,6 +27,7 @@ struct engine {
     int server_socket;
     int server_input_socket;
     pthread_t engine_sync_thread;
+    int64_t uuid;
     const Uint8* numkeys;
 };
 

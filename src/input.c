@@ -76,7 +76,7 @@ void input_send_mask(struct engine* engine, double dt) {
         }
         if (mask != 0) {
             struct ESP esp = {
-                .client_uuid = 10,
+                .client_uuid = engine->uuid,
                 .mask = mask,
                 .rot_x = rot_x,
                 .rot_y = rot_y,
