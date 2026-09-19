@@ -112,6 +112,8 @@ int esp_send(struct ESP* packet, int fd) {
     offset += sizeof(packet->rot_x);
     memcpy(buf + offset, &(packet->rot_y), sizeof(packet->rot_y));
     offset += sizeof(packet->rot_y);
+    memcpy(buf + offset, &(packet->scroll), sizeof(packet->scroll));
+    offset += sizeof(packet->scroll);
     return junk_udp_ipv4_send(fd, "127.0.0.1", "8000", (char*)buf, offset);
 }
 int esp_recv(struct ESP* packet, int fd) {
@@ -127,5 +129,7 @@ int esp_recv(struct ESP* packet, int fd) {
     offset += sizeof(packet->rot_x);
     memcpy(&(packet->rot_y), buf + offset, sizeof(packet->rot_y));
     offset += sizeof(packet->rot_y);
+    memcpy(&(packet->scroll), buf + offset, sizeof(packet->scroll));
+    offset += sizeof(packet->scroll);
     return 0;
 }

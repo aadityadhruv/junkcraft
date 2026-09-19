@@ -1014,10 +1014,10 @@ int player_is_point_in_frustum(struct player* player, vec2 chunk_coord) {
     return 1;
 }
 
-void player_move_hotbar(struct player* player, int direction) {
+void player_move_hotbar(struct player_data* player, int direction) {
     if (direction > 0) {
-        player->data.curr = (player->data.curr + HOTBAR_SIZE - 1) % HOTBAR_SIZE;
+        player->curr = (player->curr + HOTBAR_SIZE - 1) % HOTBAR_SIZE;
     } else {
-        player->data.curr = (player->data.curr + HOTBAR_SIZE + 1) % HOTBAR_SIZE;
+        player->curr = (player->curr + HOTBAR_SIZE + 1) % HOTBAR_SIZE;
     }
 }

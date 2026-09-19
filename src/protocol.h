@@ -45,6 +45,7 @@ enum ESP_INPUT_BIT {
     ESP_PLAYER_PLACE = 1 << 5,
     ESP_PLACE_HIT = 1 << 6,
     ESP_ROTATE = 1 << 7,
+    ESP_SCROLL = 1 << 8,
 };
 enum ESP_ID {
     ESP_INPUT,
@@ -55,6 +56,7 @@ struct ESP {
     int32_t mask;
     int rot_x;
     int rot_y;
+    int scroll;
 };
 
 

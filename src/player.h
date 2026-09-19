@@ -81,5 +81,5 @@ void player_draw_ui(struct player* player, struct shader* shader);
  *
  */
 int player_is_point_in_frustum(struct player* player, vec2 chunk_coord);
-void player_move_hotbar(struct player* player, int direction);
+void player_move_hotbar(struct player_data* player, int direction);
 void player_load(struct player* player);
