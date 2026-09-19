@@ -67,7 +67,7 @@ int ssp_send(struct SSP* packet, int fd);
 int chunk_data_recv(struct chunk_data* data, int fd);
 int chunk_data_send(struct chunk_data* data, int fd);
 
-int esp_send(struct ESP* packet, int fd);
+int esp_send(struct ESP* packet, int fd, char* ip, char* port);
 int esp_recv(struct ESP* packet, int fd);
 
 

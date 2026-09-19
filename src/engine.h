@@ -25,6 +25,8 @@ struct engine {
     int game_loop;
     struct world* world;
     int server_socket;
+    char* ip;
+    char* port;
     int server_input_socket;
     pthread_t engine_sync_thread;
     int64_t uuid;
@@ -34,9 +36,11 @@ struct engine {
 /**
  * Initalize the Engine, a struct that oversees the rest of the components in the game
  * @param @out engine The engine struct to store data in
+ * @param ip connect to target IP
+ * @param port target port
  * @return 0 on success
  */
-int engine_init(struct engine* engine);
+int engine_init(struct engine *engine, char* ip, char* port);
 
 
 /**

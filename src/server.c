@@ -46,7 +46,7 @@ int server_stop(struct server *server) {
 }
 
 
-int server_init(struct server *server) {
+int server_init(struct server *server, char* ip, char* port) {
     block_metadata_init();
     item_metadata_init();
     world_init(0, &server->world);
@@ -64,15 +64,13 @@ int server_init(struct server *server) {
     for (size_t i = 0; i < ARRAY_SIZE(server->clients); i++) {
         server->clients[i].uuid = -1;
     }
-    int input_sock = junk_udp_ipv4_bind("127.0.0.1", "8000");
+    int input_sock = junk_udp_ipv4_bind(ip, port);
     if (input_sock == -1) {
         fprintf(stderr, "Couldn't create input socket\n");
         return -1;
     }
     server->input_fd = input_sock;
     pthread_create(&input_thread, 0,server_client_loop, server);
-    char* ip = "127.0.0.1";
-    char* port = "8000";
     int sockfd = junk_tcp_ipv4_bind(ip, port);
     int option = 1;
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
@@ -349,9 +347,13 @@ void client_disconnect(struct server* server, struct client* client) {
 
 }
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc != 3) {
+        fprintf(stderr, "Usage: junkcraft [IP] [PORT]\n");
+        return -1;
+    }
     struct server server;
     memset(&server, 0, sizeof(struct server));
-    server_init(&server);
+    server_init(&server, argv[1], argv[2]);
     server_start(&server);
 }

@@ -39,7 +39,7 @@ struct server {
  * Initialize a server struct, creating whatever resources are necessary
  * @return 0 on success, -1 on error
  */
-int server_init(struct server* server);
+int server_init(struct server* server, char* ip, char* port);
 /*
  * Called after server_init, this starts listening based on the configured socket
  * The server loop involves accepting/disconnecting clients and syncing data with them

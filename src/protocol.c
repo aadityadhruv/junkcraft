@@ -100,7 +100,7 @@ int player_data_recv(struct player_data *data, int fd) {
     offset += sizeof(data->curr);
     return 0;
 }
-int esp_send(struct ESP* packet, int fd) {
+int esp_send(struct ESP* packet, int fd, char* ip, char* port) {
     char buf[sizeof(struct ESP)];
     memset(buf, 0, sizeof(struct ESP));
     int offset = 0;
@@ -114,7 +114,7 @@ int esp_send(struct ESP* packet, int fd) {
     offset += sizeof(packet->rot_y);
     memcpy(buf + offset, &(packet->scroll), sizeof(packet->scroll));
     offset += sizeof(packet->scroll);
-    return junk_udp_ipv4_send(fd, "127.0.0.1", "8000", (char*)buf, offset);
+    return junk_udp_ipv4_send(fd, ip, port, (char*)buf, offset);
 }
 int esp_recv(struct ESP* packet, int fd) {
     char buf[sizeof(struct ESP)];

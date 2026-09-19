@@ -89,7 +89,7 @@ void input_send_mask(struct engine* engine, double dt) {
             if (poll(&pfd, 1, 0) > 0) {
                 // fprintf(stderr, "MASK: %0b\n", mask);
                 // fprintf(stderr, "sendin!!!\n");
-                esp_send(&esp, engine->server_input_socket);
+                esp_send(&esp, engine->server_input_socket, engine->ip, engine->port);
             }
         }
 

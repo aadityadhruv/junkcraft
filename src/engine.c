@@ -23,7 +23,7 @@
 #include <time.h>
 
 
-int engine_init(struct engine *engine) {
+int engine_init(struct engine *engine, char* ip, char* port) {
     // Setup the Window
     struct window* window = malloc(sizeof(struct window));
     memset(window, 0, sizeof(struct window));
@@ -100,7 +100,7 @@ int engine_init(struct engine *engine) {
     memset(world, 0, sizeof(struct world));
     // world_init(1, &world);
     engine->world = world;
-    int sock = junk_tcp_ipv4_connect("127.0.0.1", "8000");
+    int sock = junk_tcp_ipv4_connect(ip, port);
     if (sock == -1) {
         fprintf(stderr, "Failed to connect\n");
         return -1;
@@ -112,6 +112,8 @@ int engine_init(struct engine *engine) {
         fprintf(stderr, "Couldn't connect UDP\n");
         return -1;
     }
+    engine->ip = ip;
+    engine->port = port;
     engine->server_input_socket = input_sock;
     // Get the init_pkt and store the UUID. This will be re-used if disconnects
     // happen
