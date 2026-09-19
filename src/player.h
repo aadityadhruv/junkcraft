@@ -60,9 +60,9 @@ void player_physics(struct player_data* player, struct world* world, double dt);
 
 void player_draw(struct player* player, struct world* world, struct shader* shader);
 
-void player_block_delete(struct player_data* player, struct world* world);
+int player_block_delete(struct player_data* player, struct world* world);
 
-void player_block_place(struct player_data* player, struct world* world, enum BLOCK_ID blk_id);
+int player_block_place(struct player_data* player, struct world* world, enum BLOCK_ID blk_id);
 void player_use(struct player_data* player, struct world* world);
 
 void player_load_ui(struct player* player);

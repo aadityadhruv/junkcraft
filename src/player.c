@@ -732,7 +732,7 @@ void player_load_debug(struct player* player) {
     glBindVertexArray(0);
 }
 
-void player_block_delete(struct player_data* player, struct world* world) {
+int player_block_delete(struct player_data* player, struct world* world) {
     vec3 step = { 0 };
     glm_normalize_to(player->direction, step);
     float scale = 0.1f;
@@ -763,7 +763,7 @@ void player_block_delete(struct player_data* player, struct world* world) {
         magnitude += glm_vec3_norm(step);
     }
     if (!found) {
-        return;
+        return 1;
     }
     //So ray_position is at block coordinates
     float x = floorf(ray_position[0]);
@@ -772,7 +772,7 @@ void player_block_delete(struct player_data* player, struct world* world) {
     float z = ceilf(ray_position[2]);
     vec3 block_pos = { x, y, z };
     glm_vec3_print(block_pos, stderr);
-    world_chunk_block_delete(world, block_pos);
+    return world_chunk_block_delete(world, block_pos);
 }
 
 void player_use(struct player_data* player, struct world* world) {
@@ -782,8 +782,8 @@ void player_use(struct player_data* player, struct world* world) {
     if (blk_id == BLOCK_ID_COUNT) return;
     player_block_place(player, world, blk_id);
 }
-void player_block_place(struct player_data* player, struct world* world, enum BLOCK_ID blk_id) {
-    if (blk_id == -1) return;
+int player_block_place(struct player_data* player, struct world* world, enum BLOCK_ID blk_id) {
+    if (blk_id == -1) return 1;
     vec3 step = { 0 };
     glm_normalize_to(player->direction, step);
     float scale = 0.1f;
@@ -811,7 +811,7 @@ void player_block_place(struct player_data* player, struct world* world, enum BL
         magnitude += glm_vec3_norm(step);
     }
     if (!found) {
-        return;
+        return 1;
     }
     //So ray_position is at block coordinates
     int x = floorf(ray_position[0]);
@@ -866,7 +866,7 @@ void player_block_place(struct player_data* player, struct world* world, enum BL
     vec3 world_block_coords = { nx, ny, nz };
     fprintf(stderr, "Placing block at ");
     glm_vec3_print(world_block_coords, stderr);
-    world_chunk_block_place(world, world_block_coords, blk_id);
+    return world_chunk_block_place(world, world_block_coords, blk_id);
 }
 
 // Return 1 if intersection, 0 if not
