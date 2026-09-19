@@ -22,7 +22,7 @@
 #define MIN(x, y) (x < y) ? x : y
 #define MAX(x, y) (x > y) ? x : y
 #define SQUARE(x) x*x
-#define MAX_WALK_VELOCITY 10
+#define MAX_WALK_VELOCITY 5
 #define MAX_JUMP_VELOCIY 10
 #define HOTBAR_SIZE 10
 // Note: Difference between friction and move scale will essentially give
@@ -30,8 +30,8 @@
 // Higher the numbers for both, the snappier the movment feels. If it were 10 vs 20, 
 // it feels slippery like ice (because FRICTION determines how quickly velocity drops) 
 // so higher both, the snappier
-#define FRICTION 100
-#define MOVE_SCALE 110 
+#define FRICTION 200
+#define MOVE_SCALE 210
 #define JUMP_SCALE 50000
 #define GRAVITY -30.0f
 #define BLOCK_RANGE 7
@@ -313,9 +313,26 @@ void player_physics(struct player_data* player, struct world* world, double dt) 
     float speed = glm_vec3_norm(player->velocity) + 0.01f;
     float friction = FRICTION;
     vec3 f2 = { -player->velocity[0] * friction / speed, 0.0f, -player->velocity[2] * friction / speed };
+    // If we're going really slow, let's just not apply any friction and come to a halt.
+    if (speed < 1.0f) {
+        player->velocity[0] = 0;
+        player->velocity[2] = 0;
+        memset(f2, 0, sizeof(f2));
+    }
     // Apply the friction to acceleration (F = ma), so force/accel applied here
     glm_vec3_add(player->accel, f2, player->accel);
 
+
+    //Floor low accelerations
+    if (glm_vec3_norm(player->accel) < 5.0f) {
+        player->accel[0] = 0;
+        player->accel[2] = 0;
+    }
+    // fprintf(stderr, "speed: %f\n ", speed);
+    // fprintf(stderr, "velocity: ");
+    // glm_vec3_print(player->velocity, stderr);
+    // fprintf(stderr, "friction: ");
+    // glm_vec3_print(f2, stderr);
 
     // Velocity = a * dt
     vec3 velocity = { 0.0f };
