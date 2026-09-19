@@ -209,7 +209,7 @@ int chunk_structure_gen(struct world* world, struct chunk* chunk) {
         }
     }
     chunk->data.generated_structures = 1;
-    chunk->graphics.dirty = 1;
+    chunk->data.dirty = 1;
     return 0;
 }
 
@@ -902,13 +902,13 @@ int chunk_block_place(struct chunk* chunk, vec3 pos, enum BLOCK_ID block_id) {
     if (chunk->data.blocks[x][y][z] == BLOCK_NONE) {
         chunk->data.blocks[x][y][z] = block_id;
         // Set dirty flag, we will unload/reload in engine loop
-        chunk->graphics.dirty = 1;
+        chunk->data.dirty = 1;
         return 0;
     }
     // Not a solid block
     if (chunk->data.blocks[x][y][z] != BLOCK_NONE && !block_metadata[chunk->data.blocks[x][y][z]].solid) {
         chunk->data.blocks[x][y][z] = block_id;
-        chunk->graphics.dirty = 1;
+        chunk->data.dirty = 1;
         return 0;
     }
     return 1;
@@ -928,7 +928,7 @@ int chunk_block_delete(struct chunk* chunk, vec3 pos) {
     if (chunk->data.blocks[x][y][z] != BLOCK_NONE) {
         chunk->data.blocks[x][y][z] = BLOCK_NONE;
         // Set dirty flag, we will unload/reload in engine loop
-        chunk->graphics.dirty = 1;
+        chunk->data.dirty = 1;
         return 0;
     }
     return 1;

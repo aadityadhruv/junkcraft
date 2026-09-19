@@ -53,6 +53,7 @@ struct chunk_data {
     enum biome biome;
     vec2 coord;
     int8_t generated_structures;
+    int dirty;
 };
 
 /*
@@ -66,7 +67,6 @@ struct chunk_graphics {
     mat4 model;
     int loaded;
     // Blocks placed/deleted
-    int dirty;
 };
 
 /*

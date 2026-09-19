@@ -143,7 +143,7 @@ void engine_client_update_world(struct engine* engine) {
         memset(c, 0, sizeof(struct chunk));
     }
     memcpy(&c->data, &chunk, sizeof(struct chunk_data));
-    c->graphics.dirty = 1;
+    c->data.dirty = 1;
     engine->world->chunks[(int)chunk.coord[0]][(int)chunk.coord[1]] = c;
 }
 
@@ -185,7 +185,6 @@ void* engine_sync(void* buf) {
 void engine_update(struct engine* engine) {
     int curr_chunk[2] = { (int)floorf(engine->player.data.position[0] / (float)CHUNK_WIDTH), (int)floorf(-engine->player.data.position[2] / (float)CHUNK_LENGTH) };
     memcpy(engine->player.data.chunk_coords, curr_chunk, sizeof(curr_chunk));
-    return;
     // unload chunks that must be unloaded, based on the chunk_load_mask
     for (int i = 0; i < WORLD_WIDTH; i++) {
         for (int j = 0; j  < WORLD_LENGTH; j++) {
@@ -199,7 +198,7 @@ void engine_update(struct engine* engine) {
                 // }
                 if (engine->chunk_load_mask[i][j] == 0) {
                     if (chunk->graphics.loaded == 1) {
-                        fprintf(stderr, "unloaded %d %d\n", chunk_coord[0], chunk_coord[1]);
+                        // fprintf(stderr, "unloaded %d %d\n", chunk_coord[0], chunk_coord[1]);
                         chunk_unload(chunk);
                     }
                     // Client no longer needs to render this, let's remove it
@@ -218,15 +217,16 @@ void engine_update(struct engine* engine) {
             struct chunk* chunk = {0};
             int chunk_coord[2] = { curr_chunk[0] + i, curr_chunk[1] + j  };
             world_get_chunk_no_gen(engine->world, chunk_coord, &chunk);
-            if (chunk != NULL && chunk->data.generated_structures == 1 && chunk->graphics.dirty) {
+            if (chunk != NULL && chunk->data.generated_structures == 1 && chunk->data.dirty) {
                 // TODO: At high chunk distances, this is called hundreds of times
                 // because each tree gen is a block place which marks chunk as dirty. 
                 // So the same chunk gets unloaded/loaded even before the chunk is "ready"
                 // This is fine in the current state because we do not render until we are
                 // fully generated (chunk->generated_structures == 1). But it is something to keep in mind
+                fprintf(stderr, "unloaded %d %d\n", chunk_coord[0], chunk_coord[1]);
                 chunk_unload(chunk);
                 // chunk_load(engine->world, chunk, chunk_coord);
-                chunk->graphics.dirty = 0;
+                chunk->data.dirty = 0;
             }
         }
     }
