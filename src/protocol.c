@@ -9,19 +9,23 @@ int ssp_send(struct SSP* packet, int fd) {
     char buf[sizeof(struct SSP)];
     memset(buf, 0, sizeof(struct SSP));
     int offset = 0;
+    memcpy(buf + offset, &(packet->timestamp), sizeof(packet->timestamp));
+    offset += sizeof(packet->timestamp);
     memcpy(buf + offset, &(packet->client_uuid), sizeof(packet->client_uuid));
     offset += sizeof(packet->client_uuid);
     memcpy(buf + offset, &(packet->data_size), sizeof(packet->data_size));
     offset += sizeof(packet->data_size);
     memcpy(buf + offset, &(packet->id), sizeof(packet->id));
     offset += sizeof(packet->id);
-    return junk_tcp_ipv4_send(fd, (char*)buf, offset);
+    return junk_tcp_ipv4_send(fd, (char*)buf, sizeof(struct SSP));
 }
 int ssp_recv(struct SSP* packet, int fd) {
     char buf[sizeof(struct SSP)];
     int ret = junk_tcp_ipv4_recv(fd, (char*)buf, sizeof(struct SSP));
     if (ret != 0) return ret;
     int offset = 0;
+    memcpy(&(packet->timestamp), buf + offset, sizeof(packet->timestamp));
+    offset += sizeof(packet->timestamp);
     memcpy(&(packet->client_uuid), buf + offset, sizeof(packet->client_uuid));
     offset += sizeof(packet->client_uuid);
     memcpy(&(packet->data_size), buf + offset, sizeof(packet->data_size));

@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "cglm/vec3.h"
 #include "protocol.h"
 #include "junk/network.h"
 #include "block.h"
@@ -117,7 +118,7 @@ int engine_init(struct engine *engine, char* ip, char* port) {
     engine->server_input_socket = input_sock;
     // Get the init_pkt and store the UUID. This will be re-used if disconnects
     // happen
-    struct SSP init_pkt;
+    struct SSP init_pkt = { };
     ssp_recv(&init_pkt, sock);
     engine->uuid = init_pkt.client_uuid;
     fprintf(stderr, "Got init packet: %ld\n", init_pkt.client_uuid);
@@ -132,9 +133,26 @@ int engine_init(struct engine *engine, char* ip, char* port) {
     return 0;
 }
 void engine_client_update_player(struct engine* engine) {
-    player_data_recv(&engine->player.data, engine->server_socket);
-    player_camera_set_position(&engine->player);
-    memcpy(engine->player.graphics.camera.direction, engine->player.data.direction, sizeof(vec3));
+    struct player_data tmp = {};
+    struct player_data* data = &engine->player.data;
+    player_data_recv(&tmp, engine->server_socket);
+    // To improve player experience, we lerp between
+    // recv data and curr simulated data, this means
+    // we slowly move "towards" server side truth
+    // 0.01f is to prevent nan error is pos/vel/accel is zero
+    data->curr = tmp.curr;
+    memcpy(data->items, tmp.items, sizeof(data->items));
+    // float position_diff = fabsf(glm_vec3_distance(tmp.position, data->position)) / 0.5f;
+    // glm_vec3_lerpc(data->position, tmp.position,position_diff, data->position);
+    // float velocity_diff = fabsf(glm_vec3_distance(tmp.velocity, data->velocity)) / 0.5f;
+    // glm_vec3_lerpc(data->velocity, tmp.velocity,velocity_diff, data->velocity);
+    // float accel_diff = fabsf(glm_vec3_distance(tmp.accel, data->accel)) / 0.5f;
+    // glm_vec3_lerpc(data->accel, tmp.accel,accel_diff, data->accel);
+    // float direction_diff = fabsf(glm_vec3_angle(tmp.direction, data->direction)) / glm_rad(10);
+    // glm_vec3_lerpc(data->direction, tmp.direction, direction_diff, data->direction);
+    //
+    // player_camera_set_position(&engine->player);
+    // memcpy(engine->player.graphics.camera.direction, engine->player.data.direction, sizeof(vec3));
 }
 void engine_client_update_world(struct engine* engine) {
     struct chunk_data chunk = {};
@@ -177,7 +195,7 @@ void* engine_sync(void* buf) {
                     engine_client_update_player(engine);
                     break;
                 default:
-                    fprintf(stderr, "nothing\n");
+                    fprintf(stderr, "BAD SSP\n");
                     break;
             }
         }
@@ -259,7 +277,10 @@ void engine_start(struct engine* engine) {
     time_t frame_last_time = time(NULL);
     float fps = 0.0;
     struct timespec last_update;
+    float ticks_per_second = 60;
+    struct timespec last_tick_update;
     clock_gettime(CLOCK_MONOTONIC, &last_update);
+    clock_gettime(CLOCK_MONOTONIC, &last_tick_update);
     while (engine->game_loop) {
         time_t now = time(NULL);
         time_t diff = now - frame_last_time;
@@ -267,7 +288,6 @@ void engine_start(struct engine* engine) {
         clock_gettime(CLOCK_MONOTONIC, &curr);
         double dt = (double)(curr.tv_sec - last_update.tv_sec) + ((double)(curr.tv_nsec - last_update.tv_nsec) / ((double) 1000000000));
         clock_gettime(CLOCK_MONOTONIC, &last_update);
-        // Calculate FPS every second
         if (diff >= 1.0l) {
             fps = frames / (float)diff;
             frames = 0;
@@ -293,8 +313,13 @@ void engine_start(struct engine* engine) {
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
         // input_process(engine, dt);
+        double tick_dt = (double)(curr.tv_sec - last_tick_update.tv_sec) + ((double)(curr.tv_nsec - last_tick_update.tv_nsec) / ((double) 1000000000));
         input_send_mask(engine, dt);
-        engine_update(engine);
+        if (tick_dt >= (1.0f / ticks_per_second)) {
+            player_physics(&engine->player.data, engine->world, tick_dt);
+            engine_update(engine);
+            clock_gettime(CLOCK_MONOTONIC, &last_tick_update);
+        }
 
         // =============== DRAW ======================
         // Draw sky objects

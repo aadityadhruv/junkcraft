@@ -27,6 +27,7 @@ struct ssp_chunk_sync {
     int y;
 };
 struct SSP {
+    int32_t timestamp;
     int64_t client_uuid;
     int32_t data_size;
     enum SSP_ID id;
@@ -52,6 +53,7 @@ enum ESP_ID {
     ESP_POS
 };
 struct ESP {
+    // int32_t timestamp;
     int64_t client_uuid;
     int32_t mask;
     int rot_x;
