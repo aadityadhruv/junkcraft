@@ -69,6 +69,7 @@ void player_data_init(vec3 pos, struct player_data* player) {
     vec3 player_up = { 0.0f, 1.0f, 0.0f };
     memcpy(player->up, player_up, sizeof(vec3));
     memcpy(player->direction, player_direction, sizeof(vec3));
+
 }
 
 void player_load(struct player* player) {
@@ -1022,4 +1023,15 @@ void player_move_hotbar(struct player_data* player, int direction) {
     } else {
         player->curr = (player->curr + HOTBAR_SIZE + 1) % HOTBAR_SIZE;
     }
+}
+
+void player_interpolate(struct player_data* data, struct player_data* tmp) {
+    float position_diff = fabsf(glm_vec3_distance(tmp->position, data->position)) / 5.0f;
+    glm_vec3_lerpc(data->position, tmp->position,position_diff, data->position);
+    float velocity_diff = fabsf(glm_vec3_distance(tmp->velocity, data->velocity)) / 5.0f;
+    glm_vec3_lerpc(data->velocity, tmp->velocity,velocity_diff, data->velocity);
+    float accel_diff = fabsf(glm_vec3_distance(tmp->accel, data->accel)) / 5.0f;
+    glm_vec3_lerpc(data->accel, tmp->accel,accel_diff, data->accel);
+    float direction_diff = fabsf(glm_vec3_angle(tmp->direction, data->direction)) / glm_rad(360);
+    glm_vec3_lerpc(data->direction, tmp->direction, direction_diff, data->direction);
 }

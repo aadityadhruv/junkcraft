@@ -5,7 +5,7 @@
 #include "item.h"
 #include "cglm/cglm.h"
 
-#define PLAYER_MAX_INPUT_QUEUE 1000
+#define PLAYER_MAX_INPUT_QUEUE 100
 
 struct engine;
 struct aabb {
@@ -47,6 +47,7 @@ struct player_graphics {
 struct player {
     struct ESP action;
     struct player_data data;
+    struct player_data target;
     struct player_graphics graphics;
     pthread_mutex_t stream_lock;
     struct junk_vector stream;
@@ -89,3 +90,4 @@ void player_draw_ui(struct player* player, struct shader* shader);
 int player_is_point_in_frustum(struct player* player, vec2 chunk_coord);
 void player_move_hotbar(struct player_data* player, int direction);
 void player_load(struct player* player);
+void player_interpolate(struct player_data* data, struct player_data* tmp);
