@@ -5,6 +5,7 @@
 #include "item.h"
 #include "cglm/cglm.h"
 
+#define PLAYER_MAX_INPUT_QUEUE 1000
 
 struct engine;
 struct aabb {
@@ -12,12 +13,12 @@ struct aabb {
     vec3 start;
 };
 struct player_data {
-    vec3 position;
     int chunk_coords[2];
     struct aabb hitbox;
     enum ITEM_ID items[40];
     int curr;
     float weight;
+    vec3 position;
     vec3 direction;
     vec3 up;
     vec3 velocity;
@@ -41,9 +42,14 @@ struct player_graphics {
     GLuint _ebo_inventory;
     int inventory_vertex_count;
 };
+//TODO: FIX DISGUSTING HEADER DEPENDENCIES
+#include "protocol.h"
 struct player {
+    struct ESP action;
     struct player_data data;
     struct player_graphics graphics;
+    pthread_mutex_t stream_lock;
+    struct junk_vector stream;
 };
 
 void player_data_init(vec3 pos, struct player_data* player);

@@ -259,6 +259,8 @@ int player_can_move_z(struct player_data* player, struct world* world, float mov
 }
 
 void player_update(struct player* player, struct shader* shader) {
+    player_camera_set_position(player);
+    memcpy(player->graphics.camera.direction, player->data.direction, sizeof(vec3));
     camera_update(&player->graphics.camera, shader);
 }
 // int player_physics_check_collision() {
