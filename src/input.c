@@ -9,95 +9,26 @@
 #include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_video.h>
+#include <junk/queue.h>
 #include <sys/poll.h>
 
 pthread_t input_init(struct engine* engine) {
     SDL_SetRelativeMouseMode(SDL_TRUE);
     SDL_SetWindowMouseGrab(engine->window->window, SDL_TRUE);
-    // pthread_create(&thread, NULL, (void*)input_handle, engine);
-    // return thread;
     return 0;
 }
-void input_join(pthread_t thread, struct engine* engine) {
-    // pthread_join(thread, NULL);
-}
 
-void input_send_mask(struct engine* engine, double dt) {
-    const Uint8* numkeys = engine->numkeys;
-    // Quit game
-    // TODO: Locks?
-    SDL_Event event;
-    SDL_PollEvent(&event);
-    int32_t mask = 0;
-    int rot_x;
-    int rot_y;
-    int scroll;
-    // SDL_PumpEvents();
-    if (event.type == SDL_QUIT) {
-        engine->game_loop = 0;
-    }
-    if (numkeys[SDL_SCANCODE_W]) {
-        mask += ESP_FORWARD;
-        player_move(&engine->player.data, FORWARD, dt);
-    }
-    if (numkeys[SDL_SCANCODE_A]) {
-        mask += ESP_LEFT;
-        player_move(&engine->player.data, LEFT, dt);
-    }
-    if (numkeys[SDL_SCANCODE_S]) {
-        mask += ESP_BACK;
-        player_move(&engine->player.data, BACKWARD, dt);
-    }
-    if (numkeys[SDL_SCANCODE_D]) {
-        mask += ESP_RIGHT;
-        player_move(&engine->player.data, RIGHT, dt);
-    }
-    if (numkeys[SDL_SCANCODE_SPACE]) {
-        mask += ESP_JUMP;
-        player_move(&engine->player.data, JUMP, dt);
-    }
-    if (numkeys[SDL_SCANCODE_ESCAPE]) {
-        engine->game_loop = 0;
-    }
-    if (event.type == SDL_MOUSEBUTTONDOWN) {
-        SDL_MouseButtonEvent* b = (SDL_MouseButtonEvent*) &event;
-        if (b->button == SDL_BUTTON_LEFT) {
-            mask += ESP_PLACE_HIT;
-            player_block_delete(&engine->player.data, engine->world);
-        }
-        if (b->button == SDL_BUTTON_RIGHT) {
-            mask += ESP_PLAYER_PLACE;
-            player_use(&engine->player.data, engine->world);
-        }
-    }
-    if (event.type == SDL_MOUSEMOTION) {
-        SDL_GetRelativeMouseState(&rot_x, &rot_y);
-        if (rot_x != 0 || rot_y != 0) {
-            mask += ESP_ROTATE;
-            vec2 offset = { rot_x, rot_y };
-            player_rotate(&engine->player.data, offset);
-        }
-    }
-    if (event.type == SDL_MOUSEWHEEL) {
-        mask += ESP_SCROLL;
-        SDL_MouseWheelEvent* b = (SDL_MouseWheelEvent*) &event;
-        scroll = b->y;
-        player_move_hotbar(&engine->player.data, scroll);
-    }
-    player_camera_set_position(&engine->player);
-    //TODO: This is a bit dirty, everytime we rotate
-    //we update camera, but this is client side only, and player_rotate
-    //is also called server side....
-    // glm_vec3_print(engine->player.data.up, stderr);
-    memcpy(engine->player.graphics.camera.direction, engine->player.data.direction, sizeof(vec3));
-    if (mask != 0) {
+void input_send_mask(struct engine* engine) {
+    if (engine->player.action.mask != 0) {
         struct ESP esp = {
             .client_uuid = engine->uuid,
-            .mask = mask,
-            .rot_x = rot_x,
-            .rot_y = rot_y,
-            .scroll = scroll,
+            .mask = engine->player.action.mask,
+            .rot_x = engine->player.action.rot_x,
+            .rot_y = engine->player.action.rot_y,
+            .scroll = engine->player.action.scroll,
+            .timestamp = time(NULL),
         };
+        //Reset action snapshot
         struct pollfd pfd = {
             .events = POLLOUT,
             .fd = engine->server_input_socket
@@ -106,8 +37,17 @@ void input_send_mask(struct engine* engine, double dt) {
             // fprintf(stderr, "MASK: %0b\n", mask);
             // fprintf(stderr, "sendin!!!\n");
             esp_send(&esp, engine->server_input_socket, engine->ip, engine->port);
+            pthread_mutex_lock(&engine->player.stream_lock);
+            if (junk_vector_length(&engine->player.stream) == PLAYER_MAX_INPUT_QUEUE) {
+                free(junk_vector_pop(&engine->player.stream, 0));
+            }
+            struct ESP* packet = (struct ESP*) malloc(sizeof(struct ESP));
+            memcpy(packet, &esp, sizeof(struct ESP));
+            JUNK_VECTOR_INSERT(&engine->player.stream, packet);
+            pthread_mutex_unlock(&engine->player.stream_lock);
         }
     }
+    memset(&engine->player.action, 0, sizeof(engine->player.action));
 
 }
 void input_server_process(struct player_data* player, struct world* world, struct ESP* esp, double dt) {
@@ -141,56 +81,61 @@ void input_server_process(struct player_data* player, struct world* world, struc
         player_move_hotbar(player, esp->scroll);
     }
 }
-void input_process(struct engine* engine, double dt) {
+void input_process(struct engine* engine) {
     const Uint8* numkeys = engine->numkeys;
-        // Quit game
-        // TODO: Locks?
-        SDL_Event event;
-        SDL_PollEvent(&event);
-        // SDL_PumpEvents();
-        if (event.type == SDL_QUIT) {
-            engine->game_loop = 0;
-       }
-            if (numkeys[SDL_SCANCODE_W]) {
-                player_move(&engine->player.data, FORWARD, dt);
-            }
-            if (numkeys[SDL_SCANCODE_A]) {
-                player_move(&engine->player.data, LEFT, dt);
-            }
-            if (numkeys[SDL_SCANCODE_S]) {
-                player_move(&engine->player.data, BACKWARD, dt);
-            }
-            if (numkeys[SDL_SCANCODE_D]) {
-                player_move(&engine->player.data, RIGHT, dt);
-            }
-            if (numkeys[SDL_SCANCODE_SPACE]) {
-                player_move(&engine->player.data, JUMP, dt);
-            }
-            if (numkeys[SDL_SCANCODE_ESCAPE]) {
-                engine->game_loop = 0;
-            }
-        if (event.type == SDL_KEYDOWN) {
+    // Quit game
+    // TODO: Locks?
+    SDL_Event event;
+    SDL_PollEvent(&event);
+    int32_t mask = 0;
+    int rot_x = 0;
+    int rot_y = 0;
+    int scroll = 0;
+    // SDL_PumpEvents();
+    if (event.type == SDL_QUIT) {
+        engine->game_loop = 0;
+    }
+    if (numkeys[SDL_SCANCODE_W]) {
+        mask |= ESP_FORWARD;
+    }
+    if (numkeys[SDL_SCANCODE_A]) {
+        mask |= ESP_LEFT;
+    }
+    if (numkeys[SDL_SCANCODE_S]) {
+        mask |= ESP_BACK;
+    }
+    if (numkeys[SDL_SCANCODE_D]) {
+        mask |= ESP_RIGHT;
+    }
+    if (numkeys[SDL_SCANCODE_SPACE]) {
+        mask |= ESP_JUMP;
+    }
+    if (numkeys[SDL_SCANCODE_ESCAPE]) {
+        engine->game_loop = 0;
+    }
+    if (event.type == SDL_MOUSEBUTTONDOWN) {
+        SDL_MouseButtonEvent* b = (SDL_MouseButtonEvent*) &event;
+        if (b->button == SDL_BUTTON_LEFT) {
+            mask |= ESP_PLACE_HIT;
         }
-        if (event.type == SDL_MOUSEBUTTONDOWN) {
-            SDL_MouseButtonEvent* b = (SDL_MouseButtonEvent*) &event;
-            if (b->button == SDL_BUTTON_LEFT) {
-                player_block_delete(&engine->player.data, engine->world);
-            }
-            if (b->button == SDL_BUTTON_RIGHT) {
-                player_use(&engine->player.data, engine->world);
-            }
+        if (b->button == SDL_BUTTON_RIGHT) {
+            mask |= ESP_PLAYER_PLACE;
         }
-        if (event.type == SDL_MOUSEWHEEL) {
-            SDL_MouseWheelEvent* b = (SDL_MouseWheelEvent*) &event;
-            player_move_hotbar(&engine->player.data, b->y);
+    }
+    if (event.type == SDL_MOUSEMOTION) {
+        SDL_GetRelativeMouseState(&rot_x, &rot_y);
+        if (rot_x != 0 || rot_y != 0) {
+            mask |= ESP_ROTATE;
         }
-        if (event.type == SDL_MOUSEMOTION) {
-            int x;
-            int y;
-            SDL_GetRelativeMouseState(&x, &y);
-            if (x != 0 || y != 0) {
-            vec2 offset = { x, y };
-            player_rotate(&engine->player.data, offset);
-            }
-        }
+    }
+    if (event.type == SDL_MOUSEWHEEL) {
+        mask |= ESP_SCROLL;
+        SDL_MouseWheelEvent* b = (SDL_MouseWheelEvent*) &event;
+        scroll = b->y;
+    }
+
+    engine->player.action.rot_x += rot_x;
+    engine->player.action.rot_y += rot_y;
+    engine->player.action.scroll += scroll;
+    engine->player.action.mask |= mask;
 }

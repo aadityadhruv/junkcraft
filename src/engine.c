@@ -1,5 +1,6 @@
 #include "engine.h"
 #include "cglm/vec3.h"
+#include "player.h"
 #include "protocol.h"
 #include "junk/network.h"
 #include "block.h"
@@ -9,7 +10,6 @@
 #include "config.h"
 #include "chunk.h"
 #include "input.h"
-#include "player.h"
 #include "shader.h"
 #include "text.h"
 #include "texture.h"
@@ -18,6 +18,7 @@
 #include <SDL2/SDL_render.h>
 #include <junk/vector.h>
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/poll.h>
@@ -91,6 +92,9 @@ int engine_init(struct engine *engine, char* ip, char* port) {
     // Setup player
     vec3 pos = { 1.0f, 200.0f, -1.0f };
     player_data_init(pos, &engine->player.data);
+    memcpy(&engine->player.target, &engine->player.data, sizeof(engine->player.target));
+    junk_vector_init(&engine->player.stream);
+    pthread_mutex_init(&engine->player.stream_lock, 0);
     player_load(&engine->player);
 
     // Setup chunk_load_mask
@@ -132,9 +136,14 @@ int engine_init(struct engine *engine, char* ip, char* port) {
     engine->numkeys = numkeys;
     return 0;
 }
-void engine_client_update_player(struct engine* engine) {
+void engine_client_update_player(struct engine* engine, int32_t timestamp) {
+
+    // Skip all events that are older than what we're getting from the server
+
+
     struct player_data tmp = {};
     struct player_data* data = &engine->player.data;
+    struct player_data* target = &engine->player.target;
     player_data_recv(&tmp, engine->server_socket);
     // To improve player experience, we lerp between
     // recv data and curr simulated data, this means
@@ -142,17 +151,32 @@ void engine_client_update_player(struct engine* engine) {
     // 0.01f is to prevent nan error is pos/vel/accel is zero
     data->curr = tmp.curr;
     memcpy(data->items, tmp.items, sizeof(data->items));
-    // float position_diff = fabsf(glm_vec3_distance(tmp.position, data->position)) / 0.5f;
-    // glm_vec3_lerpc(data->position, tmp.position,position_diff, data->position);
-    // float velocity_diff = fabsf(glm_vec3_distance(tmp.velocity, data->velocity)) / 0.5f;
-    // glm_vec3_lerpc(data->velocity, tmp.velocity,velocity_diff, data->velocity);
-    // float accel_diff = fabsf(glm_vec3_distance(tmp.accel, data->accel)) / 0.5f;
-    // glm_vec3_lerpc(data->accel, tmp.accel,accel_diff, data->accel);
-    // float direction_diff = fabsf(glm_vec3_angle(tmp.direction, data->direction)) / glm_rad(10);
-    // glm_vec3_lerpc(data->direction, tmp.direction, direction_diff, data->direction);
-    //
-    // player_camera_set_position(&engine->player);
-    // memcpy(engine->player.graphics.camera.direction, engine->player.data.direction, sizeof(vec3));
+    // Re-apply all physics onto the server side player data
+    pthread_mutex_lock(&engine->player.stream_lock);
+    struct ESP* esp = ((struct ESP*)junk_vector_get(&engine->player.stream, 0));
+    // fprintf(stderr, "Queued %d events\n", junk_vector_length(&engine->player.stream));
+    while (1) {
+        // Queue empty, we're up to date
+        if (esp == NULL) {
+            break;
+        }
+        if (timestamp >= esp->timestamp) {
+            free(junk_vector_pop(&engine->player.stream, 0));
+            esp = ((struct ESP*)junk_vector_get(&engine->player.stream, 0));
+            continue;
+        }
+        break;
+    };
+    for (int i = 0; i < junk_vector_length(&engine->player.stream); i++) {
+        struct ESP* esp = ((struct ESP*)junk_vector_get(&engine->player.stream, i));
+        input_server_process(&tmp, engine->world, esp, 1 / 60.0f);
+    }
+    pthread_mutex_unlock(&engine->player.stream_lock);
+
+    memcpy(target->position, tmp.position, sizeof(target->position));
+    memcpy(target->velocity, tmp.velocity, sizeof(target->velocity));
+    memcpy(target->accel, tmp.accel, sizeof(target->accel));
+    memcpy(target->direction, tmp.direction, sizeof(target->direction));
 }
 void engine_client_update_world(struct engine* engine) {
     struct chunk_data chunk = {};
@@ -192,7 +216,7 @@ void* engine_sync(void* buf) {
                     engine_client_update_world(engine);
                     break;
                 case SSP_PLAYER_DATA:
-                    engine_client_update_player(engine);
+                    engine_client_update_player(engine, recv.timestamp);
                     break;
                 default:
                     fprintf(stderr, "BAD SSP\n");
@@ -312,14 +336,17 @@ void engine_start(struct engine* engine) {
         struct shader* sky_shader = junk_vector_get(&engine->shaders, 4);
         // =============== INPUT AND PHYSICS ===============
         // Update engine managed objects
-        // input_process(engine, dt);
+        input_process(engine);
         double tick_dt = (double)(curr.tv_sec - last_tick_update.tv_sec) + ((double)(curr.tv_nsec - last_tick_update.tv_nsec) / ((double) 1000000000));
-        input_send_mask(engine, dt);
         if (tick_dt >= (1.0f / ticks_per_second)) {
-            player_physics(&engine->player.data, engine->world, tick_dt);
+            input_server_process(&engine->player.target, engine->world, &engine->player.action, tick_dt);
+            input_send_mask(engine);
+            player_physics(&engine->player.target, engine->world, tick_dt);
             engine_update(engine);
             clock_gettime(CLOCK_MONOTONIC, &last_tick_update);
         }
+
+        player_interpolate(&engine->player.data, &engine->player.target);
 
         // =============== DRAW ======================
         // Draw sky objects
