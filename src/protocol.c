@@ -108,6 +108,8 @@ int esp_send(struct ESP* packet, int fd, char* ip, char* port) {
     char buf[sizeof(struct ESP)];
     memset(buf, 0, sizeof(struct ESP));
     int offset = 0;
+    memcpy(buf + offset, &(packet->timestamp), sizeof(packet->timestamp));
+    offset += sizeof(packet->timestamp);
     memcpy(buf + offset, &(packet->client_uuid), sizeof(packet->client_uuid));
     offset += sizeof(packet->client_uuid);
     memcpy(buf + offset, &(packet->mask), sizeof(packet->mask));
@@ -118,13 +120,15 @@ int esp_send(struct ESP* packet, int fd, char* ip, char* port) {
     offset += sizeof(packet->rot_y);
     memcpy(buf + offset, &(packet->scroll), sizeof(packet->scroll));
     offset += sizeof(packet->scroll);
-    return junk_udp_ipv4_send(fd, ip, port, (char*)buf, offset);
+    return junk_udp_ipv4_send(fd, ip, port, (char*)buf, sizeof(struct ESP));
 }
 int esp_recv(struct ESP* packet, int fd) {
     char buf[sizeof(struct ESP)];
     int ret = junk_udp_ipv4_recv(fd, (char*)buf, sizeof(struct ESP));
     if (ret != 0) return ret;
     int offset = 0;
+    memcpy(&(packet->timestamp), buf + offset, sizeof(packet->timestamp));
+    offset += sizeof(packet->timestamp);
     memcpy(&(packet->client_uuid), buf + offset, sizeof(packet->client_uuid));
     offset += sizeof(packet->client_uuid);
     memcpy(&(packet->mask), buf + offset, sizeof(packet->mask));

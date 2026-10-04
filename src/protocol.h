@@ -1,5 +1,4 @@
 #pragma once
-#include "player.h"
 #include "cglm/types.h"
 #include "chunk.h"
 #include "stdint.h"
@@ -22,10 +21,6 @@ enum SSP_ID {
     SSP_PLAYER_DATA,
 };
 
-struct ssp_chunk_sync {
-    int x;
-    int y;
-};
 struct SSP {
     int32_t timestamp;
     int64_t client_uuid;
@@ -52,8 +47,9 @@ enum ESP_ID {
     ESP_INPUT,
     ESP_POS
 };
+
 struct ESP {
-    // int32_t timestamp;
+    int32_t timestamp;
     int64_t client_uuid;
     int32_t mask;
     int rot_x;
@@ -73,5 +69,6 @@ int esp_send(struct ESP* packet, int fd, char* ip, char* port);
 int esp_recv(struct ESP* packet, int fd);
 
 
+#include "player.h"
 int player_data_send(struct player_data *data, int fd);
 int player_data_recv(struct player_data *data, int fd);

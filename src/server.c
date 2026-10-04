@@ -112,6 +112,7 @@ int server_start(struct server *server) {
                     .client_uuid = 10 + i,
                     .id = SSP_INIT,
                     .data_size = 0,
+                    .timestamp = time(NULL),
                 };
                 ssp_send(&init_pkt, client_sock);
                 vec3 pos = { 1.0f, 200.0f, -1.0f };
@@ -167,6 +168,7 @@ int server_client_chunk_sync(struct server* server, struct client* client) {
                 .client_uuid = client->uuid,
                 .data_size = sizeof(struct chunk_data),
                 .id = SSP_CHUNK_SYNC,
+                .timestamp = time(NULL),
             };
             pthread_mutex_lock(&client->pkt_lock);
             int ret = ssp_send(&send, client->client_fd);
@@ -255,7 +257,7 @@ void* server_client_loop(void* buf) {
                 }
             }
         }
-        if (dt > (1 / ticks_per_second)) {
+        if (dt >= (1.0f / ticks_per_second)) {
             // dt = (1 / ticks_per_second);
             clock_gettime(CLOCK_MONOTONIC, &last_update);
             // fprintf(stderr, "Server tick\n");
@@ -266,6 +268,7 @@ void* server_client_loop(void* buf) {
                         .client_uuid = client->uuid,
                         .data_size = 0,
                         .id = SSP_PLAYER_DATA,
+                        .timestamp = time(NULL),
                     };
                     struct pollfd out_pfd = {
                         .fd = client->client_fd,
