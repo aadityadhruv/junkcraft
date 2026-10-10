@@ -17,6 +17,7 @@ add_executable(junkcraft
     clock.c
     item.c
     protocol.c
+    server.c
 )
 add_executable(junkcraft-server
     glad.c 
@@ -37,4 +38,5 @@ add_executable(junkcraft-server
     item.c
     server.c
     protocol.c
+    junkserver.c
 )
