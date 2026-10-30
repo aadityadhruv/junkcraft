@@ -86,6 +86,13 @@ float _noise_2d(float x, float y);
 float _noise_3d(float x1, float y1, float z1);
 float _noise_4d(float x1, float x2, float y1, float y2);
 
+float biome_base_sigmoid(float x) {
+    float val = (1 / (1 + exp(20 * (-x + 0.4)))) - 0.7;
+    val = MAX(0, val);
+    return val;
+}
+
+
 float fade(float t) {
     return t * t * t * (t * (t * 6 - 15) + 10); 
 }
@@ -109,12 +116,14 @@ float noise_terrain(float x, float y) {
     float angle_y =  unit_diameter * y;
     // This one generates a big chunk of elevated terrain, so we have like a decently sized mountain range, but not everywhere
     // Number of noise iterations
-    int num = 4;
+    int num = 3;
     // Controls how much variation you get - we are spreading
     // points over a larger lattice when this goes up so we are influcenced by more vectors
     // It also really means how much of a freq*freq chunk falls under "one perlin block". 
     // For example, if freq = 1, then the whole world is 1 perlin block. 1,1 is top-right of world.
     // If freq became 4, then we have 4x4 perlin blocks.
+    // Yet another way to think of it is how "big" a "continent" or "landblob" is - lower means spread
+    // over larger area so bigger landblob
     float freq = 8.0f;
     // init amplitude
     float amp = 1.0f;
@@ -122,16 +131,53 @@ float noise_terrain(float x, float y) {
     float div = 0.0f;
     // Total h
     float h = 0.0f;
+    
+    // Layer 0: Continents - sharp rises and falls
     for (int i = 0; i < num; i++) {
-        float noise = amp * _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
+        float continent = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
         div += amp;
-        h += noise;
+        h += (amp * biome_base_sigmoid(continent));
         freq *= 2;
         amp /= 2;
     }
     h /= div;
-    float ret = h*h*h;
-    return ret;
+
+
+    float con_weight = MIN(1.0f, (h / 0.3));
+    //Layer 1: Add hills and bumps
+    amp = 1.0f;
+    div = 0.0f;
+    freq = 2.0f;
+    float hills_h = 0;
+    for (int i = 0; i < num; i++) {
+        float noise = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
+        div += amp;
+        hills_h += (amp * (noise));
+        freq *= 2;
+        amp /= 2;
+    }
+    hills_h /= div;
+    hills_h = MAX(0.0f, con_weight * hills_h * hills_h);
+    hills_h *= 0.3;
+
+    //Layer 2: Mountains
+    amp = 1.0f;
+    div = 0.0f;
+    freq = 0.25;
+    float mnt_h = 0;
+    for (int i = 0; i < num; i++) {
+        float noise = _noise_4d(freq * cosf(angle_x)/unit_diameter, freq* sinf(angle_x)/unit_diameter, freq* cosf(angle_y)/unit_diameter, freq* sinf(angle_y)/unit_diameter);
+        div += amp;
+        mnt_h += (amp * noise);
+        freq *= 2;
+        amp /= 2;
+    }
+    mnt_h /= div;
+    mnt_h = (mnt_h*mnt_h) * con_weight * 0.5;
+
+    float ret = h + hills_h + mnt_h;
+    return MIN(ret, 1.0f);
+
 }
 
 float noise_caves(float x, float y, float z) {

@@ -108,17 +108,20 @@ void chunk_tree_gen(int x, int y, struct world* world, struct chunk* chunk) {
 
 enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
     enum biome b = JUNK_BIOME_PLAINS;
-    if (z_val > 0.6f) {
+    float snow_z_height = 0.9f;
+    float plains_z_height = 0.75f;
+    int z = (int) (BIOME_BASE + (z_val / plains_z_height) * BIOME_MAX);
+    z = MIN(CHUNK_HEIGHT, z);
+
+    if (z_val > snow_z_height) {
         b = JUNK_BIOME_MOUNTAINS;
-        int z = (int) (BIOME_BASE + z_val * MOUNTAIN_HEIGHT);
         for (int h = 0; h < z; h++) {
             enum BLOCK_ID blk = _chunk_mountains_gen(chunk, x, y, h);
             chunk->data.blocks[x][y][h] = blk;
         }
     }
-    else if (z_val > 0.4f) {
+    else if (z_val > plains_z_height) {
         b = JUNK_BIOME_SNOW;
-        int z = (int) (BIOME_BASE + z_val * SNOW_HEIGHT);
         for (int h = 0; h < z; h++) {
             enum BLOCK_ID blk = _chunk_snow_gen(chunk, x, y, h);
             chunk->data.blocks[x][y][h] = blk;
@@ -128,7 +131,6 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         float heat = noise_heat(x + chunk->data.coord[0]*CHUNK_WIDTH, y + chunk->data.coord[1]*CHUNK_LENGTH);
         if (heat > 0.6f) {
             b = JUNK_BIOME_DESERT;
-            int z = (int) (BIOME_BASE + z_val * DESERT_HEIGHT);
             for (int h = 0; h < z; h++) {
                 enum BLOCK_ID blk = _chunk_desert_gen(chunk, x, y, h);
                 chunk->data.blocks[x][y][h] = blk;
@@ -136,7 +138,6 @@ enum biome chunk_block_gen(int x, int y, float z_val, struct chunk* chunk) {
         }
         else {
             b = JUNK_BIOME_PLAINS;
-            int z = (int)(BIOME_BASE + z_val * PLAINS_HEIGHT);
             for (int h = 0; h < z; h++) {
                 enum BLOCK_ID blk = _chunk_plains_gen(chunk, x, y, h);
                 chunk->data.blocks[x][y][h] = blk;
@@ -340,7 +341,7 @@ enum BLOCK_ID _chunk_mountains_gen(struct chunk* chunk, float x, float y, float 
         }
         return BLOCK_STONE;
     } 
-    else if (h <= (BIOME_BASE + MOUNTAIN_HEIGHT) * 0.6) {
+    else if (h <= (BIOME_BASE + BIOME_MAX) * 0.6) {
         float p = (float) rand() / (float) RAND_MAX;
         if (p < 0.3) {
             return BLOCK_STONE;

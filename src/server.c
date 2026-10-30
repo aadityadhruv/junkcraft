@@ -115,7 +115,7 @@ int server_start(struct server *server) {
                     .timestamp = time(NULL),
                 };
                 ssp_send(&init_pkt, client_sock);
-                vec3 pos = { 1.0f, 200.0f, -1.0f };
+                vec3 pos = { 1.0f, 260.0f, -1.0f };
                 pthread_mutex_init(&server->clients[i].pkt_lock, 0);
                 player_data_init(pos, &server->clients[i].player);
                 server->clients[i].uuid = init_pkt.client_uuid;
